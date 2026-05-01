@@ -2,3 +2,11 @@
 ^\.Rproj\.user$
 ^\.positai$
 ^\.claude$
+
+^dev/
+
+^tests/
+
+^_pkgdown.yml
+^docs/
+^vignettes/

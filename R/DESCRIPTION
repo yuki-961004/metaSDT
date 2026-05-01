@@ -1,16 +1,23 @@
 Package: dobySDT
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Authors@R: c(
+Title: Tools for Signal Detection Theory
+Version: 0.0.0
+Authors@R:
+  c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
-      role = c("aut", "cre")
+      given = "YuKi",
+      role = c("aut", "cre"),
+      email = "hmz1969a@gmail.com",
+      comment = c(ORCID = "0009-0000-1378-1318")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: Tools for Signal Detection Theory
+License: GPL-3
 Encoding: UTF-8
-LazyData: true
+LazyData: TRUE
+ByteCompile: TRUE
+RoxygenNote: 7.3.3
+Depends: R (>= 4.1.0)
+Imports: 
+LinkingTo: Rcpp
+Suggests: 
