@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // matrix_freq
 NumericMatrix matrix_freq(NumericVector stim, NumericVector resp, Rcpp::Nullable<NumericVector> conf);
-RcppExport SEXP _dobySDT_matrix_freq(SEXP stimSEXP, SEXP respSEXP, SEXP confSEXP) {
+RcppExport SEXP _metaSDT_matrix_freq(SEXP stimSEXP, SEXP respSEXP, SEXP confSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -25,11 +25,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_dobySDT_matrix_freq", (DL_FUNC) &_dobySDT_matrix_freq, 3},
+    {"_metaSDT_matrix_freq", (DL_FUNC) &_metaSDT_matrix_freq, 3},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_dobySDT(DllInfo *dll) {
+RcppExport void R_init_metaSDT(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

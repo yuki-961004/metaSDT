@@ -4,15 +4,11 @@ format: html
 ---
 
 ```{r}
-source("R/src/wrapper_matrix_freq.cpp")
-```
-
-```{r}
 data <- read.csv("data/data.csv")
 
 sub1 <- data |> dplyr::filter(subj_id == 1)
 
-test <- dobySDT::matrix_freq(
+test <- metaSDT::matrix_freq(
   stim = sub1$stim,
   resp = sub1$resp,
   conf = sub1$conf 

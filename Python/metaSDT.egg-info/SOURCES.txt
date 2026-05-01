@@ -1,0 +1,7 @@
+pyproject.toml
+setup.py
+metaSDT.egg-info/PKG-INFO
+metaSDT.egg-info/SOURCES.txt
+metaSDT.egg-info/dependency_links.txt
+metaSDT.egg-info/top_level.txt
+src/wrapper_matrix_freq.cpp

@@ -1,7 +1,7 @@
 #include <Rcpp.h>
-#include "../../Cpp/include/matrix_freq.hpp"
-// 直接引入纯 C++ 源文件进行联合编译，规避 R 语言包必须在包内寻找源码的限制
-#include "../../Cpp/src/matrix_freq.cpp"
+#include "Cpp/include/matrix_freq.hpp"
+// 纯 C++ 源文件目前已经放置在 R/src 内，继续使用联合编译
+#include "Cpp/src/matrix_freq.cpp"
 
 using namespace Rcpp;
 
@@ -28,7 +28,7 @@ NumericMatrix matrix_freq(
     }
 
     // 2. 调用纯 C++ 底层函数
-    MatrixFreqResult res;
+    MatrixFreq res;
     try {
         res = ::matrix_freq(cpp_stim, cpp_resp, conf_ptr);
     } catch (std::exception& e) {

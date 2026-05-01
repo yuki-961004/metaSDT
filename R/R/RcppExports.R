@@ -9,6 +9,6 @@
 #' @import Rcpp
 #' @export
 matrix_freq <- function(stim, resp, conf = NULL) {
-    .Call(`_dobySDT_matrix_freq`, stim, resp, conf)
+    .Call(`_metaSDT_matrix_freq`, stim, resp, conf)
 }
 

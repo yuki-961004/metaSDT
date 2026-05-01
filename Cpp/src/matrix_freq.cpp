@@ -69,7 +69,7 @@ namespace matrix_freq_helper {
     }
 }
 
-MatrixFreqResult matrix_freq(
+MatrixFreq matrix_freq(
     const std::vector<double>& stim,
     const std::vector<double>& resp,
     const std::vector<double>* conf) {
@@ -97,7 +97,7 @@ MatrixFreqResult matrix_freq(
     size_t n_cols_out = n_dec * n_conf;
 
     // 预分配频数矩阵
-    MatrixFreqResult result;
+    MatrixFreq result;
     result.freq_mat.assign(
         n_sig, std::vector<double>(n_cols_out, 0.0)
     );
