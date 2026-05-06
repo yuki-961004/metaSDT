@@ -12,8 +12,38 @@ extra_compile_args = ["/std:c++17"] if sys.platform == "win32" else ["-std=c++17
 
 ext_modules = [
     Extension(
-        "metaSDT._core",
+        "metaSDT._core_matrix_freq",
         ["src/wrapper_matrix_freq.cpp"],
+        include_dirs=[
+            get_pybind_include(),
+            "src/Cpp/include"
+        ],
+        language='c++',
+        extra_compile_args=extra_compile_args,
+    ),
+    Extension(
+        "metaSDT._help_modify_params",
+        ["src/wrapper_modify_params.cpp"],
+        include_dirs=[
+            get_pybind_include(),
+            "src/Cpp/include"
+        ],
+        language='c++',
+        extra_compile_args=extra_compile_args,
+    ),
+    Extension(
+        "metaSDT._model_sdt",
+        ["src/wrapper_model_sdt.cpp"],
+        include_dirs=[
+            get_pybind_include(),
+            "src/Cpp/include"
+        ],
+        language='c++',
+        extra_compile_args=extra_compile_args,
+    ),
+    Extension(
+        "metaSDT._core_matrix_prob",
+        ["src/wrapper_matrix_prob.cpp"],
         include_dirs=[
             get_pybind_include(),
             "src/Cpp/include"
@@ -25,6 +55,6 @@ ext_modules = [
 
 setup(
     name="metaSDT",
-    version="0.0.0",
+    version="0.0.1",
     ext_modules=ext_modules,
 )

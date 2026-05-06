@@ -14,3 +14,69 @@ test <- metaSDT::matrix_freq(
   conf = sub1$conf 
 )
 ```
+
+```{r}
+# 1. 直接编译并加载新封装的 C++ 包装器函数 (兼容从项目根目录执行)
+# ==============================================================================
+# 2. 测试全新的 modify_params 功能
+# ==============================================================================
+# 编译并加载包装器函数 (兼容从项目根目录执行)
+# 注意：如果您之后使用 devtools::load_all() 整体加载了包，这行就可以删掉了
+Rcpp::sourceCpp("./R/src/wrapper_modify_params.cpp")
+Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
+Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
+
+# ==============================================================================
+# 2. 测试全新的 modify_params 功能
+# ==============================================================================
+
+cat("=== Test 1: 扁平 List 输入 (默认全部当做 free 参数) ===\n")
+res1 <- modify_params(list(d = 2.5))
+print(res1$d)          # 预期: 2.5
+
+cat("\n=== Test 2: 降维移动 (使用结构化 List，将默认在 free 的 c_resp 固定到 fixed) ===\n")
+res2 <- modify_params(list(fixed = list(c_resp = 1.0)))
+print(res2$c_resp)     # 预期: 1.0
+
+cat("\n=== Test 3: 向量序列输入 (自适应转化为 C++ vector) ===\n")
+res3 <- modify_params(list(c_conf = c(0.1, 0.5, 0.9, 1.2)))
+print(res3$c_conf)     # 预期: 0.1 0.5 0.9 1.2
+
+cat("\n=== Test 4: 乌龙冲突处理 (同参数出现在多槽，高优先级 free 胜出) ===\n")
+res4 <- modify_params(list(free = list(rate_decay = 0.8), fixed = list(rate_decay = 0.5)))
+print(res4$rate_decay) # 预期: 0.8
+
+cat("\n=== Test 5: 极端情况，传入 NULL (返回默认参数集) ===\n")
+res5 <- modify_params(NULL)
+
+print(res5$d)          # 预期: 1.5
+print(res5$c_conf)     # 预期: 0.5 1.0 1.5
+```
+
+```{r}
+# ==============================================================================
+# 3. 测试 ModelSDT 模型 (计算击中率与虚报率)
+# ==============================================================================
+Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
+
+cat("\n=== Test 6: ModelSDT 核心引擎测试 ===\n")
+# 获取处理好的完整参数 (设 d=2.0, c_resp=0.5)
+final_params <- modify_params(list(d = 2.0, c_resp = 0.5))
+
+# 直接传入模型参数和坐标 x，返回计算结果
+res_cdf <- model_sdt(final_params, final_params$c_resp)
+
+cat("False Alarm Rate (虚报率):", 1 - res_cdf$cdf_noise, "\n")
+cat("Hit Rate (击中率):", 1 - res_cdf$cdf_signal, "\n")
+```
+
+```{r}
+# ==============================================================================
+# 4. 测试 matrix_prob 概率矩阵
+# ==============================================================================
+Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
+
+cat("\n=== Test 7: Matrix Prob 理论概率矩阵 ===\n")
+prob_mat <- matrix_prob(res_cdf$cdf_noise, res_cdf$cdf_signal, final_params)
+print(prob_mat)
+```
