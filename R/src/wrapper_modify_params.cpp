@@ -1,6 +1,5 @@
 #include <Rcpp.h>
-// 引用 inst/include 下的标准包头文件
-#include <modify_params.hpp>
+#include "Cpp/include/modify_params.hpp"
 
 // 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
 // 避免它自作主张将 cpp 文件单独抽出编译，从而解决"重复链接"和"未定义引用"的问题
@@ -83,8 +82,22 @@ List modify_params(RObject params = R_NilValue) {
     }
 
     // 调用纯 C++ 核心函数
-    auto flat_cpp_params = ::modify_and_flatten_params(user_params);
+    auto cpp_result = ::modify_and_flatten_params(user_params);
 
-    // 将 C++ 结果转回 R 的 List
-    return Rcpp::wrap(flat_cpp_params);
+    // 将 C++ 的 flat 结果转回 R 的 List 作为主体
+    List out_list = Rcpp::wrap(cpp_result.flat);
+    
+    // 提取并构建自由参数、固定参数等名称向量
+    std::vector<std::string> free_names, fixed_names, constant_names;
+    for (const auto& kv : cpp_result.structured.free) free_names.push_back(kv.first);
+    for (const auto& kv : cpp_result.structured.fixed) fixed_names.push_back(kv.first);
+    for (const auto& kv : cpp_result.structured.constant) constant_names.push_back(kv.first);
+    
+    // 直接作为普通的元素放入 List (新增的 3 个槽位)
+    // 这样在 R 中可以直接通过 params$free_params 获取自由参数列表
+    out_list["free_params"] = free_names;
+    out_list["fixed_params"] = fixed_names;
+    out_list["constant_params"] = constant_names;
+    
+    return out_list;
 }

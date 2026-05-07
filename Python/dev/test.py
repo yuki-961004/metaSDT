@@ -1,7 +1,7 @@
-# %% 
+# %%
 # 环境安装区 (如果已经安装成功，以后不需要运行此块)
-# %pip install pandas 
-# %pip install -e Python 
+# %pip install pandas
+# %pip install -e Python
 
 # %%
 import pandas
@@ -11,16 +11,28 @@ import metaSDT
 # 读取真实数据 (注意：普通 py 文件运行时的当前目录通常是项目根目录，或者该文件所在目录，视你的编辑器配置而定)
 # 如果以下路径报错，请尝试改为 "data/data.csv" (如果是以项目根目录运行)
 data = pandas.read_csv("data/data.csv")
-sub1 = data[data['subj_id'] == 1]
 
 # %%
-test = metaSDT.matrix_freq(
-    stim = sub1['stim'],
-    resp = sub1['resp'],
-    conf = sub1['conf']
-)
+# ==============================================================================
+# 0. 测试 Data Info 数据扫描与轻量级 Pandas 视图
+# ==============================================================================
+print("\n=== Test 9: Data Info Helper 测试 ===")
+# 使用整个完整原始数据集 data，自动匹配列名，并假定 'stim' 为我们要切分的 condition 条件
+std_data = metaSDT.data_info(df=data, condition="stim")
 
-print(test)
+# 直接通过字典键 '1' 提取被试 1 的信息
+sub1_info = std_data["subjects"]["1"]
+
+sub1_raw = data.iloc[sub1_info.raw]
+sub1_condition = data.iloc[sub1_info.condition[1]]
+
+# %%
+# ==============================================================================
+# 测试全新的 matrix_freq 功能
+# ==============================================================================
+freq_mat = metaSDT.matrix_freq(
+    stim=sub1_raw["stim"], resp=sub1_raw["resp"], conf=sub1_raw["conf"]
+)
 
 # %%
 # ==============================================================================
@@ -33,7 +45,9 @@ print("=== Test 1: 扁平 Dict 输入 (默认全部当做 free 参数) ===")
 res1 = metaSDT.modify_params({"d": 2.5})
 print(res1["d"])  # 预期: [2.5] (注意 C++ 返回的是 vector，所以在 Python 里表现为 list)
 
-print("\n=== Test 2: 降维移动 (使用结构化 Dict，将默认在 free 的 c_resp 固定到 fixed) ===")
+print(
+    "\n=== Test 2: 降维移动 (使用结构化 Dict，将默认在 free 的 c_resp 固定到 fixed) ==="
+)
 res2 = metaSDT.modify_params({"fixed": {"c_resp": 1.0}})
 print(res2["c_resp"])  # 预期: [1.0]
 
@@ -42,30 +56,53 @@ res3 = metaSDT.modify_params({"c_conf": [0.1, 0.5, 0.9, 1.2]})
 print(res3["c_conf"])  # 预期: [0.1, 0.5, 0.9, 1.2]
 
 print("\n=== Test 4: 乌龙冲突处理 (同参数出现在多槽，高优先级 free 胜出) ===")
-res4 = metaSDT.modify_params({"free": {"rate_decay": 0.8}, "fixed": {"rate_decay": 0.5}})
+res4 = metaSDT.modify_params(
+    {"free": {"rate_decay": 0.8}, "fixed": {"rate_decay": 0.5}}
+)
 print(res4["rate_decay"])  # 预期: [0.8]
 
 print("\n=== Test 5: 极端情况，传入 None (返回默认参数集) ===")
 res5 = metaSDT.modify_params(None)
-print(res5["d"])       # 预期: [1.5]
+print(res5["d"])  # 预期: [1.5]
+
+del res1, res2, res3, res4, res5
 
 # %%
 # ==============================================================================
 # 3. 测试 ModelSDT 核心引擎
 # ==============================================================================
 print("\n=== Test 6: ModelSDT 核心引擎测试 ===")
-std_params = metaSDT.modify_params({"d": 2.0, "c_resp": 0.5})
+std_params = metaSDT.modify_params(
+    {
+        "d": 2.0,
+        "c_resp": 0.5,
+        "c_conf": [0.1, 0.5, 0.9],  # 使用 [] 输入向量
+    }
+)
 
-# 直接传入模型参数和坐标 x，返回计算结果
-res_cdf = metaSDT.model_sdt(std_params, std_params["c_resp"])
+# 直接传入参数，底层会自动读取 c_resp 和 c_conf 展开计算
+sdt_cdf = metaSDT.model_sdt(std_params)
 
-print(f"False Alarm Rate (虚报率): {1 - res_cdf['cdf_noise'][0]:.4f}")
-print(f"Hit Rate (击中率): {1 - res_cdf['cdf_signal'][0]:.4f}")
+print(
+    f"False Alarm Rates (所有切点的虚报率):\n {[round(1 - val, 4) for val in res_cdf['cdf_noise']]}"
+)
+print(
+    f"Hit Rates (所有切点的击中率):\n {[round(1 - val, 4) for val in res_cdf['cdf_signal']]}"
+)
 
 # %%
 # ==============================================================================
 # 4. 测试 matrix_prob 概率矩阵生成
 # ==============================================================================
 print("\n=== Test 7: Matrix Prob (理论概率矩阵) ===")
-prob_mat = metaSDT.matrix_prob(res_cdf['cdf_noise'], res_cdf['cdf_signal'], std_params)
+prob_mat = metaSDT.matrix_prob(sdt_cdf["cdf_noise"], sdt_cdf["cdf_signal"], std_params)
 print(prob_mat)
+
+# %%
+# ==============================================================================
+# 5. 测试 matrix_mult 似然矩阵相乘
+# ==============================================================================
+print("\n=== Test 8: Matrix Mult (似然矩阵相乘) ===")
+# 注意：变量 'freq_mat' 是我们在上面步骤跑出来的频数矩阵 DataFrame
+logl_mat = metaSDT.matrix_mult(freq_mat, prob_mat, std_params)
+print(logl_mat)

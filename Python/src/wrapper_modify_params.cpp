@@ -65,10 +65,21 @@ py::dict py_modify_params(py::object params = py::none()) {
     }
 
     // 调用纯 C++ 底层的核心计算函数
-    auto flat_cpp_params = modify_and_flatten_params(user_params);
+    auto cpp_result = modify_and_flatten_params(user_params);
 
     // 得益于 <pybind11/stl.h>，C++ 的 map 会被自动且安全地转化为 Python 的 dict
-    return py::cast(flat_cpp_params);
+    py::dict out_dict = py::cast(cpp_result.flat);
+    
+    py::list free_keys, fixed_keys, constant_keys;
+    for (const auto& kv : cpp_result.structured.free) free_keys.append(kv.first);
+    for (const auto& kv : cpp_result.structured.fixed) fixed_keys.append(kv.first);
+    for (const auto& kv : cpp_result.structured.constant) constant_keys.append(kv.first);
+    
+    out_dict["free_params"] = free_keys;
+    out_dict["fixed_params"] = fixed_keys;
+    out_dict["constant_params"] = constant_keys;
+    
+    return out_dict;
 }
 
 PYBIND11_MODULE(_help_modify_params, m) {

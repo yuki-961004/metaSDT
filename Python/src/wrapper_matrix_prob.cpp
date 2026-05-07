@@ -9,10 +9,17 @@ namespace py = pybind11;
 py::dict py_matrix_prob(
     const std::vector<double>& cdf_noise,
     const std::vector<double>& cdf_signal,
-    const std::unordered_map<std::string, std::vector<double>>& params
+    py::dict params
 ) {
+    std::unordered_map<std::string, std::vector<double>> cpp_params;
+    for (auto item : params) {
+        std::string key = py::str(item.first);
+        // 拦截包含元数据的槽位
+        if (key == "free_params" || key == "fixed_params" || key == "constant_params") continue;
+        cpp_params[key] = item.second.cast<std::vector<double>>();
+    }
     // 调用底层的 C++ 函数计算概率矩阵
-    MatrixProb mat = matrix_prob(cdf_noise, cdf_signal, params);
+    MatrixProb mat = matrix_prob(cdf_noise, cdf_signal, cpp_params);
     
     // 封装为 Python 的字典，方便外层套壳转换为 Pandas DataFrame
     py::dict res;

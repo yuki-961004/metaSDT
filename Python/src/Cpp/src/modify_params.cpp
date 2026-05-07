@@ -22,7 +22,7 @@ ParamGroup generate_default_params() {
     defaults.fixed["sd_noise"] = {1.0};             // [All models] 噪声分布的标准差
     
     // --- 置信度核心参数 (Meta/Type-2) ---
-    defaults.fixed["c_conf"] = {0.5, 1.0, 1.5};     // [All models] 二阶置信度边界向量 (通常也会被移入 free)
+    defaults.fixed["c_conf"] = {};                  // [All models] 二阶置信度边界向量 (默认无置信度，为空)
     
     // --- 变异模型专属参数 (按机制分类) ---
     // 1. 噪声机制 (Noise)
@@ -55,11 +55,28 @@ ParamGroup generate_default_params() {
 }
 
 // 核心处理函数
-std::unordered_map<std::string, std::vector<double>> modify_and_flatten_params(const ParamGroup& user_params) {
+ModifiedParamsResult modify_and_flatten_params(const ParamGroup& user_params) {
     
     // 1. 初始化默认值
     // 从全局默认配置表中加载，代替硬编码
     ParamGroup params = generate_default_params();
+
+    // 【新增规则：以用户输入为最高优先级】
+    // 如果用户在 free 中显式指定了参数（例如输入了 list(d=2.0, c_conf=...)），
+    // 那么系统默认的 free 列表里未被用户明确提及的参数（如 c_resp），
+    // 将自动降级为 fixed 参数，从而不再作为自由参数被优化。
+    if (!user_params.free.empty()) {
+        std::vector<std::string> to_demote;
+        for (const auto& kv : params.free) {
+            if (user_params.free.find(kv.first) == user_params.free.end()) {
+                to_demote.push_back(kv.first);
+            }
+        }
+        for (const auto& key : to_demote) {
+            params.fixed[key] = params.free[key];
+            params.free.erase(key);
+        }
+    }
 
     // 2. 动态覆盖与互斥清理 (按 constant -> fixed -> free 的优先级升序处理)
     // 这种做法能够安全响应用户的任何层级移动 (例如把默认 free 的参数放入 fixed 固定住)。
@@ -98,6 +115,10 @@ std::unordered_map<std::string, std::vector<double>> modify_and_flatten_params(c
         flat_params[kv.first] = kv.second;
     }
 
-    // 返回拍扁后的集合，后续可以直接通过 flat_params["参数名"] 调用参数值
-    return flat_params;
+    // 返回结构体：既包含拍扁后的字典，也包含更新后的 ParamGroup 结构化信息
+    ModifiedParamsResult result;
+    result.flat = flat_params;
+    result.structured = params;
+    
+    return result;
 }

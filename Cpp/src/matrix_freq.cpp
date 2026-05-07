@@ -132,9 +132,14 @@ MatrixFreq matrix_freq(
             unique_conf, num_mat[i][2]
         );
 
-        // 将反应与信心的二维关系展平为一维列索引 
-        // (公式: resp_idx * n_conf + conf_idx)
-        int col_idx = resp_idx * n_conf + conf_idx;
+        // 将反应与信心的二维关系展平为一维列索引
+        // 按照 321123 的自然顺序，针对噪声反应(resp_idx==0)置信度倒序，其余正序
+        int col_idx;
+        if (resp_idx == 0) {
+            col_idx = (n_conf - 1) - conf_idx;
+        } else {
+            col_idx = resp_idx * n_conf + conf_idx;
+        }
         // 在对应的矩阵单元格累加频数 (+1)
         result.freq_mat[row_idx][col_idx] += 1.0; 
     }
@@ -146,7 +151,9 @@ MatrixFreq matrix_freq(
         );
     }
     for (size_t r = 0; r < n_resp; ++r) {
-        for (size_t c = 0; c < n_conf; ++c) {
+        for (size_t c_loop = 0; c_loop < n_conf; ++c_loop) {
+            // 根据自然排序，resp 0 的 confidence 倒序排列，其余正序
+            size_t c = (r == 0) ? (n_conf - 1 - c_loop) : c_loop;
             std::string r_str = matrix_freq_helper::format_double(unique_resp[r]);
             if (conf == nullptr) {
                 // 若没有使用信心指数，则列名仅标记反应类型

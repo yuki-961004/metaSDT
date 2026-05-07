@@ -4,7 +4,10 @@ metaSDT.egg-info/PKG-INFO
 metaSDT.egg-info/SOURCES.txt
 metaSDT.egg-info/dependency_links.txt
 metaSDT.egg-info/top_level.txt
+src/wrapper_data_info.cpp
+src/wrapper_loss_function.cpp
 src/wrapper_matrix_freq.cpp
+src/wrapper_matrix_mult.cpp
 src/wrapper_matrix_prob.cpp
 src/wrapper_model_sdt.cpp
 src/wrapper_modify_params.cpp

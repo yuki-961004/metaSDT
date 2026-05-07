@@ -26,6 +26,36 @@ ModelSDT::ModelSDT(const std::unordered_map<std::string, std::vector<double>>& p
     // 为了配合默认参数中的 c_resp = 0.0 (无偏好)，我们将噪声和信号分布对称放置在 0 的两侧
     mu_noise = -d / 2.0;
     mu_signal = d / 2.0;
+
+    // ==========================================================
+    // 自动产出坐标轴上的所有切割点 (Criteria)
+    // ==========================================================
+    double c_resp_val = 0.0;
+    if (params.count("c_resp") > 0 && !params.at("c_resp").empty()) {
+        c_resp_val = params.at("c_resp")[0];
+    }
+
+    if (params.count("c_conf") > 0 && !params.at("c_conf").empty()) {
+        const auto& c_conf = params.at("c_conf");
+        for (auto it = c_conf.rbegin(); it != c_conf.rend(); ++it) {
+            criteria.push_back(c_resp_val - *it);
+        }
+        criteria.push_back(c_resp_val);
+        for (auto it = c_conf.begin(); it != c_conf.end(); ++it) {
+            criteria.push_back(c_resp_val + *it);
+        }
+    } else {
+        criteria.push_back(c_resp_val);
+    }
+}
+
+// 默认无参版本，使用内部自动生成的 criteria
+std::vector<double> ModelSDT::cdf_noise() const {
+    return cdf_noise(this->criteria);
+}
+
+std::vector<double> ModelSDT::cdf_signal() const {
+    return cdf_signal(this->criteria);
 }
 
 // ==========================================================

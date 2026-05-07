@@ -15,7 +15,13 @@ struct ParamGroup {
 // 声明：14 个元认知模型的全局通用参数列表 (C++ 版)
 ParamGroup generate_default_params();
 
+// 声明：用于返回结果的结构体，包含拍扁后的字典以及分类保留的结构化参数
+struct ModifiedParamsResult {
+    std::unordered_map<std::string, std::vector<double>> flat;
+    ParamGroup structured;
+};
+
 // 声明：核心处理函数
-std::unordered_map<std::string, std::vector<double>> modify_and_flatten_params(const ParamGroup& user_params);
+ModifiedParamsResult modify_and_flatten_params(const ParamGroup& user_params);
 
 #endif // MODIFY_PARAMS_HPP
