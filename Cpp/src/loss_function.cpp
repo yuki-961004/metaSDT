@@ -5,17 +5,21 @@
 LossResult loss_function(
     const std::vector<std::vector<double>>& mult_mat,
     const std::vector<std::vector<double>>& freq_mat,
-    const std::unordered_map<std::string, std::vector<double>>& params,
-    const std::vector<std::string>& free_params
+    int k
 ) {
+    // ==========================================================
+    // 1. 安全检查
+    // ==========================================================
     if (mult_mat.empty() || freq_mat.empty()) {
         throw std::invalid_argument("Error: Input matrices cannot be empty.");
     }
 
+    // ==========================================================
+    // 2. 遍历矩阵：计算总对数似然 (LogL) 与总试次 (N)
+    // ==========================================================
     double logL = 0.0;
     double N = 0.0;
 
-    // 1. 遍历矩阵，同时累加总对数似然 (logL) 和总试次数 (N)
     for (size_t i = 0; i < mult_mat.size(); ++i) {
         for (size_t j = 0; j < mult_mat[i].size(); ++j) {
             logL += mult_mat[i][j];
@@ -23,16 +27,9 @@ LossResult loss_function(
         }
     }
 
-    // 2. 精准计算自由参数个数 k
-    // 遍历 free_params 列表，提取字典中的数组长度（支持多维度的 c_conf）
-    int k = 0;
-    for (const auto& param_name : free_params) {
-        if (params.count(param_name) > 0) {
-            k += params.at(param_name).size();
-        }
-    }
-
-    // 3. 封装并计算所有的指标
+    // ==========================================================
+    // 3. 封装计算信息准则指标 (AIC, BIC 等)
+    // ==========================================================
     LossResult res;
     res.logL = logL;
     res.nll = -logL; // 供 NLOPT 使用的最小化目标

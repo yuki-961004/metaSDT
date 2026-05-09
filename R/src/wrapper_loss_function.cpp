@@ -23,25 +23,16 @@ List loss_function(NumericMatrix mult_mat, NumericMatrix freq_mat, List params) 
         }
     }
     
-    std::unordered_map<std::string, std::vector<double>> cpp_params;
-    std::vector<std::string> free_params;
-
-    if (params.size() > 0 && params.hasAttribute("names")) {
-        CharacterVector names = params.names();
-        for (int i = 0; i < params.size(); ++i) {
-            std::string key = as<std::string>(names[i]);
-            if (key == "free_params") {
-                free_params = as<std::vector<std::string>>(params[i]);
-                continue;
-            }
-            if (key == "fixed_params" || key == "constant_params") continue;
-            cpp_params[key] = as<std::vector<double>>(params[i]);
-        }
+    int k = 0;
+    if (params.containsElementNamed("numb_free")) {
+        k = as<int>(params["numb_free"]);
+    } else {
+        stop("Error: 'params' must contain 'numb_free'. Please pass the output of modify_params().");
     }
 
     LossResult res;
     try {
-        res = ::loss_function(cpp_mult, cpp_freq, cpp_params, free_params);
+        res = ::loss_function(cpp_mult, cpp_freq, k);
     } catch (std::exception& e) {
         stop(e.what());
     }

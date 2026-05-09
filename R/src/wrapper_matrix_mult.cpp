@@ -30,7 +30,13 @@ NumericMatrix matrix_mult(NumericMatrix freq_mat, NumericMatrix prob_mat, List p
         CharacterVector names = params.names();
         for (int i = 0; i < params.size(); ++i) {
             std::string key = as<std::string>(names[i]);
-            if (key == "free_params" || key == "fixed_params" || key == "constant_params") continue;
+            if (key == "name_free" || key == "name_fixed" || 
+                key == "name_constant" || key == "numb_free" || 
+                key == "numb_fixed" || key == "numb_constant" ||
+                key == "free_params" || key == "fixed_params" || 
+                key == "constant_params") {
+                continue;
+            }
             cpp_params[key] = as<std::vector<double>>(params[i]);
         }
     }

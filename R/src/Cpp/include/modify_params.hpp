@@ -19,6 +19,12 @@ ParamGroup generate_default_params();
 struct ModifiedParamsResult {
     std::unordered_map<std::string, std::vector<double>> flat;
     ParamGroup structured;
+    std::vector<std::string> name_free;
+    std::vector<std::string> name_fixed;
+    std::vector<std::string> name_constant;
+    int numb_free;
+    int numb_fixed;
+    int numb_constant;
 };
 
 // 声明：核心处理函数

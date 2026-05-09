@@ -70,14 +70,13 @@ py::dict py_modify_params(py::object params = py::none()) {
     // 得益于 <pybind11/stl.h>，C++ 的 map 会被自动且安全地转化为 Python 的 dict
     py::dict out_dict = py::cast(cpp_result.flat);
     
-    py::list free_keys, fixed_keys, constant_keys;
-    for (const auto& kv : cpp_result.structured.free) free_keys.append(kv.first);
-    for (const auto& kv : cpp_result.structured.fixed) fixed_keys.append(kv.first);
-    for (const auto& kv : cpp_result.structured.constant) constant_keys.append(kv.first);
+    out_dict["name_free"] = cpp_result.name_free;
+    out_dict["name_fixed"] = cpp_result.name_fixed;
+    out_dict["name_constant"] = cpp_result.name_constant;
     
-    out_dict["free_params"] = free_keys;
-    out_dict["fixed_params"] = fixed_keys;
-    out_dict["constant_params"] = constant_keys;
+    out_dict["numb_free"] = cpp_result.numb_free;
+    out_dict["numb_fixed"] = cpp_result.numb_fixed;
+    out_dict["numb_constant"] = cpp_result.numb_constant;
     
     return out_dict;
 }

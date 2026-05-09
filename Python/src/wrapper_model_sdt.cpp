@@ -12,7 +12,13 @@ py::dict py_model_sdt(py::dict params) {
     for (auto item : params) {
         std::string key = py::str(item.first);
         // 拦截包含元数据的槽位
-        if (key == "free_params" || key == "fixed_params" || key == "constant_params") continue;
+        if (key == "name_free" || key == "name_fixed" || 
+            key == "name_constant" || key == "numb_free" || 
+            key == "numb_fixed" || key == "numb_constant" ||
+            key == "free_params" || key == "fixed_params" || 
+            key == "constant_params") {
+            continue;
+        }
         cpp_params[key] = item.second.cast<std::vector<double>>();
     }
     ModelSDT model(cpp_params);
@@ -31,7 +37,13 @@ PYBIND11_MODULE(_model_sdt, m) {
             std::unordered_map<std::string, std::vector<double>> cpp_params;
             for (auto item : params) {
                 std::string key = py::str(item.first);
-                if (key == "free_params" || key == "fixed_params" || key == "constant_params") continue;
+                if (key == "name_free" || key == "name_fixed" || 
+                    key == "name_constant" || key == "numb_free" || 
+                    key == "numb_fixed" || key == "numb_constant" ||
+                    key == "free_params" || key == "fixed_params" || 
+                    key == "constant_params") {
+                    continue;
+                }
                 cpp_params[key] = item.second.cast<std::vector<double>>();
             }
             return new ModelSDT(cpp_params);

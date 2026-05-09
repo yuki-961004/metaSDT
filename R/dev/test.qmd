@@ -10,13 +10,13 @@ sub1 <- data |> dplyr::filter(subj_id == 1)
 
 Rcpp::sourceCpp("./R/src/wrapper_data_info.cpp")
 
-test <- data_info(data)
+info <- data_info(data)
 
 # 1. 从 data_info 的结果中，提取出被试 '29' 的行号索引
-indices_sub29 <- test$subjects$`29`$raw
+sub29 <- info$subjects$`29`$raw
 
 # 2. 使用这串行号，从原始的、完整的 `data` 数据框中进行切片，得到真实的 dataframe
-df_sub29 <- data[indices_sub29, ]
+df_sub29 <- data[sub29, ]
 
 # (可选) 打印一下，看看是不是成功提取了 29 号被试的数据
 head(df_sub29)
@@ -80,13 +80,13 @@ Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
 
 cat("\n=== Test 6: ModelSDT 核心引擎测试 ===\n")
 # 获取处理好的完整参数 (设 d=2.0, c_resp=0.5)
-final_params <- modify_params(params = list(
+std_params <- modify_params(params = list(
   free = list(d = 2.0, c_conf = c(0.1, 0.5, 0.9)),
-  fixed = list(c_resp = 0.5)
+  fixed = list(c_resp = 0)
 ))
 
 # 直接传入参数，model_sdt 现在会自动读取 c_conf 和 c_resp，智能生成全套积分面积！
-res_cdf <- model_sdt(final_params)
+res_cdf <- model_sdt(std_params)
 
 cat("False Alarm Rates (所有切点的虚报率):\n", 1 - res_cdf$cdf_noise, "\n")
 cat("Hit Rates (所有切点的击中率):\n", 1 - res_cdf$cdf_signal, "\n")
@@ -100,11 +100,16 @@ Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
 
 cat("\n=== Test 7: Matrix Prob 理论概率矩阵 ===\n")
 prob_mat <- matrix_prob(res_cdf$cdf_noise, res_cdf$cdf_signal, final_params)
-print(prob_mat)
 ```
 
 
 ```{r}
 Rcpp::sourceCpp("./R/src/wrapper_matrix_mult.cpp")
-matrix_mult(freq_mat, prob_mat, final_params)
+matrix_mult(freq_mat, prob_mat, std_params)
+```
+
+
+```{r}
+Rcpp::sourceCpp("./R/src/wrapper_loss_function.cpp")
+loss_function(freq_mat, prob_mat, std_params)
 ```

@@ -15,7 +15,13 @@ std::vector<std::vector<double>> py_matrix_mult(
     for (auto item : params) {
         std::string key = py::str(item.first);
         // 拦截包含元数据的槽位
-        if (key == "free_params" || key == "fixed_params" || key == "constant_params") continue;
+        if (key == "name_free" || key == "name_fixed" || 
+            key == "name_constant" || key == "numb_free" || 
+            key == "numb_fixed" || key == "numb_constant" ||
+            key == "free_params" || key == "fixed_params" || 
+            key == "constant_params") {
+            continue;
+        }
         cpp_params[key] = item.second.cast<std::vector<double>>();
     }
     

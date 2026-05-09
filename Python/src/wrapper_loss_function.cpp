@@ -11,20 +11,14 @@ py::dict py_loss_function(
     const std::vector<std::vector<double>>& freq_mat,
     py::dict params
 ) {
-    std::unordered_map<std::string, std::vector<double>> cpp_params;
-    std::vector<std::string> free_params;
-
-    for (auto item : params) {
-        std::string key = py::str(item.first);
-        if (key == "free_params") {
-            free_params = item.second.cast<std::vector<std::string>>();
-            continue;
-        }
-        if (key == "fixed_params" || key == "constant_params") continue;
-        cpp_params[key] = item.second.cast<std::vector<double>>();
+    int k = 0;
+    if (params.contains("numb_free")) {
+        k = params["numb_free"].cast<int>();
+    } else {
+        throw py::value_error("Error: 'params' must contain 'numb_free'.");
     }
     
-    LossResult res = loss_function(mult_mat, freq_mat, cpp_params, free_params);
+    LossResult res = loss_function(mult_mat, freq_mat, k);
     
     py::dict out;
     out["logL"] = res.logL;

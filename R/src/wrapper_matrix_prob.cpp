@@ -21,7 +21,13 @@ NumericMatrix matrix_prob(NumericVector cdf_noise, NumericVector cdf_signal, Lis
         for (int i = 0; i < params.size(); ++i) {
             std::string key = as<std::string>(names[i]);
             // 拦截包含元数据的槽位，防止将其强制转换为 double 数组时报错
-            if (key == "free_params" || key == "fixed_params" || key == "constant_params") continue;
+            if (key == "name_free" || key == "name_fixed" || 
+                key == "name_constant" || key == "numb_free" || 
+                key == "numb_fixed" || key == "numb_constant" ||
+                key == "free_params" || key == "fixed_params" || 
+                key == "constant_params") {
+                continue;
+            }
             cpp_params[key] = as<std::vector<double>>(params[i]);
         }
     }

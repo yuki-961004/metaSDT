@@ -3,7 +3,8 @@
 #include <set>
 #include <stdexcept>
 
-namespace matrix_freq_helper {
+namespace {
+    // 匿名命名空间：内部辅助函数仅在当前文件内可见，不会引起符号冲突
 
     int find_index(const std::vector<double>& vec, double target) {
         // 使用标准库 std::find 在向量中查找目标值
@@ -86,13 +87,18 @@ MatrixFreq matrix_freq(
     const std::vector<double>& resp,
     const std::vector<double>* conf) {
 
-    // 1. 整理输入数据，合并成统一的 N x 3 数值矩阵
-    auto num_mat = matrix_freq_helper::prep_num_mat(
+    // ==========================================================
+    // 1. 整理输入数据，合并成统一的数值矩阵
+    // ==========================================================
+    auto num_mat = prep_num_mat(
         stim, resp, conf
     );
     size_t n_rows = num_mat.size();
 
-    // 2. 按列拆分数值矩阵，目的是针对各个维度提取并计算各自包含的 Unique（唯一）值
+    // ==========================================================
+    // 2. 拆分维度并提取唯一值 (Unique Values)
+    // ==========================================================
+    // 按列拆分数值矩阵，目的是针对各个维度提取并计算各自包含的唯一值
     std::vector<double> stim_col, resp_col, conf_col;
     for (size_t i = 0; i < n_rows; ++i) {
         stim_col.push_back(num_mat[i][0]);
@@ -100,12 +106,15 @@ MatrixFreq matrix_freq(
         conf_col.push_back(num_mat[i][2]);
     }
 
-    // 3. 提取各个维度的唯一值并自动排序
-    auto unique_stim = matrix_freq_helper::get_unique_sorted(stim_col);
-    auto unique_resp = matrix_freq_helper::get_unique_sorted(resp_col);
-    auto unique_conf = matrix_freq_helper::get_unique_sorted(conf_col);
+    // 提取各个维度的唯一值并自动排序
+    auto unique_stim = get_unique_sorted(stim_col);
+    auto unique_resp = get_unique_sorted(resp_col);
+    auto unique_conf = get_unique_sorted(conf_col);
 
-    // 4. 计算结果矩阵的行列大小：
+    // ==========================================================
+    // 3. 计算并预分配结果矩阵
+    // ==========================================================
+    // 计算结果矩阵的行列大小：
     // 行数为不同刺激的数量，
     // 列数为 (不同反应的数量 × 不同信心指数的数量)
     size_t n_stim = unique_stim.size();
@@ -113,27 +122,31 @@ MatrixFreq matrix_freq(
     size_t n_conf = unique_conf.size();
     size_t n_cols_out = n_resp * n_conf;
 
-    // 5. 预分配结果对象，并将其包含的二维频数矩阵用 0.0 填满初始化
+    // 预分配结果对象，并将其包含的二维频数矩阵用 0.0 填满初始化
     MatrixFreq result;
     result.freq_mat.assign(
         n_stim, std::vector<double>(n_cols_out, 0.0)
     );
 
-    // 6. 遍历原始数据的每一行，查找其在 unique 集合中的索引，
+    // ==========================================================
+    // 4. 遍历并填充频数矩阵
+    // ==========================================================
+    // 遍历原始数据的每一行，查找其在 unique 集合中的索引，
     // 进而定位并累加到结果矩阵的正确位置
     for (size_t i = 0; i < n_rows; ++i) {
-        int row_idx = matrix_freq_helper::find_index(
+        int row_idx = find_index(
             unique_stim, num_mat[i][0]
         );
-        int resp_idx = matrix_freq_helper::find_index(
+        int resp_idx = find_index(
             unique_resp, num_mat[i][1]
         );
-        int conf_idx = matrix_freq_helper::find_index(
+        int conf_idx = find_index(
             unique_conf, num_mat[i][2]
         );
 
         // 将反应与信心的二维关系展平为一维列索引
-        // 按照 321123 的自然顺序，针对噪声反应(resp_idx==0)置信度倒序，其余正序
+        // 按照 321123 的自然顺序:
+        // 针对噪声反应 (resp_idx == 0) 置信度倒序，其余正序
         int col_idx;
         if (resp_idx == 0) {
             col_idx = (n_conf - 1) - conf_idx;
@@ -144,22 +157,24 @@ MatrixFreq matrix_freq(
         result.freq_mat[row_idx][col_idx] += 1.0; 
     }
 
-    // 7. 为结果矩阵生成直观、极具可读性的行名和列名，方便上层（如 R 语言端）直接使用
+    // ==========================================================
+    // 5. 生成直观的行列元数据 (Row / Col Names)
+    // ==========================================================
     for (double stim_val : unique_stim) {
         result.row_names.push_back(
-            "stim_" + matrix_freq_helper::format_double(stim_val)
+            "stim_" + format_double(stim_val)
         );
     }
     for (size_t r = 0; r < n_resp; ++r) {
         for (size_t c_loop = 0; c_loop < n_conf; ++c_loop) {
             // 根据自然排序，resp 0 的 confidence 倒序排列，其余正序
             size_t c = (r == 0) ? (n_conf - 1 - c_loop) : c_loop;
-            std::string r_str = matrix_freq_helper::format_double(unique_resp[r]);
+            std::string r_str = format_double(unique_resp[r]);
             if (conf == nullptr) {
                 // 若没有使用信心指数，则列名仅标记反应类型
                 result.col_names.push_back("resp_" + r_str);
             } else {
-                std::string c_str = matrix_freq_helper::format_double(
+                std::string c_str = format_double(
                     unique_conf[c]
                 );
                 result.col_names.push_back(

@@ -17,8 +17,7 @@ struct LossResult {
 LossResult loss_function(
     const std::vector<std::vector<double>>& mult_mat,
     const std::vector<std::vector<double>>& freq_mat,
-    const std::unordered_map<std::string, std::vector<double>>& params,
-    const std::vector<std::string>& free_params
+    int k
 );
 
 #endif // LOSS_FUNCTION_HPP

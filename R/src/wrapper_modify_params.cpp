@@ -65,12 +65,17 @@ List modify_params(RObject params = R_NilValue) {
         if (Rcpp::is<Rcpp::List>(params)) {
             Rcpp::List r_list(params);
 
-            bool is_structured = r_list.containsElementNamed("free") || r_list.containsElementNamed("fixed") || r_list.containsElementNamed("constant");
+            bool is_structured = r_list.containsElementNamed("free") || 
+                                 r_list.containsElementNamed("fixed") || 
+                                 r_list.containsElementNamed("constant");
 
             if (is_structured) { // Case 1: Structured list like list(free=...)
-                if (r_list.containsElementNamed("free"))   r_obj_to_cpp_map(r_list["free"],   user_params.free);
-                if (r_list.containsElementNamed("fixed"))  r_obj_to_cpp_map(r_list["fixed"],  user_params.fixed);
-                if (r_list.containsElementNamed("constant")) r_obj_to_cpp_map(r_list["constant"], user_params.constant);
+                if (r_list.containsElementNamed("free"))   
+                    r_obj_to_cpp_map(r_list["free"], user_params.free);
+                if (r_list.containsElementNamed("fixed"))  
+                    r_obj_to_cpp_map(r_list["fixed"], user_params.fixed);
+                if (r_list.containsElementNamed("constant")) 
+                    r_obj_to_cpp_map(r_list["constant"], user_params.constant);
             } else { // Case 2: Flat list like list(d=2), treat as free
                 r_obj_to_cpp_map(params, user_params.free);
             }
@@ -87,17 +92,14 @@ List modify_params(RObject params = R_NilValue) {
     // 将 C++ 的 flat 结果转回 R 的 List 作为主体
     List out_list = Rcpp::wrap(cpp_result.flat);
     
-    // 提取并构建自由参数、固定参数等名称向量
-    std::vector<std::string> free_names, fixed_names, constant_names;
-    for (const auto& kv : cpp_result.structured.free) free_names.push_back(kv.first);
-    for (const auto& kv : cpp_result.structured.fixed) fixed_names.push_back(kv.first);
-    for (const auto& kv : cpp_result.structured.constant) constant_names.push_back(kv.first);
+    // 直接将名称与数量信息附加到 R 的 List 中
+    out_list["name_free"] = cpp_result.name_free;
+    out_list["name_fixed"] = cpp_result.name_fixed;
+    out_list["name_constant"] = cpp_result.name_constant;
     
-    // 直接作为普通的元素放入 List (新增的 3 个槽位)
-    // 这样在 R 中可以直接通过 params$free_params 获取自由参数列表
-    out_list["free_params"] = free_names;
-    out_list["fixed_params"] = fixed_names;
-    out_list["constant_params"] = constant_names;
+    out_list["numb_free"] = cpp_result.numb_free;
+    out_list["numb_fixed"] = cpp_result.numb_fixed;
+    out_list["numb_constant"] = cpp_result.numb_constant;
     
     return out_list;
 }

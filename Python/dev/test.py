@@ -84,10 +84,10 @@ std_params = metaSDT.modify_params(
 sdt_cdf = metaSDT.model_sdt(std_params)
 
 print(
-    f"False Alarm Rates (所有切点的虚报率):\n {[round(1 - val, 4) for val in res_cdf['cdf_noise']]}"
+    f"False Alarm Rates (所有切点的虚报率):\n {[round(1 - val, 4) for val in sdt_cdf['cdf_noise']]}"
 )
 print(
-    f"Hit Rates (所有切点的击中率):\n {[round(1 - val, 4) for val in res_cdf['cdf_signal']]}"
+    f"Hit Rates (所有切点的击中率):\n {[round(1 - val, 4) for val in sdt_cdf['cdf_signal']]}"
 )
 
 # %%

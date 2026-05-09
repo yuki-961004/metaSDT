@@ -15,7 +15,13 @@ py::dict py_matrix_prob(
     for (auto item : params) {
         std::string key = py::str(item.first);
         // 拦截包含元数据的槽位
-        if (key == "free_params" || key == "fixed_params" || key == "constant_params") continue;
+        if (key == "name_free" || key == "name_fixed" || 
+            key == "name_constant" || key == "numb_free" || 
+            key == "numb_fixed" || key == "numb_constant" ||
+            key == "free_params" || key == "fixed_params" || 
+            key == "constant_params") {
+            continue;
+        }
         cpp_params[key] = item.second.cast<std::vector<double>>();
     }
     // 调用底层的 C++ 函数计算概率矩阵

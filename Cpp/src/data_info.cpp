@@ -11,7 +11,9 @@ DataInfoResult data_info_core(
 ) {
     DataInfoResult result;
 
+    // ==========================================================
     // 1. 智能列名匹配 (正则表达式字典)
+    // ==========================================================
     // 使用简写作为标准角色名
     std::vector<std::pair<std::string, std::string>> targets = {
         {"subid", ".*(sub|id|participant).*"},
@@ -42,21 +44,42 @@ DataInfoResult data_info_core(
         }
     }
 
-    // 2. 校验关键列，对缺失的列抛出错误或警告
+    // ==========================================================
+    // 2. 校验关键列与缺失处理
+    // ==========================================================
+    std::vector<std::string> missing_roles;
     for (const auto& tgt : targets) {
         const std::string& role = tgt.first;
         if (!result.colnames.count(role)) {
             if (role == "subid") {
-                throw std::invalid_argument("Error: Could not identify the critical column for '" + role + "'. Please specify it in `colnames`.");
+                throw std::invalid_argument(
+                    "Error: Could not identify the critical column for '" + 
+                    role + "'. Please specify it in `colnames`."
+                );
             } else {
-                result.warnings.push_back("Warning: Could not identify column for '" + role + "'. This role will be ignored.");
+                missing_roles.push_back(role);
             }
         }
     }
 
+    if (!missing_roles.empty()) {
+        std::string missing_str = "";
+        for (size_t i = 0; i < missing_roles.size(); ++i) {
+            missing_str += "'" + missing_roles[i] + "'";
+            if (i < missing_roles.size() - 1) missing_str += ", ";
+        }
+        result.warnings.push_back(
+            "Warning: Could not identify column(s) for " + missing_str + 
+            ". These roles will be ignored."
+        );
+    }
+
     std::string subid_col = result.colnames.at("subid");
     if (!df.count(subid_col)) {
-        throw std::invalid_argument("Error: The assigned 'subid' column '" + subid_col + "' does not exist in the dataset.");
+        throw std::invalid_argument(
+            "Error: The assigned 'subid' column '" + subid_col + 
+            "' does not exist in the dataset."
+        );
     }
 
     std::string block_col = "";
@@ -64,7 +87,9 @@ DataInfoResult data_info_core(
         block_col = result.colnames.at("block");
     }
 
+    // ==========================================================
     // 3. 按被试拆分数据集并生成轻量级视图 (View)
+    // ==========================================================
     // 获取总行数 (基于 subid 列的长度)
     size_t n_rows = df.at(subid_col).size();
 
@@ -74,7 +99,8 @@ DataInfoResult data_info_core(
     for (size_t i = 0; i < n_rows; ++i) {
         double subid = df.at(subid_col)[i];
         
-        // 提取该被试对应的引用，如果这是他/她的第一条数据，将自动在 map 中初始化
+        // 提取该被试对应的引用，如果这是他/她的第一条数据，
+        // 将自动在 map 中初始化
         DataInfoSubject& subj = result.subjects[subid];
 
         // 添加极其省内存的行号索引
@@ -88,7 +114,8 @@ DataInfoResult data_info_core(
         }
 
         // 处理条件分组 (Condition Grouping)
-        // 将所有条件的数值拼接成一个字符串键 (例如 condition = [stim, block], 则键为 "1_2")
+        // 将所有条件的数值拼接成一个字符串键 
+        // (例如 condition = [stim, block], 则键为 "1_2")
         if (!condition.empty()) {
             std::ostringstream cond_key;
             for (size_t c = 0; c < condition.size(); ++c) {
@@ -105,7 +132,9 @@ DataInfoResult data_info_core(
         }
     }
 
-    // 4. 计算最终的 block 总数
+    // ==========================================================
+    // 4. 汇总与最终统计计算
+    // ==========================================================
     for (auto& kv : result.subjects) {
         kv.second.info.n_blocks = subject_blocks[kv.first].size();
     }
