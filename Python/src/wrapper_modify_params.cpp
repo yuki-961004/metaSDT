@@ -65,7 +65,7 @@ py::dict py_modify_params(py::object params = py::none()) {
     }
 
     // 调用纯 C++ 底层的核心计算函数
-    auto cpp_result = modify_and_flatten_params(user_params);
+    auto cpp_result = modify_params(user_params);
 
     // 得益于 <pybind11/stl.h>，C++ 的 map 会被自动且安全地转化为 Python 的 dict
     py::dict out_dict = py::cast(cpp_result.flat);
@@ -73,6 +73,9 @@ py::dict py_modify_params(py::object params = py::none()) {
     out_dict["name_free"] = cpp_result.name_free;
     out_dict["name_fixed"] = cpp_result.name_fixed;
     out_dict["name_constant"] = cpp_result.name_constant;
+    
+    out_dict["lower_bounds"] = cpp_result.lower_bounds;
+    out_dict["upper_bounds"] = cpp_result.upper_bounds;
     
     out_dict["numb_free"] = cpp_result.numb_free;
     out_dict["numb_fixed"] = cpp_result.numb_fixed;

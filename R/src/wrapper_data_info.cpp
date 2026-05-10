@@ -8,8 +8,8 @@
 using namespace Rcpp;
 
 //' Intelligently scan the dataset and extract subject-level information.
-// [[Rcpp::export]]
-List data_info(DataFrame df, Nullable<List> colnames = R_NilValue, Nullable<CharacterVector> condition = R_NilValue) {
+// [[Rcpp::export(name = "data_info")]]
+List r_data_info(DataFrame df, Nullable<List> colnames = R_NilValue, Nullable<CharacterVector> condition = R_NilValue) {
     
     // 1. 将 DataFrame 转换为 C++ 的 unordered_map<string, vector<double>>
     std::unordered_map<std::string, std::vector<double>> cpp_df;
@@ -45,7 +45,7 @@ List data_info(DataFrame df, Nullable<List> colnames = R_NilValue, Nullable<Char
     // 4. 调用 C++ 核心函数进行闪电般的数据集扫描
     DataInfoResult res;
     try {
-        res = data_info_core(cpp_df, cpp_colnames, cpp_condition);
+        res = ::data_info(cpp_df, cpp_colnames, cpp_condition);
     } catch (std::exception& e) {
         stop(e.what());
     }

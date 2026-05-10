@@ -46,3 +46,14 @@ po/*~
 rsconnect/
 .Rproj.user
 .positai
+
+# Python Build files
+build/
+Python/build/
+__pycache__/
+*.egg-info/
+
+# R C++ Compiled files
+*.o
+*.so
+*.dll

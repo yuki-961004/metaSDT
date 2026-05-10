@@ -8,8 +8,8 @@
 using namespace Rcpp;
 
 //' Calculate the Log-Likelihood product matrix
-// [[Rcpp::export]]
-NumericMatrix matrix_mult(NumericMatrix freq_mat, NumericMatrix prob_mat, List params) {
+// [[Rcpp::export(name = "matrix_mult")]]
+NumericMatrix r_matrix_mult(NumericMatrix freq_mat, NumericMatrix prob_mat, List params) {
     // 1. 将 R 矩阵转换为 C++ 的 2D vector
     int n_rows = freq_mat.nrow();
     int n_cols = freq_mat.ncol();

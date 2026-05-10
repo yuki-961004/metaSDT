@@ -1,6 +1,16 @@
 [build-system]
-requires = ["setuptools>=42", "pybind11>=2.10.0"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core", "pybind11>=2.10.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "metaSDT"
+version = "0.0.3"
+description = "High-performance Meta-Cognitive SDT modeling via C++"
+dependencies = ["pandas"]
+
+[tool.scikit-build]
+wheel.packages = ["metaSDT"]
+cmake.args = ["-DCMAKE_POLICY_VERSION_MINIMUM=3.5"]
 
 [tool.pyright]
 extraPaths = ["."]

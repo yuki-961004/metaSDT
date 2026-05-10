@@ -32,7 +32,7 @@ struct DataInfoResult {
     std::vector<std::string> warnings;                     // 存储扫描过程中产生的非致命警告
 };
 
-DataInfoResult data_info_core(
+DataInfoResult data_info(
     const std::unordered_map<std::string, std::vector<double>>& df, // 假设传入的 DataFrame 被拍扁为双精度浮点列字典
     const std::unordered_map<std::string, std::string>& colnames,
     const std::vector<std::string>& condition

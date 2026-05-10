@@ -7,8 +7,8 @@
 
 using namespace Rcpp;
 
-// [[Rcpp::export]]
-List model_sdt(List params) { // <- 注意：这里不再需要传入坐标了，只要参数字典！
+// [[Rcpp::export(name = "model_sdt")]]
+List r_model_sdt(List params) { // <- 注意：这里不再需要传入坐标了，只要参数字典！
     std::unordered_map<std::string, std::vector<double>> cpp_params;
     if (params.size() > 0 && params.hasAttribute("names")) {
         CharacterVector names = params.names();

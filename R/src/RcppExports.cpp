@@ -10,22 +10,120 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// matrix_freq
-NumericMatrix matrix_freq(NumericVector stim, NumericVector resp, Rcpp::Nullable<NumericVector> conf);
-RcppExport SEXP _metaSDT_matrix_freq(SEXP stimSEXP, SEXP respSEXP, SEXP confSEXP) {
+// r_data_info
+List r_data_info(DataFrame df, Nullable<List> colnames, Nullable<CharacterVector> condition);
+RcppExport SEXP _metaSDT_r_data_info(SEXP dfSEXP, SEXP colnamesSEXP, SEXP conditionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type colnames(colnamesSEXP);
+    Rcpp::traits::input_parameter< Nullable<CharacterVector> >::type condition(conditionSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_data_info(df, colnames, condition));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_estimate_mle
+Rcpp::DataFrame r_estimate_mle(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames, Rcpp::Nullable<Rcpp::RObject> params, std::string model, Rcpp::Nullable<Rcpp::List> control, Rcpp::Nullable<Rcpp::List> lower, Rcpp::Nullable<Rcpp::List> upper);
+RcppExport SEXP _metaSDT_r_estimate_mle(SEXP dfSEXP, SEXP colnamesSEXP, SEXP paramsSEXP, SEXP modelSEXP, SEXP controlSEXP, SEXP lowerSEXP, SEXP upperSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type colnames(colnamesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::RObject> >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type upper(upperSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_estimate_mle(df, colnames, params, model, control, lower, upper));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_loss_function
+List r_loss_function(NumericMatrix freq_mat, NumericMatrix prob_mat, List params);
+RcppExport SEXP _metaSDT_r_loss_function(SEXP freq_matSEXP, SEXP prob_matSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type freq_mat(freq_matSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type prob_mat(prob_matSEXP);
+    Rcpp::traits::input_parameter< List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_loss_function(freq_mat, prob_mat, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_matrix_freq
+NumericMatrix r_matrix_freq(NumericVector stim, NumericVector resp, Rcpp::Nullable<NumericVector> conf);
+RcppExport SEXP _metaSDT_r_matrix_freq(SEXP stimSEXP, SEXP respSEXP, SEXP confSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type stim(stimSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type resp(respSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<NumericVector> >::type conf(confSEXP);
-    rcpp_result_gen = Rcpp::wrap(matrix_freq(stim, resp, conf));
+    rcpp_result_gen = Rcpp::wrap(r_matrix_freq(stim, resp, conf));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_matrix_mult
+NumericMatrix r_matrix_mult(NumericMatrix freq_mat, NumericMatrix prob_mat, List params);
+RcppExport SEXP _metaSDT_r_matrix_mult(SEXP freq_matSEXP, SEXP prob_matSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type freq_mat(freq_matSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type prob_mat(prob_matSEXP);
+    Rcpp::traits::input_parameter< List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_matrix_mult(freq_mat, prob_mat, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_matrix_prob
+NumericMatrix r_matrix_prob(NumericVector cdf_noise, NumericVector cdf_signal, List params);
+RcppExport SEXP _metaSDT_r_matrix_prob(SEXP cdf_noiseSEXP, SEXP cdf_signalSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type cdf_noise(cdf_noiseSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type cdf_signal(cdf_signalSEXP);
+    Rcpp::traits::input_parameter< List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_matrix_prob(cdf_noise, cdf_signal, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_model_sdt
+List r_model_sdt(List params);
+RcppExport SEXP _metaSDT_r_model_sdt(SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_model_sdt(params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_modify_params
+List r_modify_params(RObject params);
+RcppExport SEXP _metaSDT_r_modify_params(SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< RObject >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_modify_params(params));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_metaSDT_matrix_freq", (DL_FUNC) &_metaSDT_matrix_freq, 3},
+    {"_metaSDT_r_data_info", (DL_FUNC) &_metaSDT_r_data_info, 3},
+    {"_metaSDT_r_estimate_mle", (DL_FUNC) &_metaSDT_r_estimate_mle, 7},
+    {"_metaSDT_r_loss_function", (DL_FUNC) &_metaSDT_r_loss_function, 3},
+    {"_metaSDT_r_matrix_freq", (DL_FUNC) &_metaSDT_r_matrix_freq, 3},
+    {"_metaSDT_r_matrix_mult", (DL_FUNC) &_metaSDT_r_matrix_mult, 3},
+    {"_metaSDT_r_matrix_prob", (DL_FUNC) &_metaSDT_r_matrix_prob, 3},
+    {"_metaSDT_r_model_sdt", (DL_FUNC) &_metaSDT_r_model_sdt, 1},
+    {"_metaSDT_r_modify_params", (DL_FUNC) &_metaSDT_r_modify_params, 1},
     {NULL, NULL, 0}
 };
 

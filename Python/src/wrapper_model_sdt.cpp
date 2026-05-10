@@ -21,7 +21,7 @@ py::dict py_model_sdt(py::dict params) {
         }
         cpp_params[key] = item.second.cast<std::vector<double>>();
     }
-    ModelSDT model(cpp_params);
+    ModelSDT<double> model(cpp_params);
     
     py::dict res;
     res["cdf_noise"] = model.cdf_noise();
@@ -31,7 +31,7 @@ py::dict py_model_sdt(py::dict params) {
 
 PYBIND11_MODULE(_model_sdt, m) {
     // 将 C++ 类直接绑定为 Python 类
-    py::class_<ModelSDT>(m, "ModelSDT")
+    py::class_<ModelSDT<double>>(m, "ModelSDT")
         // 绑定构造函数
         .def(py::init([](py::dict params) {
             std::unordered_map<std::string, std::vector<double>> cpp_params;
@@ -46,18 +46,17 @@ PYBIND11_MODULE(_model_sdt, m) {
                 }
                 cpp_params[key] = item.second.cast<std::vector<double>>();
             }
-            return new ModelSDT(cpp_params);
+            return new ModelSDT<double>(cpp_params);
         }))
         
-        // 绑定无参版本的方法 (自动使用内部 criteria)
-        .def("cdf_noise", py::overload_cast<>(&ModelSDT::cdf_noise, py::const_))
-        .def("cdf_signal", py::overload_cast<>(&ModelSDT::cdf_signal, py::const_))
-        // 绑定标量版本的方法
-        .def("cdf_noise", py::overload_cast<double>(&ModelSDT::cdf_noise, py::const_))
-        .def("cdf_signal", py::overload_cast<double>(&ModelSDT::cdf_signal, py::const_))
-        // 绑定向量版本的方法 (传入 List/Numpy Array)
-        .def("cdf_noise_vec", py::overload_cast<const std::vector<double>&>(&ModelSDT::cdf_noise, py::const_))
-        .def("cdf_signal_vec", py::overload_cast<const std::vector<double>&>(&ModelSDT::cdf_signal, py::const_));
+        // 💡 秘诀：使用 Lambda 表达式完美解决 MSVC 下重载和 const 推导的歧义问题
+        .def("cdf_noise", [](const ModelSDT<double>& self) { return self.cdf_noise(); })
+        .def("cdf_noise", [](const ModelSDT<double>& self, double x) { return self.cdf_noise(x); })
+        .def("cdf_noise_vec", [](const ModelSDT<double>& self, const std::vector<double>& x_vec) { return self.cdf_noise(x_vec); })
+        
+        .def("cdf_signal", [](const ModelSDT<double>& self) { return self.cdf_signal(); })
+        .def("cdf_signal", [](const ModelSDT<double>& self, double x) { return self.cdf_signal(x); })
+        .def("cdf_signal_vec", [](const ModelSDT<double>& self, const std::vector<double>& x_vec) { return self.cdf_signal(x_vec); });
 
     // 导出函数化接口
     m.def("model_sdt", &py_model_sdt, "Evaluate SDT Model CDFs");

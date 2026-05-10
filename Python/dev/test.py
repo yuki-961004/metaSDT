@@ -1,7 +1,7 @@
 # %%
 # 环境安装区 (如果已经安装成功，以后不需要运行此块)
 # %pip install pandas
-# %pip install -e Python
+# %pip install -e ./Python --config-settings=build-dir="build"
 
 # %%
 import pandas
@@ -104,5 +104,27 @@ print(prob_mat)
 # ==============================================================================
 print("\n=== Test 8: Matrix Mult (似然矩阵相乘) ===")
 # 注意：变量 'freq_mat' 是我们在上面步骤跑出来的频数矩阵 DataFrame
-logl_mat = metaSDT.matrix_mult(freq_mat, prob_mat, std_params)
-print(logl_mat)
+metaSDT.matrix_mult(freq_mat, prob_mat, std_params)
+
+
+# %%
+metaSDT.loss_function(freq_mat, prob_mat, std_params)
+
+
+# %%
+# 2. 运行多线程 MLE 拟合
+fit_res = metaSDT.estimate_mle(
+    df=pandas.read_csv("data/data.csv"),
+    colnames={},  # 传入空字典让底层 C++ 自动使用正则去匹配列名 (如 stim, resp, conf)
+    params={
+        "free": {
+            "d": [1.5],
+            "c_resp": [0.0],
+            "c_conf": [0.5, 1.0, 1.5],
+        },  # 设定我们要找出的自由参数 (注意 Python 端要求将单值也包裹在列表 [] 中)
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+    },
+    model="sdt",
+)
+
+print(fit_res.head())

@@ -4,7 +4,7 @@
 #include <sstream>
 #include <unordered_set>
 
-DataInfoResult data_info_core(
+DataInfoResult data_info(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,
     const std::vector<std::string>& condition

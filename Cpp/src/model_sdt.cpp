@@ -1,6 +1,7 @@
 #include "../include/model_sdt.hpp"
 #include <cmath>
 #include <stdexcept>
+#include <algorithm>
 
 // ==========================================================
 // 0. 宏定义与预处理
@@ -13,8 +14,9 @@
 // ==========================================================
 // 1. 模型初始化与核心参数提取 (只接受 params)
 // ==========================================================
-ModelSDT::ModelSDT(
-    const std::unordered_map<std::string, std::vector<double>>& params
+template <typename T>
+ModelSDT<T>::ModelSDT(
+    const std::unordered_map<std::string, std::vector<T>>& params
 ) {
     
     // ==========================================================
@@ -42,7 +44,7 @@ ModelSDT::ModelSDT(
     // ==========================================================
     // 1.3 判定标准 (Criteria) 的动态生成机制
     // ==========================================================
-    double c_resp_val = 0.0;
+    T c_resp_val = 0.0;
     auto it_c_resp = params.find("c_resp");
     if (it_c_resp != params.end() && !it_c_resp->second.empty()) {
         c_resp_val = it_c_resp->second[0];
@@ -51,7 +53,12 @@ ModelSDT::ModelSDT(
     // 冗余优化：利用 find 迭代器避免多次 count 和 at 的哈希表查询开销
     auto it_c_conf = params.find("c_conf");
     if (it_c_conf != params.end() && !it_c_conf->second.empty()) {
-        const auto& c_conf = it_c_conf->second;
+        std::vector<T> c_conf = it_c_conf->second;
+        
+        // 【核心防御】：无论优化器以何种顺序随机探索边界，
+        // 在计算概率前强制排序，严格保证所有切割点的数学单调性！
+        // 这彻底消除了对 NLOPT 复杂不等式约束的依赖。
+        std::sort(c_conf.begin(), c_conf.end());
         
         auto it_n_conf = params.find("n_conf");
         bool has_n_conf = (it_n_conf != params.end() && 
@@ -92,25 +99,28 @@ ModelSDT::ModelSDT(
 // ==========================================================
 // 2. 累积分布函数 (无参批量版，依赖内部自动生成的 criteria)
 // ==========================================================
-std::vector<double> ModelSDT::cdf_noise() const {
+template <typename T>
+std::vector<T> ModelSDT<T>::cdf_noise() const {
     return cdf_noise(this->criteria);
 }
 
-std::vector<double> ModelSDT::cdf_signal() const {
+template <typename T>
+std::vector<T> ModelSDT<T>::cdf_signal() const {
     return cdf_signal(this->criteria);
 }
 
 // ==========================================================
 // 3. 累积分布函数 (标量版：针对单个数据点)
 // ==========================================================
-double ModelSDT::cdf_noise(double x) const {
-    // 正态分布 CDF 标准公式：0.5 * (1 + erf((x - mu) / (sigma * sqrt(2))))
+template <typename T>
+T ModelSDT<T>::cdf_noise(T x) const {
     return 0.5 * (1.0 + std::erf(
         (x - mu_noise) / (sd_noise * std::sqrt(2.0))
     ));
 }
 
-double ModelSDT::cdf_signal(double x) const {
+template <typename T>
+T ModelSDT<T>::cdf_signal(T x) const {
     return 0.5 * (1.0 + std::erf(
         (x - mu_signal) / (sd_signal * std::sqrt(2.0))
     ));
@@ -119,22 +129,27 @@ double ModelSDT::cdf_signal(double x) const {
 // ==========================================================
 // 4. 累积分布函数 (向量版：供外部传入自定义坐标轴向量使用)
 // ==========================================================
-std::vector<double> ModelSDT::cdf_noise(
-    const std::vector<double>& x_vec
+template <typename T>
+std::vector<T> ModelSDT<T>::cdf_noise(
+    const std::vector<T>& x_vec
 ) const {
-    std::vector<double> y_vec(x_vec.size());
+    std::vector<T> y_vec(x_vec.size());
     for (size_t i = 0; i < x_vec.size(); ++i) {
         y_vec[i] = cdf_noise(x_vec[i]);
     }
     return y_vec;
 }
 
-std::vector<double> ModelSDT::cdf_signal(
-    const std::vector<double>& x_vec
+template <typename T>
+std::vector<T> ModelSDT<T>::cdf_signal(
+    const std::vector<T>& x_vec
 ) const {
-    std::vector<double> y_vec(x_vec.size());
+    std::vector<T> y_vec(x_vec.size());
     for (size_t i = 0; i < x_vec.size(); ++i) {
         y_vec[i] = cdf_signal(x_vec[i]);
     }
     return y_vec;
 }
+
+// 显式实例化 double 类型，保证分离编译时不报错，完美对接 NLOPT
+template class ModelSDT<double>;

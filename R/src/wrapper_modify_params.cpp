@@ -57,8 +57,8 @@ void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<do
 //' @return A named list containing the final, flattened parameters.
 //' @import Rcpp
 //' @export
-// [[Rcpp::export]]
-List modify_params(RObject params = R_NilValue) {
+// [[Rcpp::export(name = "modify_params")]]
+List r_modify_params(RObject params = R_NilValue) {
     ParamGroup user_params;
 
     if (!params.isNULL() && Rf_length(params) > 0) {
@@ -87,7 +87,7 @@ List modify_params(RObject params = R_NilValue) {
     }
 
     // 调用纯 C++ 核心函数
-    auto cpp_result = ::modify_and_flatten_params(user_params);
+    auto cpp_result = ::modify_params(user_params);
 
     // 将 C++ 的 flat 结果转回 R 的 List 作为主体
     List out_list = Rcpp::wrap(cpp_result.flat);
@@ -96,6 +96,9 @@ List modify_params(RObject params = R_NilValue) {
     out_list["name_free"] = cpp_result.name_free;
     out_list["name_fixed"] = cpp_result.name_fixed;
     out_list["name_constant"] = cpp_result.name_constant;
+    
+    out_list["lower_bounds"] = cpp_result.lower_bounds;
+    out_list["upper_bounds"] = cpp_result.upper_bounds;
     
     out_list["numb_free"] = cpp_result.numb_free;
     out_list["numb_fixed"] = cpp_result.numb_fixed;

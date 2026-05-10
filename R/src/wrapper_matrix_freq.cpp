@@ -15,8 +15,8 @@ using namespace Rcpp;
 //' @param conf The numeric vector indicating the confidence level (optional).
 //' @import Rcpp
 //' @export
-// [[Rcpp::export]]
-NumericMatrix matrix_freq(
+// [[Rcpp::export(name = "matrix_freq")]]
+NumericMatrix r_matrix_freq(
   NumericVector stim, NumericVector resp, Rcpp::Nullable<NumericVector> conf = R_NilValue
 ) {
     // 1. 将 R 传入的向量(NumericVector)深度复制并转换为纯 C++ 能够直接识别和处理的 std::vector<double>

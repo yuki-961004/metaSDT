@@ -3,7 +3,7 @@
 #include <cmath>
 
 // 14 个元认知模型的全局通用参数列表 (C++ 版)
-ParamGroup generate_default_params() {
+ParamGroup default_params() {
     ParamGroup defaults;
 
     // ==========================================================================
@@ -77,14 +77,49 @@ ParamGroup generate_default_params() {
     return defaults;
 }
 
+// 全局预设的模型参数边界
+std::unordered_map<std::string, std::vector<double>> default_bounds() {
+    std::unordered_map<std::string, std::vector<double>> bounds;
+    
+    // 1. 核心感知层参数
+    bounds["d"] = {-1.0, 10.0}; 
+    bounds["c_resp"] = {-5.0, 5.0};
+    bounds["sd_signal"] = {1e-4, 5.0}; 
+    bounds["sd_noise"]  = {1e-4, 5.0};
+
+    // 2. 置信度边界参数 (因采用相对步长，下界必须大于0以保证绝对坐标单调递增)
+    bounds["c_conf"] = {1e-4, 20.0};
+
+    // 3. 元噪声与波动参数 (必须大于0)
+    bounds["sd_meta"] = {1e-3, 3.0}; 
+    bounds["sd_c_resp"] = {0.01, 3.0};
+    bounds["sd_c_conf"] = {0.001, 3.0};
+
+    // 4. 权重与比率参数
+    bounds["rate_decay"] = {0.0, 1.0};
+    bounds["w_unconscious"] = {0.0, 1.0};
+    bounds["w_visibility"] = {0.0, 1.0};
+    bounds["w_pos_evidence"] = {0.51, 1.0};
+    bounds["rho_sens_meta"] = {0.001, 0.999};
+
+    // 5. 动态累积时间参数
+    bounds["rate_accum"] = {1e-5, 3.0};
+
+    return bounds;
+}
+
 // 核心处理函数
-ModifiedParamsResult modify_and_flatten_params(const ParamGroup& user_params) {
+ModifiedParamsResult modify_params(
+    const ParamGroup& user_params,
+    const std::unordered_map<std::string, std::vector<double>>& custom_lower,
+    const std::unordered_map<std::string, std::vector<double>>& custom_upper
+) {
     
     // ==========================================================
     // 1. 初始化默认值与自由参数降级逻辑
     // ==========================================================
     // 从全局默认配置表中加载，代替硬编码
-    ParamGroup params = generate_default_params();
+    ParamGroup params = default_params();
 
     // 【新增规则：以用户输入为最高优先级】
     // 如果用户在 free 中显式指定了参数（例如输入了 list(d=2.0, c_conf=...)），
@@ -208,13 +243,58 @@ ModifiedParamsResult modify_and_flatten_params(const ParamGroup& user_params) {
     result.flat = flat_params;
     result.structured = params;
 
+    // 动态探测 c_conf 是否为绝对坐标向量 (以修复边界)
+    bool is_full_vector = false;
+    if (has_n_conf && has_c_conf) {
+        int n_conf_val = static_cast<int>(it_n_conf->second[0]);
+        if (n_conf_val == static_cast<int>(it_c_conf->second.size())) {
+            is_full_vector = true;
+        }
+    }
+
     // ==========================================================
     // 5. 统计各类参数的名称和数量 (支持多维度向量，如 c_conf)
     // ==========================================================
     result.numb_free = 0;
+    auto bounds_dict = default_bounds();
+    
     for (const auto& kv : params.free) {
         result.name_free.push_back(kv.first);
-        result.numb_free += kv.second.size();
+        size_t p_size = kv.second.size();
+        result.numb_free += p_size;
+        
+        // 提取该自由参数的边界，若未在预设表中，则给予极宽的默认边界
+        double lb_base = -1e5, ub_base = 1e5;
+        if (bounds_dict.count(kv.first)) {
+            lb_base = bounds_dict[kv.first][0];
+            ub_base = bounds_dict[kv.first][1];
+        }
+        
+        // 【关键修复】：如果 c_conf 被当作完整的绝对坐标向量，
+        // 则其不再是“必须大于0的相对距离”，它可以在数轴上为负！
+        if (kv.first == "c_conf" && is_full_vector) {
+            lb_base = -10.0; // 放宽为绝对坐标的典型边界
+            ub_base = 10.0;
+        }
+
+        // 如果是像 c_conf 这样的数组向量，将为每个元素赋予相同的边界
+        for (size_t i = 0; i < p_size; ++i) {
+            double current_lb = lb_base;
+            double current_ub = ub_base;
+            
+            // 支持用户自定义边界覆盖，且支持标量广播到整个向量
+            if (custom_lower.count(kv.first)) {
+                if (custom_lower.at(kv.first).size() > i) current_lb = custom_lower.at(kv.first)[i];
+                else if (custom_lower.at(kv.first).size() == 1) current_lb = custom_lower.at(kv.first)[0];
+            }
+            if (custom_upper.count(kv.first)) {
+                if (custom_upper.at(kv.first).size() > i) current_ub = custom_upper.at(kv.first)[i];
+                else if (custom_upper.at(kv.first).size() == 1) current_ub = custom_upper.at(kv.first)[0];
+            }
+
+            result.lower_bounds.push_back(current_lb);
+            result.upper_bounds.push_back(current_ub);
+        }
     }
 
     result.numb_fixed = 0;

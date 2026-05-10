@@ -13,7 +13,7 @@ struct PySubjectData {
     py::object raw;
 };
 
-py::dict py_data_info(py::dict df, py::dict colnames, py::list condition) {
+py::dict py_data_info(py::dict df, py::object colnames = py::none(), py::object condition = py::none()) {
     // 1. 转换 DataFrame 列数据
     std::unordered_map<std::string, std::vector<double>> cpp_df;
     for (auto item : df) {
@@ -22,20 +22,28 @@ py::dict py_data_info(py::dict df, py::dict colnames, py::list condition) {
 
     // 2. 转换列名映射字典
     std::unordered_map<std::string, std::string> cpp_colnames;
-    for (auto item : colnames) {
-        cpp_colnames[py::str(item.first)] = py::str(item.second);
+    if (!colnames.is_none() && py::isinstance<py::dict>(colnames)) {
+        for (auto item : colnames.cast<py::dict>()) {
+            cpp_colnames[py::str(item.first)] = py::str(item.second);
+        }
     }
 
     // 3. 转换条件列表
     std::vector<std::string> cpp_condition;
-    for (auto item : condition) {
-        cpp_condition.push_back(py::str(item));
+    if (!condition.is_none()) {
+        if (py::isinstance<py::str>(condition)) {
+            cpp_condition.push_back(condition.cast<std::string>());
+        } else if (py::isinstance<py::list>(condition) || py::isinstance<py::tuple>(condition)) {
+            for (auto item : condition) {
+                cpp_condition.push_back(py::str(item));
+            }
+        }
     }
 
     // 4. 调用纯 C++ 核心执行极速扫描
     DataInfoResult res;
     try {
-        res = data_info_core(cpp_df, cpp_colnames, cpp_condition);
+        res = data_info(cpp_df, cpp_colnames, cpp_condition);
     } catch (const std::exception& e) {
         throw py::value_error(e.what());
     }
@@ -93,5 +101,6 @@ PYBIND11_MODULE(_core_data_info, m) {
         .def_readonly("condition", &PySubjectData::condition)
         .def_readonly("raw", &PySubjectData::raw);
 
-    m.def("data_info", &py_data_info, "Intelligently scan the dataset and extract subject-level information.");
+    m.def("data_info", &py_data_info, "Intelligently scan the dataset and extract subject-level information.",
+          py::arg("df"), py::arg("colnames") = py::none(), py::arg("condition") = py::none());
 }

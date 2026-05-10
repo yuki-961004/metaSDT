@@ -3,12 +3,21 @@ title: "Untitled"
 format: html
 ---
 
+
+```{r}
+# 1. 编译并加载整个 R 包 (指定包根目录为 ./R)
+#devtools::clean_dll("./R")
+devtools::load_all("./R")
+```
+
+## core
+
 ```{r}
 data <- read.csv("data/data.csv")
 
 sub1 <- data |> dplyr::filter(subj_id == 1)
 
-Rcpp::sourceCpp("./R/src/wrapper_data_info.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_data_info.cpp")
 
 info <- data_info(data)
 
@@ -23,7 +32,7 @@ head(df_sub29)
 ```
 
 ```{r}
-Rcpp::sourceCpp("./R/src/wrapper_matrix_freq.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_freq.cpp")
 
 freq_mat <- matrix_freq(
   stim = sub1$stim,
@@ -39,9 +48,9 @@ freq_mat <- matrix_freq(
 # ==============================================================================
 # 编译并加载包装器函数 (兼容从项目根目录执行)
 # 注意：如果您之后使用 devtools::load_all() 整体加载了包，这行就可以删掉了
-Rcpp::sourceCpp("./R/src/wrapper_modify_params.cpp")
-Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
-Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_modify_params.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
 
 # ==============================================================================
 # 2. 测试全新的 modify_params 功能
@@ -76,7 +85,7 @@ rm(res1, res2, res3, res4, res5)
 # ==============================================================================
 # 3. 测试 ModelSDT 模型 (计算击中率与虚报率)
 # ==============================================================================
-Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
 
 cat("\n=== Test 6: ModelSDT 核心引擎测试 ===\n")
 # 获取处理好的完整参数 (设 d=2.0, c_resp=0.5)
@@ -96,20 +105,35 @@ cat("Hit Rates (所有切点的击中率):\n", 1 - res_cdf$cdf_signal, "\n")
 # ==============================================================================
 # 4. 测试 matrix_prob 概率矩阵
 # ==============================================================================
-Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
 
 cat("\n=== Test 7: Matrix Prob 理论概率矩阵 ===\n")
-prob_mat <- matrix_prob(res_cdf$cdf_noise, res_cdf$cdf_signal, final_params)
+prob_mat <- matrix_prob(res_cdf$cdf_noise, res_cdf$cdf_signal, std_params)
 ```
 
 
 ```{r}
-Rcpp::sourceCpp("./R/src/wrapper_matrix_mult.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_mult.cpp")
 matrix_mult(freq_mat, prob_mat, std_params)
 ```
 
 
 ```{r}
-Rcpp::sourceCpp("./R/src/wrapper_loss_function.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_loss_function.cpp")
 loss_function(freq_mat, prob_mat, std_params)
+```
+
+## fit
+
+```{r}
+fit_df <- estimate_mle(
+  df = read.csv("data/data.csv"), 
+  params = list(
+    free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)), # 设定我们要找出的自由参数
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+  ),
+  model_name = "sdt"
+)
+
+print(head(fit_df))
 ```

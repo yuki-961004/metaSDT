@@ -1,5 +1,5 @@
 #include <Rcpp.h>
-#include <matrix_prob.hpp>
+#include "Cpp/include/matrix_prob.hpp"
 
 // 使用宏定义解决多重编译问题
 #define CORE_IMPL "Cpp/src/matrix_prob.cpp"
@@ -8,8 +8,8 @@
 using namespace Rcpp;
 
 //' Calculate Probability Matrix
-// [[Rcpp::export]]
-NumericMatrix matrix_prob(NumericVector cdf_noise, NumericVector cdf_signal, List params) {
+// [[Rcpp::export(name = "matrix_prob")]]
+NumericMatrix r_matrix_prob(NumericVector cdf_noise, NumericVector cdf_signal, List params) {
     // 1. 转换向量
     std::vector<double> cpp_noise = as<std::vector<double>>(cdf_noise);
     std::vector<double> cpp_signal = as<std::vector<double>>(cdf_signal);

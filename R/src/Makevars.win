@@ -1,2 +1,5 @@
-# 统一使用 C++17 标准以匹配后端代码
-CXX_STD = CXX17
+# Windows 系统下的 RTools 专属编译指令
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+
+# 告诉 Windows 链接器去链接 RTools 自带的 libnlopt.a 或 dll
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) -lnlopt
