@@ -1,8 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "Cpp/include/matrix_mult.hpp"
-#include "Cpp/src/matrix_mult.cpp"
+#include "../../Cpp/include/matrix_mult.hpp"
 
 namespace py = pybind11;
 

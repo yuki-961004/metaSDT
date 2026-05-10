@@ -1,8 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "Cpp/include/model_sdt.hpp"
-#include "Cpp/src/model_sdt.cpp"
+#include "../../Cpp/include/model_sdt.hpp"
 
 namespace py = pybind11;
 

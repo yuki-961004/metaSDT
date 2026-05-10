@@ -1,9 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>  // 自动实现 std::vector, std::unordered_map 与 Python dict/list 的互相转换
 
-#include "Cpp/include/modify_params.hpp"
-// 纯 C++ 源文件已经通过脚本同步至 Python/src/Cpp，继续使用联合编译
-#include "Cpp/src/modify_params.cpp"
+#include "../../Cpp/include/modify_params.hpp"
 
 namespace py = pybind11;
 

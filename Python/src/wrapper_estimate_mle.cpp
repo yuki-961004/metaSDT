@@ -1,20 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h> // 必须引入：自动处理 C++ STL 和 Python list/dict/str 的无缝双向转换
 
-#include "Cpp/include/estimate_mle.hpp"
-
-// ==============================================================================
-// Unity Build: 将底层所有依赖的 C++ 核心源码全部打包进来联合编译
-// ==============================================================================
-#include "Cpp/src/modify_params.cpp"
-#include "Cpp/src/data_info.cpp"
-#include "Cpp/src/matrix_freq.cpp"
-#include "Cpp/src/model_sdt.cpp"
-#include "Cpp/src/matrix_prob.cpp"
-#include "Cpp/src/matrix_mult.cpp"
-#include "Cpp/src/loss_function.cpp"
-#include "Cpp/src/objective_function.cpp"
-#include "Cpp/src/estimate_mle.cpp"
+#include "../../Cpp/include/estimate_mle.hpp"
 
 namespace py = pybind11;
 

@@ -1,9 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>  // 自动实现 std::vector 和 python list/dict 的互相转换
 
-#include "Cpp/include/matrix_freq.hpp"
-// 纯 C++ 源文件已经通过脚本同步至 Python/src/Cpp，继续使用联合编译
-#include "Cpp/src/matrix_freq.cpp"
+#include "../../Cpp/include/matrix_freq.hpp"
 
 namespace py = pybind11;
 

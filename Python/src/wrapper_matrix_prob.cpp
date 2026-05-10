@@ -1,8 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "Cpp/include/matrix_prob.hpp"
-#include "Cpp/src/matrix_prob.cpp"
+#include "../../Cpp/include/matrix_prob.hpp"
 
 namespace py = pybind11;
 

@@ -1,8 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "Cpp/include/data_info.hpp"
-#include "Cpp/src/data_info.cpp"
+#include "../../Cpp/include/data_info.hpp"
 
 namespace py = pybind11;
 

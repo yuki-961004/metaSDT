@@ -1,12 +1,12 @@
 #include <Rcpp.h>
-#include "Cpp/include/estimate_mle.hpp"
+#include "../../Cpp/include/estimate_mle.hpp"
 
 // 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
 // 将底层的 estimate_mle 和 objective_function 实现一并拉取过来编译
-#define CORE_IMPL "Cpp/src/estimate_mle.cpp"
+#define CORE_IMPL "../../Cpp/src/estimate_mle.cpp"
 #include CORE_IMPL
 
-#define OBJ_IMPL "Cpp/src/objective_function.cpp"
+#define OBJ_IMPL "../../Cpp/src/objective_function.cpp"
 #include OBJ_IMPL
 
 // 使用匿名命名空间，避免与 wrapper_modify_params.cpp 中的辅助函数产生符号冲突

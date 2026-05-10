@@ -132,7 +132,7 @@ fit_df <- estimate_mle(
     free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)), # 设定我们要找出的自由参数
     fixed = list(sd_signal = 1.0, sd_noise = 1.0)
   ),
-  model_name = "sdt"
+  model = "sdt"
 )
 
 print(head(fit_df))

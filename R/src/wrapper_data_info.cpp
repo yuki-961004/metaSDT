@@ -1,8 +1,8 @@
 #include <Rcpp.h>
-#include "Cpp/include/data_info.hpp"
+#include "../../Cpp/include/data_info.hpp"
 
 // 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
-#define CORE_IMPL "Cpp/src/data_info.cpp"
+#define CORE_IMPL "../../Cpp/src/data_info.cpp"
 #include CORE_IMPL
 
 using namespace Rcpp;

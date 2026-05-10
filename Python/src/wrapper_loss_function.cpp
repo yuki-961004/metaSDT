@@ -1,10 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "Cpp/include/loss_function.hpp"
-#include "Cpp/src/loss_function.cpp"
-#include "Cpp/include/matrix_mult.hpp"
-#include "Cpp/src/matrix_mult.cpp"
+#include "../../Cpp/include/loss_function.hpp"
+#include "../../Cpp/include/matrix_mult.hpp"
 
 namespace py = pybind11;
 
