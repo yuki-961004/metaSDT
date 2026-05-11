@@ -69,6 +69,21 @@ del res1, res2, res3, res4, res5
 
 # %%
 # ==============================================================================
+# 测试全新的 modify_prior 功能
+# ==============================================================================
+print("\n=== Test 10: Modify Prior (先验映射测试) ===")
+user_priors = {
+    "d": {"type": "norm", "mean": 1.5, "sd": 0.5},
+    # 给边界数组挂载 Beta 分布，测试一键批量绑定
+    "c_conf": {"type": "beta", "shape1": 2.0, "shape2": 5.0},
+}
+user_params = {"c_conf": [0.1, 0.5, 0.9]}
+
+prior_res = metaSDT.modify_prior(user_priors, user_params)
+print("Compiled Priors (Key is Flat Index):\n", prior_res)
+
+# %%
+# ==============================================================================
 # 3. 测试 ModelSDT 核心引擎
 # ==============================================================================
 print("\n=== Test 6: ModelSDT 核心引擎测试 ===")
@@ -108,7 +123,38 @@ metaSDT.matrix_mult(freq_mat, prob_mat, std_params)
 
 
 # %%
-metaSDT.loss_function(freq_mat, prob_mat, std_params)
+print("\n=== Test 11: Criterion Likelihood ===")
+print(metaSDT.criterion_likelihood(freq_mat, prob_mat, std_params))
+
+# %%
+print("\n=== Test 12: Criterion Prior (计算一维梯度带先验概率) ===")
+# 生成想要评估的当前参数集
+current_params = metaSDT.modify_params(
+    {"free": {"d": [2.0], "c_conf": [0.2, 0.3, 0.5]}, "fixed": {"c_resp": [0.5]}}
+)
+
+print("Log Prior:", metaSDT.criterion_prior(user_priors, current_params))
+
+# %%
+print("\n=== Test 13: Criterion Posterior (MCMC/Stan 后验入口测试) ===")
+print(
+    "Log Posterior:",
+    metaSDT.criterion_posterior(freq_mat, user_priors, current_params),
+)
+
+# %%
+print("\n=== Test 14: Uniform Prior (纯 Log-Likelihood 验证) ===")
+# 利用均匀分布特性：若上限与下限之差为 1，则先验概率密度为 1，对数先验 log(1)恒为 0。
+# 此时 criterion_posterior 返回的值将 100% 等价于没有任何先验干涉的对数似然 (LogL)！
+log_posterior_unif = metaSDT.criterion_posterior(
+    freq_mat,
+    {
+        "c_conf": {"type": "unif", "min": 0.0, "max": 1.0},
+        "d": {"type": "uniform", "lower": 1.5, "upper": 2.5},
+    },
+    current_params,
+)
+print(log_posterior_unif)
 
 
 # %%

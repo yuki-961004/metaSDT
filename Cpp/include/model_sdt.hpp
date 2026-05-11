@@ -19,7 +19,7 @@ private:
 
 public:
     // 构造函数：只接收一个被拍扁的 params 字典
-    ModelSDT(const std::unordered_map<std::string, std::vector<T>>& params);
+    ModelSDT(const std::unordered_map<std::string, std::vector<T>>& std_params);
 
     // 获取生成的切割点
     const std::vector<T>& get_criteria() const { return criteria; }

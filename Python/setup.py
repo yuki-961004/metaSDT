@@ -40,8 +40,22 @@ ext_modules = [
         extra_compile_args=extra_compile_args,
     ),
     Extension(
-        "metaSDT._core_loss_function",
-        ["src/wrapper_loss_function.cpp"],
+        "metaSDT._core_criterion_likelihood",
+        ["src/wrapper_criterion_likelihood.cpp"],
+        include_dirs=[get_pybind_include(), "src/Cpp/include"],
+        language="c++",
+        extra_compile_args=extra_compile_args,
+    ),
+    Extension(
+        "metaSDT._core_criterion_prior",
+        ["src/wrapper_criterion_prior.cpp"],
+        include_dirs=[get_pybind_include(), "src/Cpp/include"],
+        language="c++",
+        extra_compile_args=extra_compile_args,
+    ),
+    Extension(
+        "metaSDT._core_criterion_posterior",
+        ["src/wrapper_criterion_posterior.cpp"],
         include_dirs=[get_pybind_include(), "src/Cpp/include"],
         language="c++",
         extra_compile_args=extra_compile_args,
@@ -52,6 +66,13 @@ ext_modules = [
     Extension(
         "metaSDT._help_modify_params",
         ["src/wrapper_modify_params.cpp"],
+        include_dirs=[get_pybind_include(), "src/Cpp/include"],
+        language="c++",
+        extra_compile_args=extra_compile_args,
+    ),
+    Extension(
+        "metaSDT._help_modify_prior",
+        ["src/wrapper_modify_prior.cpp"],
         include_dirs=[get_pybind_include(), "src/Cpp/include"],
         language="c++",
         extra_compile_args=extra_compile_args,
@@ -85,6 +106,6 @@ ext_modules = [
 
 setup(
     name="metaSDT",
-    version="0.0.3",
+    version="0.0.4",
     ext_modules=ext_modules,
 )

@@ -1,5 +1,4 @@
-# Windows 系统下的 RTools 专属编译指令
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
-
-# 告诉 Windows 链接器去链接 RTools 自带的 libnlopt.a 或 dll
+CXX_STD = CXX17
+# 屏蔽 Eigen 库产生的 SIMD 属性警告
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -Wno-ignored-attributes -Wno-deprecated-declarations
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) -lnlopt

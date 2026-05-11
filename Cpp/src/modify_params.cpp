@@ -1,6 +1,7 @@
 #include "../include/modify_params.hpp"
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 // 14 个元认知模型的全局通用参数列表 (C++ 版)
 ParamGroup default_params() {
@@ -71,8 +72,12 @@ ParamGroup default_params() {
     defaults.constant["rate_lapse"] = {0.0};
     // [All models] 极小值容差，防止对数似然函数中出现 log(0)
     defaults.constant["calc_tol"] = {1e-10};
+    // [All models] Ln 正则化幂次 (默认空，不进行正则化)
+    defaults.constant["L"] = {};
+    // [All models] 正则化惩罚力度 (默认 1.0)
+    defaults.constant["penalty"] = {1.0};
     // [模拟型模型] 随机数种子，确保优化器在相同参数下得到相同结果
-    defaults.constant["rng_seed"] = {42.0};
+    defaults.constant["rng_seed"] = {1004.0};
 
     return defaults;
 }
@@ -258,38 +263,47 @@ ModifiedParamsResult modify_params(
     result.numb_free = 0;
     auto bounds_dict = default_bounds();
     
-    for (const auto& kv : params.free) {
-        result.name_free.push_back(kv.first);
-        size_t p_size = kv.second.size();
+    // ==========================================================
+    // 核心防御：使用完全动态的字母表排序 (Alphabetical Order)
+    // 彻底消除 unordered_map 随机哈希带来的顺序错位，且无需硬编码任何参数名！
+    // ==========================================================
+    auto sort_keys = [](std::vector<std::string>& keys) {
+        std::sort(keys.begin(), keys.end());
+    };
+
+    // 1. 处理 free 槽位
+    std::vector<std::string> keys_free;
+    for (const auto& kv : params.free) keys_free.push_back(kv.first);
+    sort_keys(keys_free);
+    
+    for (const auto& key : keys_free) {
+        result.name_free.push_back(key);
+        const auto& val_vec = params.free.at(key);
+        size_t p_size = val_vec.size();
         result.numb_free += p_size;
         
-        // 提取该自由参数的边界，若未在预设表中，则给予极宽的默认边界
         double lb_base = -1e5, ub_base = 1e5;
-        if (bounds_dict.count(kv.first)) {
-            lb_base = bounds_dict[kv.first][0];
-            ub_base = bounds_dict[kv.first][1];
+        if (bounds_dict.count(key)) {
+            lb_base = bounds_dict[key][0];
+            ub_base = bounds_dict[key][1];
         }
         
-        // 【关键修复】：如果 c_conf 被当作完整的绝对坐标向量，
-        // 则其不再是“必须大于0的相对距离”，它可以在数轴上为负！
-        if (kv.first == "c_conf" && is_full_vector) {
-            lb_base = -10.0; // 放宽为绝对坐标的典型边界
+        if (key == "c_conf" && is_full_vector) {
+            lb_base = -10.0;
             ub_base = 10.0;
         }
 
-        // 如果是像 c_conf 这样的数组向量，将为每个元素赋予相同的边界
         for (size_t i = 0; i < p_size; ++i) {
             double current_lb = lb_base;
             double current_ub = ub_base;
             
-            // 支持用户自定义边界覆盖，且支持标量广播到整个向量
-            if (custom_lower.count(kv.first)) {
-                if (custom_lower.at(kv.first).size() > i) current_lb = custom_lower.at(kv.first)[i];
-                else if (custom_lower.at(kv.first).size() == 1) current_lb = custom_lower.at(kv.first)[0];
+            if (custom_lower.count(key)) {
+                if (custom_lower.at(key).size() > i) current_lb = custom_lower.at(key)[i];
+                else if (custom_lower.at(key).size() == 1) current_lb = custom_lower.at(key)[0];
             }
-            if (custom_upper.count(kv.first)) {
-                if (custom_upper.at(kv.first).size() > i) current_ub = custom_upper.at(kv.first)[i];
-                else if (custom_upper.at(kv.first).size() == 1) current_ub = custom_upper.at(kv.first)[0];
+            if (custom_upper.count(key)) {
+                if (custom_upper.at(key).size() > i) current_ub = custom_upper.at(key)[i];
+                else if (custom_upper.at(key).size() == 1) current_ub = custom_upper.at(key)[0];
             }
 
             result.lower_bounds.push_back(current_lb);
@@ -297,16 +311,24 @@ ModifiedParamsResult modify_params(
         }
     }
 
+    // 2. 处理 fixed 槽位
     result.numb_fixed = 0;
-    for (const auto& kv : params.fixed) {
-        result.name_fixed.push_back(kv.first);
-        result.numb_fixed += kv.second.size();
+    std::vector<std::string> keys_fixed;
+    for (const auto& kv : params.fixed) keys_fixed.push_back(kv.first);
+    sort_keys(keys_fixed);
+    for (const auto& key : keys_fixed) {
+        result.name_fixed.push_back(key);
+        result.numb_fixed += params.fixed.at(key).size();
     }
 
+    // 3. 处理 constant 槽位
     result.numb_constant = 0;
-    for (const auto& kv : params.constant) {
-        result.name_constant.push_back(kv.first);
-        result.numb_constant += kv.second.size();
+    std::vector<std::string> keys_constant;
+    for (const auto& kv : params.constant) keys_constant.push_back(kv.first);
+    sort_keys(keys_constant);
+    for (const auto& key : keys_constant) {
+        result.name_constant.push_back(key);
+        result.numb_constant += params.constant.at(key).size();
     }
     
     return result;

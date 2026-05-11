@@ -3,9 +3,12 @@ import pandas
 from . import _core_matrix_freq
 from . import _core_matrix_prob
 from . import _core_matrix_mult
-from . import _core_loss_function
+from . import _core_criterion_likelihood
+from . import _core_criterion_prior
+from . import _core_criterion_posterior
 from . import _core_data_info
 from . import _help_modify_params
+from . import _help_modify_prior
 from . import _model_sdt
 from . import _estimate_mle
 
@@ -23,17 +26,17 @@ def matrix_freq(stim, resp, conf=None):
     )
 
 
-def matrix_prob(cdf_noise, cdf_signal, params):
+def matrix_prob(cdf_noise, cdf_signal, std_params):
     """
     Calculate the theoretical probability matrix.
     """
-    res = _core_matrix_prob.matrix_prob(cdf_noise, cdf_signal, params)
+    res = _core_matrix_prob.matrix_prob(cdf_noise, cdf_signal, std_params)
     return pandas.DataFrame(
         res["prob_mat"], index=res["row_names"], columns=res["col_names"]
     )
 
 
-def matrix_mult(freq_mat, prob_mat, params):
+def matrix_mult(freq_mat, prob_mat, std_params):
     """
     Calculate the Log-Likelihood product matrix.
     Supports both raw nested lists and pandas DataFrames.
@@ -52,7 +55,7 @@ def matrix_mult(freq_mat, prob_mat, params):
     )
 
     # 调用底层 C++ 核心函数计算
-    res_mat = _core_matrix_mult.matrix_mult(f_mat, p_mat, params)
+    res_mat = _core_matrix_mult.matrix_mult(f_mat, p_mat, std_params)
 
     # 如果原本输入的是 DataFrame，则保持原样返回继承了行列名的 DataFrame
     if idx is not None and cols is not None:
@@ -60,7 +63,7 @@ def matrix_mult(freq_mat, prob_mat, params):
     return res_mat
 
 
-def loss_function(freq_mat, prob_mat, params):
+def criterion_likelihood(freq_mat, prob_mat, std_params):
     """
     Calculate Model Loss indicators including Negative Log-Likelihood, AIC, and BIC.
     """
@@ -72,24 +75,45 @@ def loss_function(freq_mat, prob_mat, params):
         prob_mat.values.tolist() if isinstance(prob_mat, pandas.DataFrame) else prob_mat
     )
 
-    return _core_loss_function.loss_function(f_mat, p_mat, params)
+    return _core_criterion_likelihood.criterion_likelihood(f_mat, p_mat, std_params)
 
 
-def modify_params(params=None):
+def criterion_prior(user_priors, std_params=None):
+    """Evaluate Log-Prior"""
+    return _core_criterion_prior.criterion_prior(user_priors, std_params)
+
+
+def criterion_posterior(freq_mat, user_priors, std_params=None):
+    """Evaluate Unnormalized Log-Posterior"""
+    f_mat = (
+        freq_mat.values.tolist() if isinstance(freq_mat, pandas.DataFrame) else freq_mat
+    )
+    return _core_criterion_posterior.criterion_posterior(f_mat, user_priors, std_params)
+
+
+def modify_params(user_params=None):
     """
     Modify and flatten model parameters.
     Takes a dictionary of parameters, merges them with defaults, resolves conflicts, and flattens them.
     """
     # 纯粹的 Python 壳：直接调用 C++ 底层引擎
-    return _help_modify_params.modify_params(params)
+    return _help_modify_params.modify_params(user_params)
 
 
-def model_sdt(params):
+def modify_prior(user_priors, std_params=None):
+    """
+    Modify and align prior distributions.
+    Maps user-friendly distribution strings to the absolute indices of free parameters.
+    """
+    return _help_modify_prior.modify_prior(user_priors, std_params)
+
+
+def model_sdt(std_params):
     """
     Evaluate SDT Model CDFs.
     Returns a dictionary containing 'cdf_noise' and 'cdf_signal'.
     """
-    return _model_sdt.model_sdt(params)
+    return _model_sdt.model_sdt(std_params)
 
 
 def data_info(df, colnames=None, condition=None):
@@ -167,9 +191,12 @@ __all__ = [
     "matrix_freq",
     "matrix_prob",
     "matrix_mult",
-    "loss_function",
+    "criterion_likelihood",
+    "criterion_prior",
+    "criterion_posterior",
     # Help: 参数管理与辅助工具
     "modify_params",
+    "modify_prior",
     "data_info",
     # Model: 各类拓展模型引擎
     "model_sdt",

@@ -3,7 +3,7 @@
 #include "../include/matrix_prob.hpp"
 #include "../include/matrix_mult.hpp"
 #include "../include/model_sdt.hpp"
-#include "../include/loss_function.hpp"
+#include "../include/criterion_likelihood.hpp"
 
 #include <stdexcept>
 
@@ -16,14 +16,18 @@ std::vector<SubjectFitTask> build_fit_tasks(
     const std::unordered_map<std::string, std::vector<double>>& custom_upper
 ) {
     // 1. 标准化用户输入的模型参数
-    ModifiedParamsResult base_params = modify_params(user_params, custom_lower, custom_upper);
+    ModifiedParamsResult base_params = modify_params(
+        user_params, custom_lower, custom_upper
+    );
 
     // 2. 通过 data_info 智能扫描数据集，自动提取被试划分及映射列名
     std::vector<std::string> no_conditions; 
     DataInfoResult info = data_info(df, colnames, no_conditions);
 
     if (!info.colnames.count("stim") || !info.colnames.count("resp")) {
-        throw std::invalid_argument("Error: Missing critical columns 'stim' or 'resp'.");
+        throw std::invalid_argument(
+            "Error: Missing critical columns 'stim' or 'resp'."
+        );
     }
 
     std::string col_stim = info.colnames.at("stim");
@@ -41,7 +45,8 @@ std::vector<SubjectFitTask> build_fit_tasks(
 
     // 动态探测：模型参数中是否包含实际的置信度边界
     bool has_conf_params = false;
-    if (base_params.flat.count("c_conf") && !base_params.flat.at("c_conf").empty()) {
+    if (base_params.flat.count("c_conf") && 
+        !base_params.flat.at("c_conf").empty()) {
         has_conf_params = true;
     }
 
@@ -97,13 +102,16 @@ double nll(unsigned n, const double* x, double* grad, void* f_data) {
         SubjectFitTask* task = static_cast<SubjectFitTask*>(f_data);
         
         // 2. 参数动态还原：将 NLOPT 给出的探索值 x，按照结构重组为参数字典
-        auto current_params = task->params.flat; // 局部拷贝，线程安全
+        auto std_params = task->params.flat; // 局部拷贝，线程安全
         size_t x_idx = 0;
+        std::vector<double> free_params_vec;
         for (const auto& name : task->params.name_free) {
             // 识别出参数本来的长度并赋值 (比如 c_conf 可能包含多个数值)
             size_t param_len = task->params.structured.free.at(name).size();
             for (size_t i = 0; i < param_len; ++i) {
-                current_params[name][i] = x[x_idx++];
+                double val = x[x_idx++];
+                std_params[name][i] = val;
+                free_params_vec.push_back(val);
             }
         }
 
@@ -115,26 +123,32 @@ double nll(unsigned n, const double* x, double* grad, void* f_data) {
         // 未来有新模型（比如 ModelDecay 等），继续往这里加 else if 即可
         if (task->model == "sdt") {
             // 指定泛型为 double，无缝对接 NLOPT
-            ModelSDT<double> model(current_params);
+            ModelSDT<double> model(std_params);
             cdf_n = model.cdf_noise();
             cdf_s = model.cdf_signal();
         } else {
             // 如果遇到未知模型直接抛出异常
-            throw std::invalid_argument("Error: Unknown model name '" + task->model + "'.");
+            throw std::invalid_argument(
+                "Error: Unknown model name '" + task->model + "'."
+            );
         }
 
-        MatrixProb prob = matrix_prob(cdf_n, cdf_s, current_params);
+        MatrixProb<double> prob = matrix_prob<double>(cdf_n, cdf_s, std_params);
 
         // 注意：task->freq.freq_mat 是在 builder 里就缓存好的，计算极快
-        auto mult = matrix_mult(task->freq.freq_mat, prob.prob_mat, current_params);
+        auto mult = matrix_mult<double>(task->freq.freq_mat, prob.prob_mat, std_params);
 
-        LossResult loss = loss_function(mult, task->freq.freq_mat, task->params.numb_free);
+        auto loss = criterion_likelihood(
+            mult, task->freq.freq_mat, task->params.numb_free, 
+            free_params_vec, std_params
+        );
 
         // 4. 返回负对数似然用于最小化
         return loss.nll;
     } catch (const std::exception& e) {
         // 致命防御：绝不允许 C++ 异常跨越边界抛给纯 C 语言编写的 NLOPT！
-        // 否则会导致多线程崩溃或优化器死锁。出现非法状态时，返回正无穷大，迫使优化器回退重试。
+        // 否则会导致多线程崩溃或优化器死锁。
+        // 出现非法状态时，返回正无穷大，迫使优化器回退重试。
         return 1e10;
     }
 }

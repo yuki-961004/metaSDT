@@ -9,7 +9,11 @@ using namespace Rcpp;
 
 //' Intelligently scan the dataset and extract subject-level information.
 // [[Rcpp::export(name = "data_info")]]
-List r_data_info(DataFrame df, Nullable<List> colnames = R_NilValue, Nullable<CharacterVector> condition = R_NilValue) {
+List r_data_info(
+    DataFrame df, 
+    Nullable<List> colnames = R_NilValue, 
+    Nullable<CharacterVector> condition = R_NilValue
+) {
     
     // 1. 将 DataFrame 转换为 C++ 的 unordered_map<string, vector<double>>
     std::unordered_map<std::string, std::vector<double>> cpp_df;
@@ -20,7 +24,8 @@ List r_data_info(DataFrame df, Nullable<List> colnames = R_NilValue, Nullable<Ch
         // 心理学 SDT 实验的核心变量几乎全是数值/因子。若有纯字符串变量将被忽略。
         int type = TYPEOF(df[i]);
         if (type == INTSXP || type == REALSXP || type == LGLSXP) {
-            cpp_df[as<std::string>(df_names[i])] = as<std::vector<double>>(df[i]);
+            cpp_df[as<std::string>(df_names[i])] = 
+                as<std::vector<double>>(df[i]);
         }
     }
     
@@ -31,7 +36,8 @@ List r_data_info(DataFrame df, Nullable<List> colnames = R_NilValue, Nullable<Ch
         if (col_list.hasAttribute("names")) {
             CharacterVector c_names = col_list.names();
             for (int i = 0; i < col_list.size(); ++i) {
-                cpp_colnames[as<std::string>(c_names[i])] = as<std::string>(col_list[i]);
+                cpp_colnames[as<std::string>(c_names[i])] = 
+                    as<std::string>(col_list[i]);
             }
         }
     }
@@ -65,7 +71,8 @@ List r_data_info(DataFrame df, Nullable<List> colnames = R_NilValue, Nullable<Ch
     for (const auto& kv : res.subjects) {
         double subid = kv.first;
         
-        // 智能去除 double 的多余小数位并转换为 string 作为 list 的键 (例如 1.0 变为 "1")
+        // 智能去除 double 的多余小数位并转换为 string 作为 list 的键 
+        // (例如 1.0 变为 "1")
         std::string sub_key = std::to_string(subid);
         sub_key.erase(sub_key.find_last_not_of('0') + 1, std::string::npos);
         if (!sub_key.empty() && sub_key.back() == '.') {

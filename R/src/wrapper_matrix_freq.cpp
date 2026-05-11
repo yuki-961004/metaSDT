@@ -1,9 +1,9 @@
 #include <Rcpp.h>
-#include "Cpp/include/matrix_freq.hpp"
+#include "../../Cpp/include/matrix_freq.hpp"
 
 // 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
 // 避免它自作主张将 cpp 文件单独抽出编译，从而解决"重复链接"和"多重定义"的问题
-#define CORE_IMPL "Cpp/src/matrix_freq.cpp"
+#define CORE_IMPL "../../Cpp/src/matrix_freq.cpp"
 #include CORE_IMPL
 
 using namespace Rcpp;

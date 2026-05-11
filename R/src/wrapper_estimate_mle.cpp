@@ -11,7 +11,10 @@
 
 // 使用匿名命名空间，避免与 wrapper_modify_params.cpp 中的辅助函数产生符号冲突
 namespace {
-    void r_obj_to_cpp_map_mle(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
+    void r_obj_to_cpp_map_mle(
+        SEXP r_obj, 
+        std::unordered_map<std::string, std::vector<double>>& cpp_map
+    ) {
         if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) return;
         Rcpp::RObject robj(r_obj);
         if (!robj.hasAttribute("names")) return;
@@ -21,7 +24,8 @@ namespace {
         if (Rcpp::is<Rcpp::List>(robj)) {
             Rcpp::List r_list(robj);
             for (int i = 0; i < r_list.size(); ++i) {
-                cpp_map[Rcpp::as<std::string>(names[i])] = Rcpp::as<std::vector<double>>(r_list[i]);
+                cpp_map[Rcpp::as<std::string>(names[i])] = 
+                    Rcpp::as<std::vector<double>>(r_list[i]);
             }
         } else if (Rcpp::is<Rcpp::NumericVector>(robj)) {
             Rcpp::NumericVector r_vec(robj);
@@ -63,7 +67,8 @@ Rcpp::DataFrame r_estimate_mle(
     for (int i = 0; i < df.size(); ++i) {
         int type = TYPEOF(df[i]);
         if (type == INTSXP || type == REALSXP || type == LGLSXP) {
-            cpp_df[Rcpp::as<std::string>(df_names[i])] = Rcpp::as<std::vector<double>>(df[i]);
+            cpp_df[Rcpp::as<std::string>(df_names[i])] = 
+                Rcpp::as<std::vector<double>>(df[i]);
         }
     }
 
@@ -74,7 +79,8 @@ Rcpp::DataFrame r_estimate_mle(
         if (col_list.hasAttribute("names")) {
             Rcpp::CharacterVector c_names = col_list.names();
             for (int i = 0; i < col_list.size(); ++i) {
-                cpp_colnames[Rcpp::as<std::string>(c_names[i])] = Rcpp::as<std::string>(col_list[i]);
+                cpp_colnames[Rcpp::as<std::string>(c_names[i])] = 
+                    Rcpp::as<std::string>(col_list[i]);
             }
         }
     }
@@ -85,10 +91,18 @@ Rcpp::DataFrame r_estimate_mle(
         Rcpp::RObject p_obj(params);
         if (Rcpp::is<Rcpp::List>(p_obj)) {
             Rcpp::List r_list(p_obj);
-            if (r_list.containsElementNamed("free"))   r_obj_to_cpp_map_mle(r_list["free"], user_params.free);
-            if (r_list.containsElementNamed("fixed"))  r_obj_to_cpp_map_mle(r_list["fixed"], user_params.fixed);
-            if (r_list.containsElementNamed("constant")) r_obj_to_cpp_map_mle(r_list["constant"], user_params.constant);
-            if (!r_list.containsElementNamed("free") && !r_list.containsElementNamed("fixed") && !r_list.containsElementNamed("constant")) {
+            if (r_list.containsElementNamed("free")) {
+                r_obj_to_cpp_map_mle(r_list["free"], user_params.free);
+            }
+            if (r_list.containsElementNamed("fixed")) {
+                r_obj_to_cpp_map_mle(r_list["fixed"], user_params.fixed);
+            }
+            if (r_list.containsElementNamed("constant")) {
+                r_obj_to_cpp_map_mle(r_list["constant"], user_params.constant);
+            }
+            if (!r_list.containsElementNamed("free") && 
+                !r_list.containsElementNamed("fixed") && 
+                !r_list.containsElementNamed("constant")) {
                 r_obj_to_cpp_map_mle(p_obj, user_params.free);
             }
         }
@@ -111,17 +125,40 @@ Rcpp::DataFrame r_estimate_mle(
 
     if (control.isNotNull()) {
         Rcpp::List ctrl(control);
-        if (ctrl.containsElementNamed("algorithm")) cpp_control.algorithm = Rcpp::as<std::string>(ctrl["algorithm"]);
-        if (ctrl.containsElementNamed("xtol_rel")) cpp_control.xtol_rel = Rcpp::as<double>(ctrl["xtol_rel"]);
-        if (ctrl.containsElementNamed("maxeval")) cpp_control.maxeval = Rcpp::as<int>(ctrl["maxeval"]);
-        if (ctrl.containsElementNamed("ftol_rel")) cpp_control.ftol_rel = Rcpp::as<double>(ctrl["ftol_rel"]);
-        if (ctrl.containsElementNamed("ftol_abs")) cpp_control.ftol_abs = Rcpp::as<double>(ctrl["ftol_abs"]);
-        if (ctrl.containsElementNamed("xtol_abs")) cpp_control.xtol_abs = Rcpp::as<double>(ctrl["xtol_abs"]);
-        if (ctrl.containsElementNamed("maxtime")) cpp_control.maxtime = Rcpp::as<double>(ctrl["maxtime"]);
-        if (ctrl.containsElementNamed("stopval")) cpp_control.stopval = Rcpp::as<double>(ctrl["stopval"]);
-        if (ctrl.containsElementNamed("population")) cpp_control.population = Rcpp::as<int>(ctrl["population"]);
-        if (ctrl.containsElementNamed("initial_step")) cpp_control.initial_step = Rcpp::as<double>(ctrl["initial_step"]);
-        if (ctrl.containsElementNamed("local_algorithm")) cpp_control.local_algorithm = Rcpp::as<std::string>(ctrl["local_algorithm"]);
+        if (ctrl.containsElementNamed("algorithm")) {
+            cpp_control.algorithm = Rcpp::as<std::string>(ctrl["algorithm"]);
+        }
+        if (ctrl.containsElementNamed("xtol_rel")) {
+            cpp_control.xtol_rel = Rcpp::as<double>(ctrl["xtol_rel"]);
+        }
+        if (ctrl.containsElementNamed("maxeval")) {
+            cpp_control.maxeval = Rcpp::as<int>(ctrl["maxeval"]);
+        }
+        if (ctrl.containsElementNamed("ftol_rel")) {
+            cpp_control.ftol_rel = Rcpp::as<double>(ctrl["ftol_rel"]);
+        }
+        if (ctrl.containsElementNamed("ftol_abs")) {
+            cpp_control.ftol_abs = Rcpp::as<double>(ctrl["ftol_abs"]);
+        }
+        if (ctrl.containsElementNamed("xtol_abs")) {
+            cpp_control.xtol_abs = Rcpp::as<double>(ctrl["xtol_abs"]);
+        }
+        if (ctrl.containsElementNamed("maxtime")) {
+            cpp_control.maxtime = Rcpp::as<double>(ctrl["maxtime"]);
+        }
+        if (ctrl.containsElementNamed("stopval")) {
+            cpp_control.stopval = Rcpp::as<double>(ctrl["stopval"]);
+        }
+        if (ctrl.containsElementNamed("population")) {
+            cpp_control.population = Rcpp::as<int>(ctrl["population"]);
+        }
+        if (ctrl.containsElementNamed("initial_step")) {
+            cpp_control.initial_step = Rcpp::as<double>(ctrl["initial_step"]);
+        }
+        if (ctrl.containsElementNamed("local_algorithm")) {
+            cpp_control.local_algorithm = 
+                Rcpp::as<std::string>(ctrl["local_algorithm"]);
+        }
     }
 
     std::unordered_map<std::string, std::vector<double>> cpp_lower, cpp_upper;

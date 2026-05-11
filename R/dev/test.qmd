@@ -89,7 +89,7 @@ rm(res1, res2, res3, res4, res5)
 
 cat("\n=== Test 6: ModelSDT 核心引擎测试 ===\n")
 # 获取处理好的完整参数 (设 d=2.0, c_resp=0.5)
-std_params <- modify_params(params = list(
+std_params <- modify_params(user_params = list(
   free = list(d = 2.0, c_conf = c(0.1, 0.5, 0.9)),
   fixed = list(c_resp = 0)
 ))
@@ -119,8 +119,8 @@ matrix_mult(freq_mat, prob_mat, std_params)
 
 
 ```{r}
-#Rcpp::sourceCpp("./R/src/wrapper_loss_function.cpp")
-loss_function(freq_mat, prob_mat, std_params)
+#Rcpp::sourceCpp("./R/src/wrapper_criterion_likelihood.cpp")
+criterion_likelihood(freq_mat, prob_mat, std_params)
 ```
 
 ## fit
@@ -136,4 +136,104 @@ fit_df <- estimate_mle(
 )
 
 print(head(fit_df))
+```
+
+
+```{r}
+# 生成想要评估的当前参数集 (故意打乱自由参数、固定参数的传递顺序，并打乱 c_conf 内部边界！)
+current_params <- modify_params(user_params = list(
+  fixed = list(c_resp = 0.5),
+  free = list(c_conf = c(0.5, 0.2, 0.3), d = 2.0)
+))
+
+freq_mat <- matrix_freq(
+  stim = sub1$stim,
+  resp = sub1$resp,
+  conf = sub1$conf 
+)
+
+cat("\n=== Test 8: Modify Prior (先验映射测试) ===\n")
+prior_res <- modify_prior(
+  user_priors = list(
+    c_conf = list(type = "beta", shape1 = 2.0, shape2 = 5.0), # 故意打乱顺序，c_conf 放在前面
+    d = list(type = "norm", mean = 1.5, sd = 0.5)
+  ),
+  std_params = current_params
+)
+print(prior_res)
+
+cat("\n=== Test 9: Criterion Prior (计算一维梯度带先验概率) ===\n")
+
+log_prior <- criterion_prior(
+  user_priors = list(
+    c_conf = list(type = "beta", shape1 = 2.0, shape2 = 5.0),
+    d = list(type = "norm", mean = 1.5, sd = 0.5)
+  ),
+  std_params = current_params
+)
+print(log_prior)
+
+cat("\n=== Test 10: Criterion Posterior (MCMC/Stan 后验入口测试) ===\n")
+log_posterior <- criterion_posterior(
+  freq_mat = freq_mat,
+  user_priors = list(
+    c_conf = list(type = "beta", shape1 = 2.0, shape2 = 5.0),
+    d = list(type = "norm", mean = 1.5, sd = 0.5)
+  ),
+  std_params = current_params
+)
+print(log_posterior)
+
+cat("\n=== Test 11: Uniform Prior (纯 Log-Likelihood 验证) ===\n")
+# 利用均匀分布特性：若上限与下限之差为 1，则先验概率密度为 1，对数先验 log(1)恒为 0。
+# 此时 criterion_posterior 返回的值将 100% 等价于没有任何先验干涉的对数似然 (LogL)！
+
+log_posterior_unif <- criterion_posterior(
+  freq_mat = freq_mat,
+  user_priors = list(
+    # c_conf 是 [0.2, 0.3, 0.5]，都落在 [0, 1] 区间，差值为 1
+    c_conf = list(type = "unif", min = 0.0, max = 1.0), 
+    
+    # d 是 2.0，落在 [1.5, 2.5] 区间，差值为 1 (同理支持 lower 和 upper 命名)
+    d = list(type = "uniform", lower = 1.5, upper = 2.5)
+  ),
+  std_params = current_params
+)
+
+print(log_posterior_unif)
+```
+
+
+```{r}
+# ==========================================
+# 手动验证 C++ 底层的 Log-Prior 计算
+# ==========================================
+
+# 1. 计算 d 的对数先验概率密度 (正态分布)
+# 对应 C++: -0.5 * log(2*PI*sigma^2) - 0.5 * ((x-mu)/sigma)^2
+d_val <- 2.0
+log_prior_d <- dnorm(x = d_val, mean = 1.5, sd = 0.5, log = TRUE)
+
+# 2. 计算 c_conf 的对数先验概率密度 (Beta分布)
+c_conf_vals <- c(0.5, 0.2, 0.3)
+shape1 <- 2.0
+shape2 <- 5.0
+
+# R 自带的 dbeta 会包含 Beta 分布的归一化常数
+log_prior_c_conf_full <- sum(dbeta(x = c_conf_vals, shape1 = shape1, shape2 = shape2, log = TRUE))
+
+# 提取 R 中的归一化常数部分 ( -lbeta(a,b) )
+# 因为有 3 个 c_conf 值，所以产生了 3 次常数累加
+beta_constant <- sum(-lbeta(shape1, shape2) * rep(1, length(c_conf_vals)))
+
+# 剥离常数，得到 C++ 引擎实际使用的核心核函数：(a-1)*log(x) + (b-1)*log(1-x)
+log_prior_c_conf_cpp <- log_prior_c_conf_full - beta_constant
+
+# 3. 汇总对比
+total_prior_full <- log_prior_d + log_prior_c_conf_full
+total_prior_cpp <- log_prior_d + log_prior_c_conf_cpp
+
+cat("R 原生 dnorm + dbeta 计算结果 (含常数):", total_prior_full, "\n")
+cat("C++ 优化核函数计算结果 (剥离常数):", total_prior_cpp, "\n")
+
 ```

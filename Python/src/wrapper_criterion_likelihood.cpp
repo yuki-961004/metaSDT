@@ -4,15 +4,14 @@
 #include "../../Cpp/include/criterion_likelihood.hpp"
 #include "../../Cpp/include/matrix_mult.hpp"
 
-pybind11::dict py_loss_function(
+pybind11::dict py_criterion_likelihood(
     pybind11::object freq_obj,
     pybind11::object prob_obj,
-    pybind11::dict params
+    pybind11::dict std_params
 ) {
     std::vector<std::vector<double>> freq_mat;
     std::vector<std::vector<double>> prob_mat;
 
-    // 智能提取：允许直接传入 matrix_freq 和 matrix_prob 返回的字典
     if (pybind11::isinstance<pybind11::dict>(freq_obj)) {
         freq_mat = freq_obj.cast<pybind11::dict>()["freq_mat"]
                            .cast<std::vector<std::vector<double>>>();
@@ -28,29 +27,26 @@ pybind11::dict py_loss_function(
     }
 
     int k = 0;
-    if (params.contains("numb_free")) {
-        k = params["numb_free"].cast<int>();
+    if (std_params.contains("numb_free")) {
+        k = std_params["numb_free"].cast<int>();
     } else {
-        throw pybind11::value_error("Error: 'params' must contain 'numb_free'.");
+        throw pybind11::value_error("Error: 'std_params' must contain 'numb_free'.");
     }
     
-    // 提取可能的极小值容差参数 (防止矩阵乘法时 log(0) 报错)
     std::unordered_map<std::string, std::vector<double>> cpp_params;
-    if (params.contains("flat")) {
-        pybind11::dict flat = params["flat"].cast<pybind11::dict>();
+    if (std_params.contains("flat")) {
+        pybind11::dict flat = std_params["flat"].cast<pybind11::dict>();
         if (flat.contains("calc_tol")) {
             cpp_params["calc_tol"] = flat["calc_tol"].cast<std::vector<double>>();
         }
     }
     
-    // 在 Wrapper 内部先执行矩阵乘法，彻底贴合 Python 用户习惯
-    auto cpp_mult = ::matrix_mult(freq_mat, prob_mat, cpp_params);
+    auto cpp_mult = ::matrix_mult<double>(freq_mat, prob_mat, cpp_params);
     
-    // 为了能在 Python 单步调用中获得正则化计算，预留空的 free_params 列表
-    // 由于只是单步展示，如果没有传入 free_params，等同于不激活惩罚项计算。
     std::vector<double> free_params; 
-    
-    auto res = criterion_likelihood(cpp_mult, freq_mat, k, free_params, cpp_params);
+    auto res = criterion_likelihood(
+        cpp_mult, freq_mat, k, free_params, cpp_params
+    );
     
     pybind11::dict out;
     out["logL"] = res.logL;
@@ -61,9 +57,9 @@ pybind11::dict py_loss_function(
     return out;
 }
 
-PYBIND11_MODULE(_core_loss_function, m) {
-    m.def("loss_function", &py_loss_function, 
+PYBIND11_MODULE(_core_criterion_likelihood, m) {
+    m.def("criterion_likelihood", &py_criterion_likelihood, 
           "Calculate model loss (NLL, AIC, BIC).",
           pybind11::arg("freq_mat"), pybind11::arg("prob_mat"), 
-          pybind11::arg("params"));
+          pybind11::arg("std_params"));
 }

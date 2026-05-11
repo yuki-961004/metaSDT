@@ -1,8 +1,8 @@
 #include <Rcpp.h>
-#include "Cpp/include/model_sdt.hpp"
+#include "../../Cpp/include/model_sdt.hpp"
 
 // 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
-#define CORE_IMPL "Cpp/src/model_sdt.cpp"
+#define CORE_IMPL "../../Cpp/src/model_sdt.cpp"
 #include CORE_IMPL
 
 using namespace Rcpp;

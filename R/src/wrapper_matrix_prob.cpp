@@ -1,8 +1,8 @@
 #include <Rcpp.h>
-#include "Cpp/include/matrix_prob.hpp"
+#include "../../Cpp/include/matrix_prob.hpp"
 
 // 使用宏定义解决多重编译问题
-#define CORE_IMPL "Cpp/src/matrix_prob.cpp"
+#define CORE_IMPL "../../Cpp/src/matrix_prob.cpp"
 #include CORE_IMPL
 
 using namespace Rcpp;
@@ -33,7 +33,7 @@ NumericMatrix r_matrix_prob(NumericVector cdf_noise, NumericVector cdf_signal, L
     }
 
     // 3. 调用核心 C++ 函数
-    MatrixProb res = ::matrix_prob(cpp_noise, cpp_signal, cpp_params);
+    MatrixProb<double> res = ::matrix_prob<double>(cpp_noise, cpp_signal, cpp_params);
 
     // 4. 将 2D std::vector 优雅地转换为 R 的 NumericMatrix
     NumericMatrix out_mat(res.prob_mat.size(), res.prob_mat[0].size());

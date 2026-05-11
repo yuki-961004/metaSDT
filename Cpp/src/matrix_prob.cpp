@@ -1,10 +1,11 @@
 #include "../include/matrix_prob.hpp"
 #include <stdexcept>
 
-MatrixProb matrix_prob(
-    const std::vector<double>& cdf_noise,
-    const std::vector<double>& cdf_signal,
-    const std::unordered_map<std::string, std::vector<double>>& params
+template <typename T>
+MatrixProb<T> matrix_prob(
+    const std::vector<T>& cdf_noise,
+    const std::vector<T>& cdf_signal,
+    const std::unordered_map<std::string, std::vector<T>>& std_params
 ) {
     // ==========================================================
     // 1. 安全检查与基础变量设定
@@ -25,14 +26,14 @@ MatrixProb matrix_prob(
     // 2. 参数对齐验证与拦截
     // ==========================================================
     // 拦截：防止用户仅传入单点 CDF，却妄图生成带有复杂置信度的完整概率矩阵
-    auto it_c_conf = params.find("c_conf");
-    if (it_c_conf != params.end() && !it_c_conf->second.empty()) {
+    auto it_c_conf = std_params.find("c_conf");
+    if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
         size_t n_c_conf = it_c_conf->second.size();
         size_t expected_criteria;
         
         // 使用 find 替代多次 count + at
-        auto it_n_conf = params.find("n_conf");
-        if (it_n_conf != params.end() && !it_n_conf->second.empty() && 
+        auto it_n_conf = std_params.find("n_conf");
+        if (it_n_conf != std_params.end() && !it_n_conf->second.empty() && 
             static_cast<size_t>(it_n_conf->second[0]) == n_c_conf) {
             // 此时 c_conf 已经是一个包含所有边界的完整向量
             expected_criteria = n_c_conf; 
@@ -55,8 +56,8 @@ MatrixProb matrix_prob(
         }
     }
 
-    MatrixProb result;
-    result.prob_mat.assign(2, std::vector<double>(n_cols, 0.0));
+    MatrixProb<T> result;
+    result.prob_mat.assign(2, std::vector<T>(n_cols, 0.0));
 
     // SDT 中的判断选项通常是偶数（例如 2键辨别, 或 2键x3置信度=6选项）
     if (n_cols % 2 != 0) {
@@ -88,9 +89,9 @@ MatrixProb matrix_prob(
     // ==========================================================
     // 4. 全局变异修正 (引入按错键/走神概率 rate_lapse)
     // ==========================================================
-    double lapse = 0.0;
-    auto it_lapse = params.find("rate_lapse");
-    if (it_lapse != params.end() && !it_lapse->second.empty()) {
+    T lapse = 0.0;
+    auto it_lapse = std_params.find("rate_lapse");
+    if (it_lapse != std_params.end() && !it_lapse->second.empty()) {
         lapse = it_lapse->second[0];
     }
 
@@ -99,7 +100,7 @@ MatrixProb matrix_prob(
             for (size_t j = 0; j < n_cols; ++j) {
                 // 反应概率 = 完全随机猜测的均等概率 + 认真作答的概率
                 result.prob_mat[i][j] = 
-                    (lapse / static_cast<double>(n_cols)) + 
+                    (lapse / static_cast<T>(n_cols)) + 
                     ((1.0 - lapse) * result.prob_mat[i][j]);
             }
         }
@@ -125,3 +126,8 @@ MatrixProb matrix_prob(
 
     return result;
 }
+
+template MatrixProb<double> matrix_prob<double>(
+    const std::vector<double>&, 
+    const std::vector<double>&, 
+    const std::unordered_map<std::string, std::vector<double>>&);

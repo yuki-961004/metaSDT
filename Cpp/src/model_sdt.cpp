@@ -16,16 +16,16 @@
 // ==========================================================
 template <typename T>
 ModelSDT<T>::ModelSDT(
-    const std::unordered_map<std::string, std::vector<T>>& params
+    const std::unordered_map<std::string, std::vector<T>>& std_params
 ) {
     
     // ==========================================================
     // 1.1 基础参数提取与校验
     // ==========================================================
     try {
-        d = params.at("d")[0];
-        sd_noise = params.at("sd_noise")[0];
-        sd_signal = params.at("sd_signal")[0];
+        d = std_params.at("d")[0];
+        sd_noise = std_params.at("sd_noise")[0];
+        sd_signal = std_params.at("sd_signal")[0];
     } catch (const std::out_of_range& e) {
         throw std::invalid_argument(
           "ModelSDT Initialization Error: Missing required parameters "
@@ -45,14 +45,14 @@ ModelSDT<T>::ModelSDT(
     // 1.3 判定标准 (Criteria) 的动态生成机制
     // ==========================================================
     T c_resp_val = 0.0;
-    auto it_c_resp = params.find("c_resp");
-    if (it_c_resp != params.end() && !it_c_resp->second.empty()) {
+    auto it_c_resp = std_params.find("c_resp");
+    if (it_c_resp != std_params.end() && !it_c_resp->second.empty()) {
         c_resp_val = it_c_resp->second[0];
     }
 
     // 冗余优化：利用 find 迭代器避免多次 count 和 at 的哈希表查询开销
-    auto it_c_conf = params.find("c_conf");
-    if (it_c_conf != params.end() && !it_c_conf->second.empty()) {
+    auto it_c_conf = std_params.find("c_conf");
+    if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
         std::vector<T> c_conf = it_c_conf->second;
         
         // 【核心防御】：无论优化器以何种顺序随机探索边界，
@@ -60,8 +60,8 @@ ModelSDT<T>::ModelSDT(
         // 这彻底消除了对 NLOPT 复杂不等式约束的依赖。
         std::sort(c_conf.begin(), c_conf.end());
         
-        auto it_n_conf = params.find("n_conf");
-        bool has_n_conf = (it_n_conf != params.end() && 
+        auto it_n_conf = std_params.find("n_conf");
+        bool has_n_conf = (it_n_conf != std_params.end() && 
                            !it_n_conf->second.empty());
         
         // 传递了 n_conf 且等于 c_conf 长度，说明这是非等距完整向量
@@ -114,15 +114,20 @@ std::vector<T> ModelSDT<T>::cdf_signal() const {
 // ==========================================================
 template <typename T>
 T ModelSDT<T>::cdf_noise(T x) const {
-    return 0.5 * (1.0 + std::erf(
-        (x - mu_noise) / (sd_noise * std::sqrt(2.0))
+    // ADL (Argument-Dependent Lookup) 卫生规范
+    using std::erf;
+    using std::sqrt;
+    return 0.5 * (1.0 + erf(
+        (x - mu_noise) / (sd_noise * sqrt(2.0))
     ));
 }
 
 template <typename T>
 T ModelSDT<T>::cdf_signal(T x) const {
-    return 0.5 * (1.0 + std::erf(
-        (x - mu_signal) / (sd_signal * std::sqrt(2.0))
+    using std::erf;
+    using std::sqrt;
+    return 0.5 * (1.0 + erf(
+        (x - mu_signal) / (sd_signal * sqrt(2.0))
     ));
 }
 

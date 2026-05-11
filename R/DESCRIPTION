@@ -1,7 +1,7 @@
 Package: metaSDT
 Type: Package
 Title: Tools for Signal Detection Theory
-Version: 0.0.3
+Version: 0.0.4
 Authors@R:
   c(
     person(
@@ -18,6 +18,6 @@ LazyData: TRUE
 ByteCompile: TRUE
 RoxygenNote: 7.3.3
 Depends: R (>= 4.1.0)
-Imports: Rcpp, nloptr
-LinkingTo: Rcpp, nloptr
+Imports: Rcpp, nloptr, RcppEigen
+LinkingTo: Rcpp, nloptr, RcppEigen
 Suggests: 

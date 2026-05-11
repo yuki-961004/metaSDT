@@ -1,5 +1,4 @@
-# 开启 OpenMP 多线程支持
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
-
-# 告诉链接器：使用 OpenMP 库，并且链接系统内置的 NLopt 库 (-lnlopt)
+CXX_STD = CXX17
+# 屏蔽 Eigen 库产生的 SIMD 属性警告
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -Wno-ignored-attributes -Wno-deprecated-declarations
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) -lnlopt

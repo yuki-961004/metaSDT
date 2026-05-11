@@ -1,10 +1,11 @@
 #include <Rcpp.h>
-#include "Cpp/include/modify_params.hpp"
+#include "../../Cpp/include/modify_params.hpp"
 
 // 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
 // 避免它自作主张将 cpp 文件单独抽出编译，从而解决"重复链接"和"未定义引用"的问题
-#define CORE_IMPL "Cpp/src/modify_params.cpp"
+#define CORE_IMPL "../../Cpp/src/modify_params.cpp"
 #include CORE_IMPL
+
 
 using namespace Rcpp;
 
@@ -58,12 +59,12 @@ void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<do
 //' @import Rcpp
 //' @export
 // [[Rcpp::export(name = "modify_params")]]
-List r_modify_params(RObject params = R_NilValue) {
-    ParamGroup user_params;
+List r_modify_params(RObject user_params = R_NilValue) {
+    ParamGroup cpp_user_params;
 
-    if (!params.isNULL() && Rf_length(params) > 0) {
-        if (Rcpp::is<Rcpp::List>(params)) {
-            Rcpp::List r_list(params);
+    if (!user_params.isNULL() && Rf_length(user_params) > 0) {
+        if (Rcpp::is<Rcpp::List>(user_params)) {
+            Rcpp::List r_list(user_params);
 
             bool is_structured = r_list.containsElementNamed("free") || 
                                  r_list.containsElementNamed("fixed") || 
@@ -71,23 +72,23 @@ List r_modify_params(RObject params = R_NilValue) {
 
             if (is_structured) { // Case 1: Structured list like list(free=...)
                 if (r_list.containsElementNamed("free"))   
-                    r_obj_to_cpp_map(r_list["free"], user_params.free);
+                    r_obj_to_cpp_map(r_list["free"], cpp_user_params.free);
                 if (r_list.containsElementNamed("fixed"))  
-                    r_obj_to_cpp_map(r_list["fixed"], user_params.fixed);
+                    r_obj_to_cpp_map(r_list["fixed"], cpp_user_params.fixed);
                 if (r_list.containsElementNamed("constant")) 
-                    r_obj_to_cpp_map(r_list["constant"], user_params.constant);
+                    r_obj_to_cpp_map(r_list["constant"], cpp_user_params.constant);
             } else { // Case 2: Flat list like list(d=2), treat as free
-                r_obj_to_cpp_map(params, user_params.free);
+                r_obj_to_cpp_map(user_params, cpp_user_params.free);
             }
-        } else if (Rcpp::is<Rcpp::NumericVector>(params)) { // Case 3: Flat vector like c(d=2), treat as free
-            r_obj_to_cpp_map(params, user_params.free);
+        } else if (Rcpp::is<Rcpp::NumericVector>(user_params)) { // Case 3: Flat vector like c(d=2), treat as free
+            r_obj_to_cpp_map(user_params, cpp_user_params.free);
         } else {
             stop("Input 'params' must be a list, a named numeric vector, or NULL.");
         }
     }
 
     // 调用纯 C++ 核心函数
-    auto cpp_result = ::modify_params(user_params);
+    auto cpp_result = ::modify_params(cpp_user_params);
 
     // 将 C++ 的 flat 结果转回 R 的 List 作为主体
     List out_list = Rcpp::wrap(cpp_result.flat);
