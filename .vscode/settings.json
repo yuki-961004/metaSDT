@@ -1,7 +1,0 @@
-{
-  "cmake.useCMakePresets": "always",
-  "cmake.configurePreset": "cpp-core-msvc-release",
-  "cmake.buildPreset": "cpp-core-install-msvc-release",
-  "cmake.buildTarget": "install",
-  "cmake.buildDirectory": "${workspaceFolder}/Cpp/build"
-}

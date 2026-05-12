@@ -99,7 +99,7 @@ pybind11::dict py_data_info(
     return out;
 }
 
-PYBIND11_MODULE(_core_data_info, m) {
+PYBIND11_MODULE(_help_data_info, m) {
     // 注册 Python 类，使得在 Python 端可以通过点(.)访问
     pybind11::class_<PySubjectData>(m, "SubjectData")
         .def_readonly("info", &PySubjectData::info)

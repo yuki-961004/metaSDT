@@ -2,7 +2,6 @@
 # 环境安装区 (如果已经安装成功，以后不需要运行此块)
 # %pip install pandas
 # %pip install -e ./Python
-# %pip install -e ./Python --config-settings=build-dir="build"
 
 # %%
 import pandas

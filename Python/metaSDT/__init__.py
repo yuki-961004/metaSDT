@@ -6,7 +6,7 @@ from . import _core_matrix_mult
 from . import _core_criterion_likelihood
 from . import _core_criterion_prior
 from . import _core_criterion_posterior
-from . import _core_data_info
+from . import _help_data_info
 from . import _help_modify_params
 from . import _help_modify_prior
 from . import _model_sdt
@@ -168,7 +168,7 @@ def data_info(df, colnames=None):
             codes, _ = pandas.factorize(df[col])
             df_dict[str(col)] = codes.astype(float).tolist()
 
-    return _core_data_info.data_info(df=df_dict, colnames=colnames)
+    return _help_data_info.data_info(df=df_dict, colnames=colnames)
 
 
 def estimate_mle(

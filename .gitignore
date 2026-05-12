@@ -1,3 +1,6 @@
+# VS Code
+.vscode/
+
 # History files
 .Rhistory
 .Rapp.history

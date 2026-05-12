@@ -78,7 +78,7 @@ ext_modules = [
         extra_compile_args=extra_compile_args,
     ),
     Extension(
-        "metaSDT._core_data_info",
+        "metaSDT._help_data_info",
         ["src/wrapper_data_info.cpp"],
         include_dirs=[get_pybind_include(), "src/Cpp/include"],
         language="c++",
@@ -106,6 +106,6 @@ ext_modules = [
 
 setup(
     name="metaSDT",
-    version="0.0.5",
+    version="0.0.6",
     ext_modules=ext_modules,
 )
