@@ -35,12 +35,12 @@ double py_criterion_posterior(
     pybind11::dict user_priors,
     pybind11::object std_params = pybind11::none()
 ) {
-    std::vector<std::vector<double>> freq_mat;
+    std::vector<std::vector<std::vector<double>>> freq_mat;
     if (pybind11::isinstance<pybind11::dict>(freq_obj)) {
         freq_mat = freq_obj.cast<pybind11::dict>()["freq_mat"]
-                           .cast<std::vector<std::vector<double>>>();
+                           .cast<std::vector<std::vector<std::vector<double>>>>();
     } else {
-        freq_mat = freq_obj.cast<std::vector<std::vector<double>>>();
+        freq_mat = freq_obj.cast<std::vector<std::vector<std::vector<double>>>>();
     }
 
     ModifiedParamsResult param_info;

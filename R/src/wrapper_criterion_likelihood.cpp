@@ -8,17 +8,23 @@ using namespace Rcpp;
 //' Calculate Model Likelihood indicators (NLL, AIC, BIC)
 //' @export
 // [[Rcpp::export(name = "criterion_likelihood")]]
-List r_criterion_likelihood(NumericMatrix freq_mat, NumericMatrix prob_mat, List std_params) {
-    int n_rows = freq_mat.nrow();
-    int n_cols = freq_mat.ncol();
+List r_criterion_likelihood(List freq_mat, List prob_mat, List std_params) {
+    int n_dims = freq_mat.size();
+    NumericMatrix first = as<NumericMatrix>(freq_mat[0]);
+    int n_rows = first.nrow();
+    int n_cols = first.ncol();
 
-    std::vector<std::vector<double>> cpp_freq(n_rows, std::vector<double>(n_cols));
-    std::vector<std::vector<double>> cpp_prob(n_rows, std::vector<double>(n_cols));
+    std::vector<std::vector<std::vector<double>>> cpp_freq(n_dims, std::vector<std::vector<double>>(n_rows, std::vector<double>(n_cols)));
+    std::vector<std::vector<std::vector<double>>> cpp_prob(n_dims, std::vector<std::vector<double>>(n_rows, std::vector<double>(n_cols)));
 
-    for (int i = 0; i < n_rows; ++i) {
-        for (int j = 0; j < n_cols; ++j) {
-            cpp_freq[i][j] = freq_mat(i, j);
-            cpp_prob[i][j] = prob_mat(i, j);
+    for (int d = 0; d < n_dims; ++d) {
+        NumericMatrix f = as<NumericMatrix>(freq_mat[d]);
+        NumericMatrix p = as<NumericMatrix>(prob_mat[d]);
+        for (int i = 0; i < n_rows; ++i) {
+            for (int j = 0; j < n_cols; ++j) {
+                cpp_freq[d][i][j] = f(i, j);
+                cpp_prob[d][i][j] = p(i, j);
+            }
         }
     }
 
@@ -51,7 +57,7 @@ List r_criterion_likelihood(NumericMatrix freq_mat, NumericMatrix prob_mat, List
     auto cpp_mult = ::matrix_mult<double>(cpp_freq, cpp_prob, cpp_params);
     std::vector<double> free_params; 
     
-    auto res = ::criterion_likelihood(cpp_mult, cpp_freq, k, free_params, cpp_params);
+    auto res = ::criterion_likelihood<double>(cpp_mult, cpp_freq, k, free_params, cpp_params);
 
     return List::create(
         Named("logL") = res.logL, Named("nll") = res.nll, Named("k") = res.k,

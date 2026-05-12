@@ -4,14 +4,14 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "metaSDT"
-version = "0.0.3"
+version = "0.0.5"
 description = "High-performance Meta-Cognitive SDT modeling via C++"
 dependencies = ["pandas"]
 
 [tool.scikit-build]
 wheel.packages = ["metaSDT"]
 cmake.args = ["-DCMAKE_POLICY_VERSION_MINIMUM=3.5"]
-cmake.source-dir = ".."
+cmake.source-dir = "."
 
 [tool.pyright]
 extraPaths = ["."]

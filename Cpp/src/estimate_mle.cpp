@@ -20,7 +20,12 @@ std::vector<SubjectFitResult> estimate_mle(
 ) {
     // 1. 任务工厂：瞬间生成所有被试的独立环境包
     std::vector<SubjectFitTask> tasks = build_fit_tasks(
-        df, colnames, user_params, model_name, custom_lower, custom_upper
+        /*df=*/df, 
+        /*colnames=*/colnames, 
+        /*user_params=*/user_params, 
+        /*model_name=*/model_name, 
+        /*custom_lower=*/custom_lower,
+        /*custom_upper=*/custom_upper
     );
     
     // 预分配结果向量，避免多线程 push_back 导致的内存冲突
@@ -36,6 +41,7 @@ std::vector<SubjectFitResult> estimate_mle(
         auto& task = tasks[i];
         SubjectFitResult res;
         res.subid = task.subid;
+        res.cond = task.cond;
 
         // 预设 base_params，防止发生异常时 best_params 为空导致 R 端展平报错
         res.best_params = task.params.flat;
@@ -76,11 +82,13 @@ std::vector<SubjectFitResult> estimate_mle(
                 );
             }
 
-            nlopt_opt opt = nlopt_create(algo, task.params.numb_free);
+            nlopt_opt opt = nlopt_create(
+                /*algorithm=*/algo, /*n=*/task.params.numb_free
+            );
             
             // 完美对接你在 modify_params 铺好的边界
-            nlopt_set_lower_bounds(opt, task.params.lower_bounds.data());
-            nlopt_set_upper_bounds(opt, task.params.upper_bounds.data());
+            nlopt_set_lower_bounds(/*opt=*/opt, /*lb=*/task.params.lower_bounds.data());
+            nlopt_set_upper_bounds(/*opt=*/opt, /*ub=*/task.params.upper_bounds.data());
 
             // 如果用户选择了 MLSL 等依赖局部优化器的全局算法，动态创建并挂载附属优化器
             nlopt_opt local_opt = NULL;
@@ -97,39 +105,61 @@ std::vector<SubjectFitResult> estimate_mle(
                     );
                 }
                 
-                local_opt = nlopt_create(local_algo, task.params.numb_free);
+                local_opt = nlopt_create(
+                    /*algorithm=*/local_algo, /*n=*/task.params.numb_free
+                );
                 
                 // 将局部优化器的容差标准与主优化器保持一致
-                nlopt_set_xtol_rel(local_opt, control.xtol_rel);
-                if (control.ftol_rel > 0) nlopt_set_ftol_rel(local_opt, control.ftol_rel);
-                if (control.ftol_abs > 0) nlopt_set_ftol_abs(local_opt, control.ftol_abs);
-                if (control.xtol_abs > 0) nlopt_set_xtol_abs1(local_opt, control.xtol_abs);
+                nlopt_set_xtol_rel(/*opt=*/local_opt, /*tol=*/control.xtol_rel);
+                if (control.ftol_rel > 0) {
+                    nlopt_set_ftol_rel(/*opt=*/local_opt, /*tol=*/control.ftol_rel);
+                }
+                if (control.ftol_abs > 0) {
+                    nlopt_set_ftol_abs(/*opt=*/local_opt, /*tol=*/control.ftol_abs);
+                }
+                if (control.xtol_abs > 0) {
+                    nlopt_set_xtol_abs1(/*opt=*/local_opt, /*tol=*/control.xtol_abs);
+                }
                 
                 // 挂载到全局优化器上
-                nlopt_set_local_optimizer(opt, local_opt);
+                nlopt_set_local_optimizer(/*opt=*/opt, /*local_opt=*/local_opt);
             }
             
             // 将 nll 静态函数与当前被试的内存地址(&task) 绑定
-            nlopt_set_min_objective(opt, nll, &task);
+            nlopt_set_min_objective(/*opt=*/opt, /*f=*/nll, /*f_data=*/&task);
             
             // 设定优化停止的容差和最大迭代次数
-            nlopt_set_xtol_rel(opt, control.xtol_rel);
-            nlopt_set_maxeval(opt, control.maxeval); 
+            nlopt_set_xtol_rel(/*opt=*/opt, /*tol=*/control.xtol_rel);
+            nlopt_set_maxeval(/*opt=*/opt, /*maxeval=*/control.maxeval); 
             
             // 开放更多高级控制接口 (当且仅当用户指定了>0的值时启用)
-            if (control.ftol_rel > 0) nlopt_set_ftol_rel(opt, control.ftol_rel);
-            if (control.ftol_abs > 0) nlopt_set_ftol_abs(opt, control.ftol_abs);
-            if (control.xtol_abs > 0) {
-                nlopt_set_xtol_abs1(opt, control.xtol_abs);
+            if (control.ftol_rel > 0) {
+                nlopt_set_ftol_rel(/*opt=*/opt, /*tol=*/control.ftol_rel);
             }
-            if (control.maxtime > 0) nlopt_set_maxtime(opt, control.maxtime);
-            if (control.population > 0) nlopt_set_population(opt, control.population);
-            if (control.initial_step > 0) nlopt_set_initial_step1(opt, control.initial_step);
-            if (control.stopval != 0.0) nlopt_set_stopval(opt, control.stopval);
+            if (control.ftol_abs > 0) {
+                nlopt_set_ftol_abs(/*opt=*/opt, /*tol=*/control.ftol_abs);
+            }
+            if (control.xtol_abs > 0) {
+                nlopt_set_xtol_abs1(/*opt=*/opt, /*tol=*/control.xtol_abs);
+            }
+            if (control.maxtime > 0) {
+                nlopt_set_maxtime(/*opt=*/opt, /*maxtime=*/control.maxtime);
+            }
+            if (control.population > 0) {
+                nlopt_set_population(/*opt=*/opt, /*pop=*/control.population);
+            }
+            if (control.initial_step > 0) {
+                nlopt_set_initial_step1(/*opt=*/opt, /*dx=*/control.initial_step);
+            }
+            if (control.stopval != 0.0) {
+                nlopt_set_stopval(/*opt=*/opt, /*stopval=*/control.stopval);
+            }
 
             double minf = 0.0;
             // 🔥 启动探索！这行代码会内部循环调用 nll 几百上千次
-            nlopt_result nlopt_res = nlopt_optimize(opt, x0.data(), &minf);
+            nlopt_result nlopt_res = nlopt_optimize(
+                /*opt=*/opt, /*x=*/x0.data(), /*minf=*/&minf
+            );
 
             if (nlopt_res < 0) {
                 #pragma omp critical
@@ -148,9 +178,11 @@ std::vector<SubjectFitResult> estimate_mle(
 
             // 计算 AIC 和 BIC
             double N = 0.0;
-            for (const auto& row : task.freq.freq_mat) {
-                for (double v : row) {
-                    N += v;
+            for (const auto& dim_mat : task.freq.freq_mat) {
+                for (const auto& row : dim_mat) {
+                    for (double v : row) {
+                        N += v;
+                    }
                 }
             }
             res.aic = 2.0 * task.params.numb_free - 2.0 * res.logL;

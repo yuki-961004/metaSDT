@@ -13,27 +13,60 @@ from . import _model_sdt
 from . import _estimate_mle
 
 
-def matrix_freq(stim, resp, conf=None):
+def _extract_3d_mat(mat):
+    """Helper to safely extract a 3D matrix from various Python inputs."""
+    if isinstance(mat, pandas.DataFrame):
+        return [mat.values.tolist()]
+    elif isinstance(mat, dict):
+        if "freq_mat" in mat:
+            return mat["freq_mat"]
+        if "prob_mat" in mat:
+            return mat["prob_mat"]
+        # Assumes a dict of DataFrames
+        return [df.values.tolist() for df in mat.values()]
+    return mat
+
+
+def matrix_freq(stim, resp, conf=None, diff=None, std_params=None):
     """
     Calculate the frequency matrix for Signal Detection Theory.
     """
     # 1. 调用 C++ 底层核心函数，获取原始字典结果
-    res = _core_matrix_freq.matrix_freq(stim, resp, conf)
-
-    # 2. 将字典无缝转换为带有原生行列名的 pandas DataFrame
-    return pandas.DataFrame(
-        res["freq_mat"], index=res["row_names"], columns=res["col_names"]
+    res = _core_matrix_freq.matrix_freq(
+        stim=stim, resp=resp, conf=conf, diff=diff, std_params=std_params
     )
+
+    if len(res["freq_mat"]) == 1:
+        return pandas.DataFrame(
+            res["freq_mat"][0], index=res["row_names"], columns=res["col_names"]
+        )
+    else:
+        return {
+            name: pandas.DataFrame(
+                mat, index=res["row_names"], columns=res["col_names"]
+            )
+            for name, mat in zip(res["dim_names"], res["freq_mat"])
+        }
 
 
 def matrix_prob(cdf_noise, cdf_signal, std_params):
     """
     Calculate the theoretical probability matrix.
     """
-    res = _core_matrix_prob.matrix_prob(cdf_noise, cdf_signal, std_params)
-    return pandas.DataFrame(
-        res["prob_mat"], index=res["row_names"], columns=res["col_names"]
+    res = _core_matrix_prob.matrix_prob(
+        cdf_noise=cdf_noise, cdf_signal=cdf_signal, std_params=std_params
     )
+    if len(res["prob_mat"]) == 1:
+        return pandas.DataFrame(
+            res["prob_mat"][0], index=res["row_names"], columns=res["col_names"]
+        )
+    else:
+        return {
+            name: pandas.DataFrame(
+                mat, index=res["row_names"], columns=res["col_names"]
+            )
+            for name, mat in zip(res["dim_names"], res["prob_mat"])
+        }
 
 
 def matrix_mult(freq_mat, prob_mat, std_params):
@@ -41,25 +74,25 @@ def matrix_mult(freq_mat, prob_mat, std_params):
     Calculate the Log-Likelihood product matrix.
     Supports both raw nested lists and pandas DataFrames.
     """
-    # 如果输入是 DataFrame，提取为纯嵌套列表供 C++ 使用，并保留原始维度名称
-    if isinstance(freq_mat, pandas.DataFrame):
-        f_mat = freq_mat.values.tolist()
-        idx = freq_mat.index
-        cols = freq_mat.columns
-    else:
-        f_mat = freq_mat
-        idx, cols = None, None
-
-    p_mat = (
-        prob_mat.values.tolist() if isinstance(prob_mat, pandas.DataFrame) else prob_mat
-    )
+    f_mat = _extract_3d_mat(freq_mat)
+    p_mat = _extract_3d_mat(prob_mat)
 
     # 调用底层 C++ 核心函数计算
-    res_mat = _core_matrix_mult.matrix_mult(f_mat, p_mat, std_params)
+    res_mat = _core_matrix_mult.matrix_mult(
+        freq_mat=f_mat, prob_mat=p_mat, std_params=std_params
+    )
 
-    # 如果原本输入的是 DataFrame，则保持原样返回继承了行列名的 DataFrame
-    if idx is not None and cols is not None:
-        return pandas.DataFrame(res_mat, index=idx, columns=cols)
+    if isinstance(freq_mat, pandas.DataFrame):
+        return pandas.DataFrame(
+            res_mat[0], index=freq_mat.index, columns=freq_mat.columns
+        )
+    elif isinstance(freq_mat, dict) and not (
+        "freq_mat" in freq_mat or "prob_mat" in freq_mat
+    ):
+        return {
+            k: pandas.DataFrame(m, index=v.index, columns=v.columns)
+            for (k, v), m in zip(freq_mat.items(), res_mat)
+        }
     return res_mat
 
 
@@ -67,28 +100,27 @@ def criterion_likelihood(freq_mat, prob_mat, std_params):
     """
     Calculate Model Loss indicators including Negative Log-Likelihood, AIC, and BIC.
     """
-    # 安全地将 DataFrame 转为 C++ 能够接收的嵌套列表
-    f_mat = (
-        freq_mat.values.tolist() if isinstance(freq_mat, pandas.DataFrame) else freq_mat
-    )
-    p_mat = (
-        prob_mat.values.tolist() if isinstance(prob_mat, pandas.DataFrame) else prob_mat
-    )
+    f_mat = _extract_3d_mat(freq_mat)
+    p_mat = _extract_3d_mat(prob_mat)
 
-    return _core_criterion_likelihood.criterion_likelihood(f_mat, p_mat, std_params)
+    return _core_criterion_likelihood.criterion_likelihood(
+        mult_mat=f_mat, freq_mat=p_mat, std_params=std_params
+    )
 
 
 def criterion_prior(user_priors, std_params=None):
     """Evaluate Log-Prior"""
-    return _core_criterion_prior.criterion_prior(user_priors, std_params)
+    return _core_criterion_prior.criterion_prior(
+        user_priors=user_priors, std_params=std_params
+    )
 
 
 def criterion_posterior(freq_mat, user_priors, std_params=None):
     """Evaluate Unnormalized Log-Posterior"""
-    f_mat = (
-        freq_mat.values.tolist() if isinstance(freq_mat, pandas.DataFrame) else freq_mat
+    f_mat = _extract_3d_mat(freq_mat)
+    return _core_criterion_posterior.criterion_posterior(
+        freq_mat=f_mat, user_priors=user_priors, std_params=std_params
     )
-    return _core_criterion_posterior.criterion_posterior(f_mat, user_priors, std_params)
 
 
 def modify_params(user_params=None):
@@ -116,17 +148,13 @@ def model_sdt(std_params):
     return _model_sdt.model_sdt(std_params)
 
 
-def data_info(df, colnames=None, condition=None):
+def data_info(df, colnames=None):
     """
     Intelligently scan the dataset and extract subject-level information.
     Returns indices that can be used with pandas df.iloc[indices]
     """
     if colnames is None:
         colnames = {}
-    if condition is None:
-        condition = []
-    elif isinstance(condition, str):
-        condition = [condition]
 
     # 将 pandas DataFrame 的每一列安全转变为可以传入 C++ 的浮点数组
     df_dict = {}
@@ -140,7 +168,7 @@ def data_info(df, colnames=None, condition=None):
             codes, _ = pandas.factorize(df[col])
             df_dict[str(col)] = codes.astype(float).tolist()
 
-    return _core_data_info.data_info(df_dict, colnames, condition)
+    return _core_data_info.data_info(df=df_dict, colnames=colnames)
 
 
 def estimate_mle(
@@ -180,9 +208,18 @@ def estimate_mle(
 
     # 调用底层 C++ 并释放 GIL 进行多线程狂飙
     res_list = _estimate_mle.estimate_mle(
-        df_dict, colnames, params, model, control, lower, upper
+        df=df_dict, 
+        colnames=colnames, 
+        params=params, 
+        model=model, 
+        control=control, 
+        lower=lower, 
+        upper=upper
     )
-    return pandas.DataFrame(res_list)
+    if isinstance(res_list, dict):
+        return {k: pandas.DataFrame(v) for k, v in res_list.items()}
+    else:
+        return pandas.DataFrame(res_list)
 
 
 # __all__ 控制当用户使用 from metaSDT import * 时，暴露出哪些接口

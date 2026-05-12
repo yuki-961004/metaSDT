@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>  // 自动实现 std::vector 和 python list/dict 的互相转换
 
 #include "../../Cpp/include/matrix_freq.hpp"
+#include <unordered_map>
 
 // 辅助函数：将 Python 的各种类数组对象（如 pandas Series, numpy array, list 等）
 // 安全地转换为 C++ 的 std::vector<double>
@@ -19,7 +20,9 @@ std::vector<double> to_std_vector(pybind11::object obj) {
 pybind11::dict py_matrix_freq(
     pybind11::object stim_obj,
     pybind11::object resp_obj,
-    pybind11::object conf_obj = pybind11::none()
+    pybind11::object conf_obj = pybind11::none(),
+    pybind11::object diff_obj = pybind11::none(),
+    pybind11::object std_params_obj = pybind11::none()
 ) {
     // 1. 数据类型转换与提取
     std::vector<double> stim = to_std_vector(stim_obj);
@@ -34,16 +37,42 @@ pybind11::dict py_matrix_freq(
         conf_ptr = &conf;
     }
 
-    // 2. 调用纯 C++ 底层的核心计算函数
-    // 注: pybind11 会自动拦截 C++ 抛出的 std::invalid_argument 等异常，
-    // 并自动转化为 Python 端的 ValueError，所以这里无需手写 try-catch
-    MatrixFreq res = matrix_freq(stim, resp, conf_ptr);
+    std::vector<double> diff;
+    const std::vector<double>* diff_ptr = nullptr;
+    if (!diff_obj.is_none()) {
+        diff = to_std_vector(diff_obj);
+        diff_ptr = &diff;
+    }
+
+    std::unordered_map<std::string, std::vector<double>> std_params;
+    const std::unordered_map<std::string, std::vector<double>>* params_ptr = nullptr;
+    if (!std_params_obj.is_none() && pybind11::isinstance<pybind11::dict>(std_params_obj)) {
+        for (auto item : std_params_obj.cast<pybind11::dict>()) {
+            std::string key = pybind11::str(item.first);
+            if (key == "name_free" || key == "name_fixed" || 
+                key == "name_constant" || key == "numb_free" || 
+                key == "numb_fixed" || key == "numb_constant" ||
+                key == "free_params" || key == "fixed_params" || 
+                key == "constant_params") {
+                continue;
+            }
+            std_params[key] = item.second.cast<std::vector<double>>();
+        }
+        params_ptr = &std_params;
+    }
+
+    MatrixFreq res = matrix_freq(
+        /*stim=*/stim, /*resp=*/resp, 
+        /*conf=*/conf_ptr, /*diff=*/diff_ptr, 
+        /*std_params=*/params_ptr
+    );
 
     // 3. 将 C++ 的结构体数据封装为 Python 的字典 (dict) 格式
     // 得益于 <pybind11/stl.h>，C++ 的 std::vector 
     // 及其嵌套数组会被自动且安全地转化为 Python 的 list 列表
     pybind11::dict out;
     out["freq_mat"] = res.freq_mat;
+    out["dim_names"] = res.dim_names;
     out["row_names"] = res.row_names;
     out["col_names"] = res.col_names;
     return out;
@@ -60,5 +89,7 @@ PYBIND11_MODULE(_core_matrix_freq, m) {
           // (如 matrix_freq(stim=..., resp=...))，并设置 conf 的默认值为 None
           pybind11::arg("stim"), 
           pybind11::arg("resp"), 
-          pybind11::arg("conf") = pybind11::none());
+          pybind11::arg("conf") = pybind11::none(),
+          pybind11::arg("diff") = pybind11::none(),
+          pybind11::arg("std_params") = pybind11::none());
 }

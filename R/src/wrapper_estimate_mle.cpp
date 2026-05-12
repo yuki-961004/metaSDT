@@ -2,11 +2,11 @@
 #include "../../Cpp/include/estimate_mle.hpp"
 
 // 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
-// 将底层的 estimate_mle 和 objective_function 实现一并拉取过来编译
+// 将底层的 estimate_mle 和 build_objective 实现一并拉取过来编译
 #define CORE_IMPL "../../Cpp/src/estimate_mle.cpp"
 #include CORE_IMPL
 
-#define OBJ_IMPL "../../Cpp/src/objective_function.cpp"
+#define OBJ_IMPL "../../Cpp/src/build_objective.cpp"
 #include OBJ_IMPL
 
 // 使用匿名命名空间，避免与 wrapper_modify_params.cpp 中的辅助函数产生符号冲突
@@ -52,7 +52,7 @@ namespace {
 //' @import nloptr
 //' @export
 // [[Rcpp::export(name = "estimate_mle")]]
-Rcpp::DataFrame r_estimate_mle(
+Rcpp::RObject r_estimate_mle(
     Rcpp::DataFrame df, 
     Rcpp::Nullable<Rcpp::List> colnames = R_NilValue, 
     Rcpp::Nullable<Rcpp::RObject> params = R_NilValue,
@@ -92,18 +92,24 @@ Rcpp::DataFrame r_estimate_mle(
         if (Rcpp::is<Rcpp::List>(p_obj)) {
             Rcpp::List r_list(p_obj);
             if (r_list.containsElementNamed("free")) {
-                r_obj_to_cpp_map_mle(r_list["free"], user_params.free);
+                r_obj_to_cpp_map_mle(
+                    /*r_obj=*/r_list["free"], /*cpp_map=*/user_params.free
+                );
             }
             if (r_list.containsElementNamed("fixed")) {
-                r_obj_to_cpp_map_mle(r_list["fixed"], user_params.fixed);
+                r_obj_to_cpp_map_mle(
+                    /*r_obj=*/r_list["fixed"], /*cpp_map=*/user_params.fixed
+                );
             }
             if (r_list.containsElementNamed("constant")) {
-                r_obj_to_cpp_map_mle(r_list["constant"], user_params.constant);
+                r_obj_to_cpp_map_mle(
+                    /*r_obj=*/r_list["constant"], /*cpp_map=*/user_params.constant
+                );
             }
             if (!r_list.containsElementNamed("free") && 
                 !r_list.containsElementNamed("fixed") && 
                 !r_list.containsElementNamed("constant")) {
-                r_obj_to_cpp_map_mle(p_obj, user_params.free);
+                r_obj_to_cpp_map_mle(/*r_obj=*/p_obj, /*cpp_map=*/user_params.free);
             }
         }
     }
@@ -162,78 +168,99 @@ Rcpp::DataFrame r_estimate_mle(
     }
 
     std::unordered_map<std::string, std::vector<double>> cpp_lower, cpp_upper;
-    if (lower.isNotNull()) r_obj_to_cpp_map_mle(lower, cpp_lower);
-    if (upper.isNotNull()) r_obj_to_cpp_map_mle(upper, cpp_upper);
+    if (lower.isNotNull()) {
+        r_obj_to_cpp_map_mle(/*r_obj=*/lower, /*cpp_map=*/cpp_lower);
+    }
+    if (upper.isNotNull()) {
+        r_obj_to_cpp_map_mle(/*r_obj=*/upper, /*cpp_map=*/cpp_upper);
+    }
 
     // 5. 调用底层的 C++ 多线程并行 MLE 优化！
     std::vector<SubjectFitResult> cpp_res = ::estimate_mle(
-        cpp_df, cpp_colnames, user_params, model, cpp_control, cpp_lower, cpp_upper
+        /*df=*/cpp_df, 
+        /*colnames=*/cpp_colnames, 
+        /*user_params=*/user_params, 
+        /*model_name=*/model, 
+        /*control=*/cpp_control, 
+        /*custom_lower=*/cpp_lower, 
+        /*custom_upper=*/cpp_upper
     );
 
     // 6. 彻底展平结果，采用“列导向”组装，直接在 C++ 端生成原生的 R data.frame
-    int n_rows = cpp_res.size();
-    
-    Rcpp::NumericVector v_subid(n_rows);
-    Rcpp::NumericVector v_logL(n_rows);
-    Rcpp::NumericVector v_aic(n_rows);
-    Rcpp::NumericVector v_bic(n_rows);
-    Rcpp::IntegerVector v_status(n_rows);
-    
-    std::vector<std::string> param_names;
-    std::unordered_map<std::string, Rcpp::NumericVector> param_cols;
-    
-    // 6.1 初始化所有的动态参数列
-    if (n_rows > 0) {
-        for (const auto& kv : cpp_res[0].best_params) {
-            if (kv.second.size() == 1) {
-                param_names.push_back(kv.first);
-                param_cols[kv.first] = Rcpp::NumericVector(n_rows);
-            } else {
-                for (size_t j = 0; j < kv.second.size(); ++j) {
-                    std::string key_name = kv.first + "_" + std::to_string(j + 1);
-                    param_names.push_back(key_name);
-                    param_cols[key_name] = Rcpp::NumericVector(n_rows);
-                }
-            }
-        }
+    std::map<std::string, std::vector<SubjectFitResult>> grouped_res;
+    for (const auto& r : cpp_res) {
+        grouped_res[r.cond].push_back(r);
     }
     
-    // 6.2 填充所有列的数据
-    for (int i = 0; i < n_rows; ++i) {
-        const auto& r = cpp_res[i];
-        v_subid[i] = r.subid;
-        v_logL[i] = r.logL;
-        v_aic[i] = r.aic;
-        v_bic[i] = r.bic;
-        v_status[i] = r.status;
+    auto create_df = [](const std::vector<SubjectFitResult>& res_group) {
+        int n_rows = res_group.size();
+        Rcpp::NumericVector v_subid(n_rows);
+        Rcpp::NumericVector v_logL(n_rows);
+        Rcpp::NumericVector v_aic(n_rows);
+        Rcpp::NumericVector v_bic(n_rows);
+        Rcpp::IntegerVector v_status(n_rows);
         
-        for (const auto& kv : r.best_params) {
-            if (kv.second.size() == 1) {
-                param_cols[kv.first][i] = kv.second[0];
-            } else {
-                for (size_t j = 0; j < kv.second.size(); ++j) {
-                    std::string key_name = kv.first + "_" + std::to_string(j + 1);
-                    param_cols[key_name][i] = kv.second[j];
+        std::vector<std::string> param_names;
+        std::unordered_map<std::string, Rcpp::NumericVector> param_cols;
+        
+        if (n_rows > 0) {
+            for (const auto& kv : res_group[0].best_params) {
+                if (kv.second.size() == 1) {
+                    param_names.push_back(kv.first);
+                    param_cols[kv.first] = Rcpp::NumericVector(n_rows);
+                } else {
+                    for (size_t j = 0; j < kv.second.size(); ++j) {
+                        std::string key_name = kv.first + "_" + std::to_string(j + 1);
+                        param_names.push_back(key_name);
+                        param_cols[key_name] = Rcpp::NumericVector(n_rows);
+                    }
                 }
             }
         }
+        
+        for (int i = 0; i < n_rows; ++i) {
+            const auto& r = res_group[i];
+            v_subid[i] = r.subid;
+            v_logL[i] = r.logL;
+            v_aic[i] = r.aic;
+            v_bic[i] = r.bic;
+            v_status[i] = r.status;
+            
+            for (const auto& kv : r.best_params) {
+                if (kv.second.size() == 1) {
+                    param_cols[kv.first][i] = kv.second[0];
+                } else {
+                    for (size_t j = 0; j < kv.second.size(); ++j) {
+                        std::string key_name = kv.first + "_" + std::to_string(j + 1);
+                        param_cols[key_name][i] = kv.second[j];
+                    }
+                }
+            }
+        }
+        
+        Rcpp::List df_out;
+        df_out["subid"] = v_subid;
+        df_out["logL"] = v_logL;
+        df_out["aic"] = v_aic;
+        df_out["bic"] = v_bic;
+        df_out["status"] = v_status;
+        
+        for (const auto& name : param_names) {
+            df_out[name] = param_cols[name];
+        }
+        
+        df_out.attr("class") = "data.frame";
+        df_out.attr("row.names") = Rcpp::seq(1, n_rows);
+        return df_out;
+    };
+
+    if (grouped_res.size() == 1 && grouped_res.begin()->first == "") {
+        return create_df(grouped_res.begin()->second);
+    } else {
+        Rcpp::List out_list;
+        for (const auto& kv : grouped_res) {
+            out_list[kv.first] = create_df(kv.second);
+        }
+        return out_list;
     }
-    
-    // 6.3 组装为底层的 List 并赋予 data.frame 属性
-    Rcpp::List df_out;
-    df_out["subid"] = v_subid;
-    df_out["logL"] = v_logL;
-    df_out["aic"] = v_aic;
-    df_out["bic"] = v_bic;
-    df_out["status"] = v_status;
-    
-    for (const auto& name : param_names) {
-        df_out[name] = param_cols[name];
-    }
-    
-    // 赋予 R 语言 data.frame 的标志性属性
-    df_out.attr("class") = "data.frame";
-    df_out.attr("row.names") = Rcpp::seq(1, n_rows);
-    
-    return df_out;
 }

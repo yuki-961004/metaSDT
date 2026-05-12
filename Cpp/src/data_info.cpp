@@ -6,8 +6,7 @@
 
 DataInfoResult data_info(
     const std::unordered_map<std::string, std::vector<double>>& df,
-    const std::unordered_map<std::string, std::string>& colnames,
-    const std::vector<std::string>& condition
+    const std::unordered_map<std::string, std::string>& colnames
 ) {
     DataInfoResult result;
 
@@ -25,15 +24,30 @@ DataInfoResult data_info(
         {"conf", ".*(conf|rating).*"}
     };
 
+    // 支持用户传入更为口语化的键名 (aliases)
+    auto user_colnames = colnames;
+
+    if (user_colnames.count("subject") && !user_colnames.count("subid")) {
+        user_colnames["subid"] = user_colnames.at("subject");
+    }
+    if (user_colnames.count("condition") && !user_colnames.count("cond")) {
+        user_colnames["cond"] = user_colnames.at("condition");
+    }
+    if (user_colnames.count("difficulty") && !user_colnames.count("diff")) {
+        user_colnames["diff"] = user_colnames.at("difficulty");
+    }
+
+    // 将用户显式指定的映射优先放入结果
+    for (const auto& kv : user_colnames) {
+        result.colnames[kv.first] = kv.second;
+    }
+
     for (const auto& tgt : targets) {
         const std::string& role = tgt.first;
         const std::string& pattern_str = tgt.second;
 
-        // 如果用户在 colnames 中明确指派了该列名，直接采用
-        if (colnames.count(role)) {
-            result.colnames[role] = colnames.at(role);
-        } else {
-            // 否则遍历数据框的所有列名，进行正则匹配忽略大小写寻找
+        // 如果该角色还没有被用户显式指定，则尝试正则匹配
+        if (!result.colnames.count(role)) {
             std::regex re(pattern_str, std::regex_constants::icase);
             for (const auto& kv : df) {
                 if (std::regex_match(kv.first, re)) {
@@ -68,24 +82,33 @@ DataInfoResult data_info(
             missing_str += "'" + missing_roles[i] + "'";
             if (i < missing_roles.size() - 1) missing_str += ", ";
         }
-        result.warnings.push_back(
-            "Warning: Could not identify column(s) for " + missing_str + 
+        result.messages.push_back(
+            "Note: Could not identify column(s) for " + missing_str + 
             ". These roles will be ignored."
         );
     }
 
-    std::string subid_col = result.colnames.at("subid");
-    if (!df.count(subid_col)) {
-        throw std::invalid_argument(
-            "Error: The assigned 'subid' column '" + subid_col + 
-            "' does not exist in the dataset."
-        );
+    // 校验所有映射的列名是否在数据集中真实存在
+    for (const auto& kv : result.colnames) {
+        if (!df.count(kv.second)) {
+            throw std::invalid_argument(
+                "Error: The assigned column '" + kv.second + 
+                "' for role '" + kv.first + "' does not exist in the dataset."
+            );
+        }
     }
+
+    std::string subid_col = result.colnames.at("subid");
 
     std::string block_col = "";
     if (result.colnames.count("block")) {
         block_col = result.colnames.at("block");
     }
+    
+    std::string cond_col = result.colnames.count("cond") ? 
+                           result.colnames.at("cond") : "";
+    std::string diff_col = result.colnames.count("diff") ? 
+                           result.colnames.at("diff") : "";
 
     // ==========================================================
     // 3. 按被试拆分数据集并生成轻量级视图 (View)
@@ -113,22 +136,18 @@ DataInfoResult data_info(
             subject_blocks[subid].insert(b); // 记录出现过的 block 编号
         }
 
-        // 处理条件分组 (Condition Grouping)
-        // 将所有条件的数值拼接成一个字符串键 
-        // (例如 condition = [stim, block], 则键为 "1_2")
-        if (!condition.empty()) {
+        // 处理 condition 分组
+        if (!cond_col.empty() && df.count(cond_col)) {
             std::ostringstream cond_key;
-            for (size_t c = 0; c < condition.size(); ++c) {
-                const std::string& c_col = condition[c];
-                if (df.count(c_col)) {
-                    cond_key << df.at(c_col)[i];
-                } else {
-                    cond_key << "NA";
-                }
-                if (c < condition.size() - 1) cond_key << "_";
-            }
-            // 在对应条件键下，放入该行号
+            cond_key << df.at(cond_col)[i];
             subj.condition[cond_key.str()].push_back(i);
+        }
+        
+        // 处理 difficulty 分组
+        if (!diff_col.empty() && df.count(diff_col)) {
+            std::ostringstream diff_key;
+            diff_key << df.at(diff_col)[i];
+            subj.difficulty[diff_key.str()].push_back(i);
         }
     }
 

@@ -1,0 +1,34 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "cpp-core-msvc-release",
+      "displayName": "Cpp core - MSVC Release",
+      "description": "Configure only the C++ core library and install it under Cpp/build/install.",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/Cpp/build",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Cpp/build/install"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "cpp-core-msvc-release",
+      "configurePreset": "cpp-core-msvc-release",
+      "configuration": "Release",
+      "targets": [
+        "metaSDT_core"
+      ]
+    },
+    {
+      "name": "cpp-core-install-msvc-release",
+      "configurePreset": "cpp-core-msvc-release",
+      "configuration": "Release",
+      "targets": [
+        "install"
+      ]
+    }
+  ]
+}

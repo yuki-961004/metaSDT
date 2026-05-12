@@ -20,8 +20,8 @@ criterion_prior <- function(user_priors, std_params = NULL) {
 }
 
 #' Intelligently scan the dataset and extract subject-level information.
-data_info <- function(df, colnames = NULL, condition = NULL) {
-    .Call(`_metaSDT_r_data_info`, df, colnames, condition)
+data_info <- function(df, colnames = NULL) {
+    .Call(`_metaSDT_r_data_info`, df, colnames)
 }
 
 #' Perform Maximum Likelihood Estimation (MLE) for metaSDT models
@@ -43,21 +43,16 @@ estimate_mle <- function(df, colnames = NULL, params = NULL, model = "sdt", cont
     .Call(`_metaSDT_r_estimate_mle`, df, colnames, params, model, control, lower, upper)
 }
 
-#' Calculate Model Loss indicators (NLL, AIC, BIC)
-#' @export
-loss_function <- function(freq_mat, prob_mat, params) {
-    .Call(`_metaSDT_r_loss_function`, freq_mat, prob_mat, params)
-}
-
 #' Calculate the frequency matrix for Signal Detection Theory (C++ core)
 #'
 #' @param stim The numeric vector indicating the signal type.
 #' @param resp The numeric vector indicating the decision or response.
 #' @param conf The numeric vector indicating the confidence level (optional).
+#' @param diff The numeric vector indicating the difficulty level (optional).
 #' @import Rcpp
 #' @export
-matrix_freq <- function(stim, resp, conf = NULL) {
-    .Call(`_metaSDT_r_matrix_freq`, stim, resp, conf)
+matrix_freq <- function(stim, resp, conf = NULL, diff = NULL) {
+    .Call(`_metaSDT_r_matrix_freq`, stim, resp, conf, diff)
 }
 
 #' Calculate the Log-Likelihood product matrix

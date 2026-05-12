@@ -1,6 +1,7 @@
 # %%
 # 环境安装区 (如果已经安装成功，以后不需要运行此块)
 # %pip install pandas
+# %pip install -e ./Python
 # %pip install -e ./Python --config-settings=build-dir="build"
 
 # %%
@@ -10,7 +11,7 @@ import metaSDT
 # %%
 # 读取真实数据 (注意：普通 py 文件运行时的当前目录通常是项目根目录，或者该文件所在目录，视你的编辑器配置而定)
 # 如果以下路径报错，请尝试改为 "data/data.csv" (如果是以项目根目录运行)
-data = pandas.read_csv("data/data.csv")
+data = pandas.read_csv("data/exp1.csv")
 
 # %%
 # ==============================================================================
@@ -18,7 +19,7 @@ data = pandas.read_csv("data/data.csv")
 # ==============================================================================
 print("\n=== Test 9: Data Info Helper 测试 ===")
 # 使用整个完整原始数据集 data，自动匹配列名，并假定 'stim' 为我们要切分的 condition 条件
-std_data = metaSDT.data_info(df=data, condition="stim")
+std_data = metaSDT.data_info(df=data)
 
 # 直接通过字典键 '1' 提取被试 1 的信息
 sub1_info = std_data["subjects"]["1"]
@@ -99,10 +100,10 @@ std_params = metaSDT.modify_params(
 sdt_cdf = metaSDT.model_sdt(std_params)
 
 print(
-    f"False Alarm Rates (所有切点的虚报率):\n {[round(1 - val, 4) for val in sdt_cdf['cdf_noise']]}"
+    f"False Alarm Rates (所有切点的虚报率):\n {[round(1 - val, 4) for val in sdt_cdf['cdf_noise'][0]]}"
 )
 print(
-    f"Hit Rates (所有切点的击中率):\n {[round(1 - val, 4) for val in sdt_cdf['cdf_signal']]}"
+    f"Hit Rates (所有切点的击中率):\n {[round(1 - val, 4) for val in sdt_cdf['cdf_signal'][0]]}"
 )
 
 # %%
@@ -160,7 +161,7 @@ print(log_posterior_unif)
 # %%
 # 2. 运行多线程 MLE 拟合
 fit_res = metaSDT.estimate_mle(
-    df=pandas.read_csv("data/data.csv"),
+    df=pandas.read_csv("data/exp1.csv"),
     colnames={},  # 传入空字典让底层 C++ 自动使用正则去匹配列名 (如 stim, resp, conf)
     params={
         "free": {
@@ -173,4 +174,21 @@ fit_res = metaSDT.estimate_mle(
     model="sdt",
 )
 
-print(fit_res.head())
+# %%
+# 2. 运行多线程 MLE 拟合
+fit_res = metaSDT.estimate_mle(
+    df=pandas.read_csv("data/exp3.csv"),
+    colnames={
+        "condition": "FlippedWheel",
+        "difficulty": "NoiseLevel_Deg"
+    },
+    params={
+        "free": {
+            "d": [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+            "c_resp": [0.0],
+            "c_conf": [0.5, 1.0, 1.5],
+        },  # 设定我们要找出的自由参数 (注意 Python 端要求将单值也包裹在列表 [] 中)
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+    },
+    model="sdt",
+)

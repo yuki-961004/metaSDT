@@ -7,77 +7,65 @@
 ParamGroup default_params() {
     ParamGroup defaults;
 
-    // ==========================================================================
+    // ==========================================================
     // 【自由参数 (Free)】
-    // 默认参与 NLOPT 优化的参数。
-    // 这些是描述人类最基础行为表现的核心指标。
-    // ==========================================================================
-    // [All models] 信号与噪声的距离 (敏感度 d')
+    // ==========================================================
     defaults.free["d"] = {1.5};
-    // [All models] 一阶决策标准 (反应偏好 c)
     defaults.free["c_resp"] = {0.0};
 
-    // ==========================================================================
+    // ==========================================================
     // 【固定参数 (Fixed)】
-    // 具有心理学/数学意义，但默认不参与优化的参数。
-    // (注: 在实际拟合含有置信度的实验时，
-    // 用户通常会用 modifyList 将 c_conf 移入 free)
-    // ==========================================================================
+    // ==========================================================
     // --- 感知层基础参数 (Sensory/Type-1) ---
-    // [All models] 信号分布的标准差
     defaults.fixed["sd_signal"] = {1.0};
-    // [All models] 噪声分布的标准差
     defaults.fixed["sd_noise"] = {1.0};
     
     // --- 置信度核心参数 (Meta/Type-2) ---
-    // [All models] 二阶置信度边界向量 (默认无置信度，为空)
     defaults.fixed["c_conf"] = {};
-    // [All models] 置信度判定标准总数 (默认由程序计算)
     defaults.fixed["n_conf"] = {};
     
-    // --- 变异模型专属参数 (按机制分类) ---
-    // 1. 噪声机制 (Noise)
-    // [Gauss, LogN, WEV, CASANDRE] 元认知层面的额外标准差
-    defaults.fixed["sd_meta"] = {0.5};
-    // [SDRM] 一阶决策标准本身的波动噪声
-    defaults.fixed["sd_c_resp"] = {0.1};
-    // [SDRM, SOC] 二阶置信度标准本身的波动噪声
-    defaults.fixed["sd_c_conf"] = {0.1};
-    
-    // 2. 信号损失与时间累积 (Dynamics)
-    // [Decay] 信号传导至元认知层的保留比率
-    defaults.fixed["rate_decay"] = {1.0};
-    // [Post-Dec, 2DSD] 决策后继续累积证据的速率或时间
-    defaults.fixed["rate_accum"] = {0.1};
-    
-    // 3. 启发式与通道权重 (Heuristics & Channels)
-    // [PE-Flex] 积极证据的权重 (注: PE模型强制为1)
-    defaults.fixed["w_pos_evidence"] = {1.0};
-    // [WEV] 刺激可见度(全局难度)对信心的影响权重
-    defaults.fixed["w_visibility"] = {0.5};
-    // [DC] 无意识通道能获取到的信号权重
-    defaults.fixed["w_unconscious"] = {0.5};
-    
-    // 4. 变量关联性 (Correlation)
-    // [SDRM, SOC] 一阶感知与二阶信心证据的皮尔逊相关系数
-    defaults.fixed["rho_sens_meta"] = {0.5};
+    // --- 14 个模型的专属扩充参数 (已去重并对齐官方命名) ---
+    // 1. 噪声机制参数
+    // [Gauss, LogN, Decay, WEV, logWEV] 元认知层面的额外标准差
+    defaults.fixed["sigma_meta"] = {0.5};
+    // [CASANDRE] 元不确定性
+    defaults.fixed["meta_uncertainty"] = {0.5};
+    // [SDRM, SOC] 准则本身的波动噪声
+    defaults.fixed["sigma_c"] = {0.1};
 
-    // ==========================================================================
+    // 2. 动态时间与信号衰减参数
+    // [Decay] 信号传导至元认知层的保留比率
+    defaults.fixed["rho_decay"] = {0.5};
+    // [Post-Dec] 决策后继续累积的证据量
+    defaults.fixed["delta_post"] = {0.5};
+    // [2DSD] 决策后继续累积的时间
+    defaults.fixed["tau"] = {0.5};
+
+    // 3. 启发式与通道权重参数
+    // [PE-Flex] 积极证据的权重
+    defaults.fixed["w_pe"] = {0.5};
+    // [WEV, logWEV] 刺激可见度权重
+    defaults.fixed["w_v"] = {0.5};
+    // [DC] 潜意识通道能获取到的信号权重
+    defaults.fixed["w_u"] = {0.5};
+
+    // 4. 变量关联性参数
+    // [SDRM, SOC] 一阶感知与二阶信心证据的相关系数
+    defaults.fixed["rho"] = {0.5};
+
+    // ==========================================================
     // 【常量参数 (Constant)】
-    // 纯粹控制计算机模拟器行为的超参数，永远不参与拟合。
-    // ==========================================================================
-    // [DC, Post-Dec, SOC 等无解析解模型] 蒙特卡洛模拟的试次数
+    // ==========================================================
     defaults.constant["sim_trials"] = {100000.0};
-    // [CASANDRE 等] 随机猜测/按错键的概率 (Lapse Rate)
     defaults.constant["rate_lapse"] = {0.0};
-    // [All models] 极小值容差，防止对数似然函数中出现 log(0)
     defaults.constant["calc_tol"] = {1e-10};
-    // [All models] Ln 正则化幂次 (默认空，不进行正则化)
     defaults.constant["L"] = {};
-    // [All models] 正则化惩罚力度 (默认 1.0)
     defaults.constant["penalty"] = {1.0};
-    // [模拟型模型] 随机数种子，确保优化器在相同参数下得到相同结果
     defaults.constant["rng_seed"] = {1004.0};
+    
+    // 新增：是否开启对 d 的强制重排列
+    // >0 表示升序，<0 表示降序，=0 表示保持自然探索状态不强制排序
+    defaults.constant["sort_d"] = {0.0}; 
 
     return defaults;
 }
@@ -87,28 +75,32 @@ std::unordered_map<std::string, std::vector<double>> default_bounds() {
     std::unordered_map<std::string, std::vector<double>> bounds;
     
     // 1. 核心感知层参数
-    bounds["d"] = {-1.0, 10.0}; 
-    bounds["c_resp"] = {-5.0, 5.0};
-    bounds["sd_signal"] = {1e-4, 5.0}; 
-    bounds["sd_noise"]  = {1e-4, 5.0};
+    bounds["d"] = {-1.0, 10.0};             // Transform: Unconstrained
+    bounds["c_resp"] = {-5.0, 5.0};         // Transform: Unconstrained
+    bounds["sd_signal"] = {1e-4, 5.0};      // Transform: exp()
+    bounds["sd_noise"] = {1e-4, 5.0};       // Transform: exp()
 
-    // 2. 置信度边界参数 (因采用相对步长，下界必须大于0以保证绝对坐标单调递增)
-    bounds["c_conf"] = {1e-4, 20.0};
+    // 2. 置信度边界参数
+    bounds["c_conf"] = {1e-4, 20.0};        // Transform: exp() (确保递增)
 
-    // 3. 元噪声与波动参数 (必须大于0)
-    bounds["sd_meta"] = {1e-3, 3.0}; 
-    bounds["sd_c_resp"] = {0.01, 3.0};
-    bounds["sd_c_conf"] = {0.001, 3.0};
+    // 3. 14 个模型的专属参数边界
+    // 标准差/方差类 (Transform: exp())
+    bounds["sigma_meta"] = {1e-4, 5.0};       
+    bounds["meta_uncertainty"] = {1e-4, 5.0}; 
+    bounds["sigma_c"] = {1e-4, 5.0};          
 
-    // 4. 权重与比率参数
-    bounds["rate_decay"] = {0.0, 1.0};
-    bounds["w_unconscious"] = {0.0, 1.0};
-    bounds["w_visibility"] = {0.0, 1.0};
-    bounds["w_pos_evidence"] = {0.51, 1.0};
-    bounds["rho_sens_meta"] = {0.001, 0.999};
+    // 比例与权重类 (Transform: inv_logit() -> 映射到 [0, 1])
+    bounds["rho_decay"] = {1e-4, 0.9999};         
+    bounds["w_pe"] = {1e-4, 1.0};             
+    bounds["w_u"] = {1e-4, 1.0};              
 
-    // 5. 动态累积时间参数
-    bounds["rate_accum"] = {1e-5, 3.0};
+    // 绝对量增加类 (Transform: exp())
+    bounds["delta_post"] = {1e-4, 5.0};       
+    bounds["tau"] = {1e-4, 5.0};              
+    bounds["w_v"] = {1e-4, 5.0};              
+
+    // 相关系数类 (Transform: tanh() -> 映射到 [-1, 1])
+    bounds["rho"] = {-0.999, 0.999};          
 
     return bounds;
 }

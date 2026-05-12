@@ -4,8 +4,8 @@
 #include "../../Cpp/include/matrix_prob.hpp"
 
 pybind11::dict py_matrix_prob(
-    const std::vector<double>& cdf_noise,
-    const std::vector<double>& cdf_signal,
+    const std::vector<std::vector<double>>& cdf_noise,
+    const std::vector<std::vector<double>>& cdf_signal,
     pybind11::dict std_params
 ) {
     std::unordered_map<std::string, std::vector<double>> cpp_params;
@@ -22,11 +22,14 @@ pybind11::dict py_matrix_prob(
         cpp_params[key] = item.second.cast<std::vector<double>>();
     }
     // 调用底层的 C++ 函数计算概率矩阵
-    MatrixProb<double> mat = matrix_prob<double>(cdf_noise, cdf_signal, cpp_params);
+    MatrixProb<double> mat = matrix_prob<double>(
+        /*cdf_noise=*/cdf_noise, /*cdf_signal=*/cdf_signal, /*std_params=*/cpp_params
+    );
     
     // 封装为 Python 的字典，方便外层套壳转换为 Pandas DataFrame
     pybind11::dict res;
     res["prob_mat"] = mat.prob_mat;
+    res["dim_names"] = mat.dim_names;
     res["row_names"] = mat.row_names;
     res["col_names"] = mat.col_names;
     return res;

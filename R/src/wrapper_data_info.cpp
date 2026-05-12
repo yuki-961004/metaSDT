@@ -11,8 +11,7 @@ using namespace Rcpp;
 // [[Rcpp::export(name = "data_info")]]
 List r_data_info(
     DataFrame df, 
-    Nullable<List> colnames = R_NilValue, 
-    Nullable<CharacterVector> condition = R_NilValue
+    Nullable<List> colnames = R_NilValue
 ) {
     
     // 1. 将 DataFrame 转换为 C++ 的 unordered_map<string, vector<double>>
@@ -42,23 +41,18 @@ List r_data_info(
         }
     }
     
-    // 3. 转换 condition 列表
-    std::vector<std::string> cpp_condition;
-    if (condition.isNotNull()) {
-        cpp_condition = as<std::vector<std::string>>(condition);
-    }
-    
     // 4. 调用 C++ 核心函数进行闪电般的数据集扫描
     DataInfoResult res;
     try {
-        res = ::data_info(cpp_df, cpp_colnames, cpp_condition);
+        res = ::data_info(/*df=*/cpp_df, /*colnames=*/cpp_colnames);
     } catch (std::exception& e) {
         stop(e.what());
     }
     
-    // 新增：处理 C++ 返回的警告信息
-    for (const auto& warning_msg : res.warnings) {
-        Rcpp::warning(warning_msg);
+    // 新增：处理 C++ 返回的提示信息 (更轻量，可通过 suppressMessages 屏蔽)
+    Rcpp::Function r_message("message");
+    for (const auto& msg : res.messages) {
+        r_message(msg);
     }
     
     // 5. 将结果完美转换回 R 结构
@@ -97,6 +91,15 @@ List r_data_info(
             r_condition[gkv.first] = g_idx;
         }
         
+        List r_difficulty;
+        for (const auto& dkv : subj.difficulty) {
+            IntegerVector d_idx(dkv.second.size());
+            for (size_t i = 0; i < dkv.second.size(); ++i) {
+                d_idx[i] = dkv.second[i] + 1;
+            }
+            r_difficulty[dkv.first] = d_idx;
+        }
+        
         List r_info = List::create(
             Named("n_trials") = subj.info.n_trials,
             Named("n_blocks") = subj.info.n_blocks
@@ -105,6 +108,7 @@ List r_data_info(
         r_subjects[sub_key] = List::create(
             Named("raw") = r_raw,
             Named("condition") = r_condition,
+            Named("difficulty") = r_difficulty,
             Named("info") = r_info
         );
     }

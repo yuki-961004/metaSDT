@@ -50,23 +50,23 @@ PYBIND11_MODULE(_model_sdt, m) {
         .def("cdf_noise", [](const ModelSDT<double>& self) { 
             return self.cdf_noise(); 
         })
-        .def("cdf_noise", [](const ModelSDT<double>& self, double x) { 
-            return self.cdf_noise(x); 
+        .def("cdf_noise", [](const ModelSDT<double>& self, double x, size_t dim_idx) { 
+            return self.cdf_noise(x, dim_idx); 
         })
         .def("cdf_noise_vec", [](const ModelSDT<double>& self, 
-                                 const std::vector<double>& x_vec) { 
-            return self.cdf_noise(x_vec); 
+                                 const std::vector<double>& x_vec, size_t dim_idx) { 
+            return self.cdf_noise(x_vec, dim_idx); 
         })
         
         .def("cdf_signal", [](const ModelSDT<double>& self) { 
             return self.cdf_signal(); 
         })
-        .def("cdf_signal", [](const ModelSDT<double>& self, double x) { 
-            return self.cdf_signal(x); 
+        .def("cdf_signal", [](const ModelSDT<double>& self, double x, size_t dim_idx) { 
+            return self.cdf_signal(x, dim_idx); 
         })
         .def("cdf_signal_vec", [](const ModelSDT<double>& self, 
-                                  const std::vector<double>& x_vec) { 
-            return self.cdf_signal(x_vec); 
+                                  const std::vector<double>& x_vec, size_t dim_idx) { 
+            return self.cdf_signal(x_vec, dim_idx); 
         });
 
     // 导出函数化接口

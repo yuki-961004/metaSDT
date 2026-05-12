@@ -23,7 +23,7 @@ ModelSDT<T>::ModelSDT(
     // 1.1 基础参数提取与校验
     // ==========================================================
     try {
-        d = std_params.at("d")[0];
+        d_vec = std_params.at("d"); // 提取整个 d 的向量
         sd_noise = std_params.at("sd_noise")[0];
         sd_signal = std_params.at("sd_signal")[0];
     } catch (const std::out_of_range& e) {
@@ -33,13 +33,24 @@ ModelSDT<T>::ModelSDT(
         );
     }
 
+    // 探测是否开启对 d 的排序
+    T sort_d = 0.0;
+    if (std_params.count("sort_d") && !std_params.at("sort_d").empty()) {
+        sort_d = std_params.at("sort_d")[0];
+    }
+    if (sort_d != 0.0) {
+        // difficulty 越小 (例如 1) 代表越容易，d 应该越大。
+        // 所以这里直接降序排列，使得 d_vec[0] (最大) 对齐 difficulty 1
+        std::sort(d_vec.rbegin(), d_vec.rend());
+    }
+
     // ==========================================================
     // 1.2 信号与噪声分布的均值计算
     // ==========================================================
-    // 默认模型以 0 为绝对中心。
-    // 无偏好时 (c_resp = 0.0)，噪声和信号对称分布在两侧
-    mu_noise = -d / 2.0;
-    mu_signal = d / 2.0;
+    for (size_t i = 0; i < d_vec.size(); ++i) {
+        mu_noise_vec.push_back(-d_vec[i] / 2.0);
+        mu_signal_vec.push_back(d_vec[i] / 2.0);
+    }
 
     // ==========================================================
     // 1.3 判定标准 (Criteria) 的动态生成机制
@@ -97,61 +108,69 @@ ModelSDT<T>::ModelSDT(
 }
 
 // ==========================================================
-// 2. 累积分布函数 (无参批量版，依赖内部自动生成的 criteria)
+// 2. 累积分布函数 (无参批量版，返回 2D 数组: [dim][criteria])
 // ==========================================================
 template <typename T>
-std::vector<T> ModelSDT<T>::cdf_noise() const {
-    return cdf_noise(this->criteria);
+std::vector<std::vector<T>> ModelSDT<T>::cdf_noise() const {
+    std::vector<std::vector<T>> res(d_vec.size());
+    for (size_t i = 0; i < d_vec.size(); ++i) {
+        res[i] = cdf_noise(/*x_vec=*/this->criteria, /*dim_idx=*/i);
+    }
+    return res;
 }
 
 template <typename T>
-std::vector<T> ModelSDT<T>::cdf_signal() const {
-    return cdf_signal(this->criteria);
+std::vector<std::vector<T>> ModelSDT<T>::cdf_signal() const {
+    std::vector<std::vector<T>> res(d_vec.size());
+    for (size_t i = 0; i < d_vec.size(); ++i) {
+        res[i] = cdf_signal(/*x_vec=*/this->criteria, /*dim_idx=*/i);
+    }
+    return res;
 }
 
 // ==========================================================
-// 3. 累积分布函数 (标量版：针对单个数据点)
+// 3. 累积分布函数 (标量版：针对单个数据点和特定维度)
 // ==========================================================
 template <typename T>
-T ModelSDT<T>::cdf_noise(T x) const {
+T ModelSDT<T>::cdf_noise(T x, size_t dim_idx) const {
     // ADL (Argument-Dependent Lookup) 卫生规范
     using std::erf;
     using std::sqrt;
     return 0.5 * (1.0 + erf(
-        (x - mu_noise) / (sd_noise * sqrt(2.0))
+        (x - mu_noise_vec[dim_idx]) / (sd_noise * sqrt(2.0))
     ));
 }
 
 template <typename T>
-T ModelSDT<T>::cdf_signal(T x) const {
+T ModelSDT<T>::cdf_signal(T x, size_t dim_idx) const {
     using std::erf;
     using std::sqrt;
     return 0.5 * (1.0 + erf(
-        (x - mu_signal) / (sd_signal * sqrt(2.0))
+        (x - mu_signal_vec[dim_idx]) / (sd_signal * sqrt(2.0))
     ));
 }
 
 // ==========================================================
-// 4. 累积分布函数 (向量版：供外部传入自定义坐标轴向量使用)
+// 4. 累积分布函数 (向量版)
 // ==========================================================
 template <typename T>
 std::vector<T> ModelSDT<T>::cdf_noise(
-    const std::vector<T>& x_vec
+    const std::vector<T>& x_vec, size_t dim_idx
 ) const {
     std::vector<T> y_vec(x_vec.size());
     for (size_t i = 0; i < x_vec.size(); ++i) {
-        y_vec[i] = cdf_noise(x_vec[i]);
+        y_vec[i] = cdf_noise(/*x=*/x_vec[i], /*dim_idx=*/dim_idx);
     }
     return y_vec;
 }
 
 template <typename T>
 std::vector<T> ModelSDT<T>::cdf_signal(
-    const std::vector<T>& x_vec
+    const std::vector<T>& x_vec, size_t dim_idx
 ) const {
     std::vector<T> y_vec(x_vec.size());
     for (size_t i = 0; i < x_vec.size(); ++i) {
-        y_vec[i] = cdf_signal(x_vec[i]);
+        y_vec[i] = cdf_signal(/*x=*/x_vec[i], /*dim_idx=*/dim_idx);
     }
     return y_vec;
 }

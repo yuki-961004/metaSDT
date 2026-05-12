@@ -27,8 +27,8 @@ struct LikelihoodResult {
 // 如果提供了自由参数和对应的参数表，它将自动激活隐藏的 L_n 正则化惩罚逻辑。
 template <typename T>
 inline LikelihoodResult<T> criterion_likelihood(
-    const std::vector<std::vector<T>>& mult_mat,
-    const std::vector<std::vector<double>>& freq_mat,
+    const std::vector<std::vector<std::vector<T>>>& mult_mat,
+    const std::vector<std::vector<std::vector<double>>>& freq_mat,
     int k,
     const std::vector<T>& free_params = {},
     const std::unordered_map<std::string, std::vector<T>>& std_params = {}
@@ -49,10 +49,12 @@ inline LikelihoodResult<T> criterion_likelihood(
     T logL = 0.0;
     double N = 0.0;
 
-    for (size_t i = 0; i < mult_mat.size(); ++i) {
-        for (size_t j = 0; j < mult_mat[i].size(); ++j) {
-            logL += mult_mat[i][j];
-            N += freq_mat[i][j];
+    for (size_t d = 0; d < mult_mat.size(); ++d) {
+        for (size_t i = 0; i < mult_mat[d].size(); ++i) {
+            for (size_t j = 0; j < mult_mat[d][i].size(); ++j) {
+                logL += mult_mat[d][i][j];
+                N += freq_mat[d][i][j];
+            }
         }
     }
 

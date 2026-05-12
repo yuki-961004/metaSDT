@@ -14,8 +14,7 @@ void py_dict_to_cpp_map(
     }
 }
 
-// 暴露给 Python 的拟合主函数
-pybind11::list py_estimate_mle(
+pybind11::object py_estimate_mle(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,
     const pybind11::dict& params,
@@ -27,20 +26,22 @@ pybind11::list py_estimate_mle(
     // 1. 转换模型参数 (ParamGroup)
     ParamGroup user_params;
     if (params.contains("free")) {
-        py_dict_to_cpp_map(params["free"].cast<pybind11::dict>(), user_params.free);
+        py_dict_to_cpp_map(/*d=*/params["free"].cast<pybind11::dict>(), 
+                           /*out=*/user_params.free);
     }
     if (params.contains("fixed")) {
-        py_dict_to_cpp_map(params["fixed"].cast<pybind11::dict>(), user_params.fixed);
+        py_dict_to_cpp_map(/*d=*/params["fixed"].cast<pybind11::dict>(), 
+                           /*out=*/user_params.fixed);
     }
     if (params.contains("constant")) {
-        py_dict_to_cpp_map(params["constant"].cast<pybind11::dict>(), 
-                           user_params.constant);
+        py_dict_to_cpp_map(/*d=*/params["constant"].cast<pybind11::dict>(), 
+                           /*out=*/user_params.constant);
     }
     
     // 支持扁平直接传入
     if (!params.contains("free") && !params.contains("fixed") && 
         !params.contains("constant")) {
-        py_dict_to_cpp_map(params, user_params.free);
+        py_dict_to_cpp_map(/*d=*/params, /*out=*/user_params.free);
     }
 
     // 2. 转换控制参数 (NLoptControl)
@@ -82,8 +83,12 @@ pybind11::list py_estimate_mle(
 
     // 3. 转换边界参数
     std::unordered_map<std::string, std::vector<double>> cpp_lower, cpp_upper;
-    if (lower.size() > 0) py_dict_to_cpp_map(lower, cpp_lower);
-    if (upper.size() > 0) py_dict_to_cpp_map(upper, cpp_upper);
+    if (lower.size() > 0) {
+        py_dict_to_cpp_map(/*d=*/lower, /*out=*/cpp_lower);
+    }
+    if (upper.size() > 0) {
+        py_dict_to_cpp_map(/*d=*/upper, /*out=*/cpp_upper);
+    }
 
     // 4. 调用底层的 C++ 多线程并行 MLE 优化！
     std::vector<SubjectFitResult> cpp_res;
@@ -94,36 +99,55 @@ pybind11::list py_estimate_mle(
     {
         pybind11::gil_scoped_release release; 
         cpp_res = ::estimate_mle(
-            df, colnames, user_params, model, cpp_control, cpp_lower, cpp_upper
+            /*df=*/df, 
+            /*colnames=*/colnames, 
+            /*user_params=*/user_params, 
+            /*model_name=*/model, 
+            /*control=*/cpp_control, 
+            /*custom_lower=*/cpp_lower, 
+            /*custom_upper=*/cpp_upper
         );
     } // 离开作用域后自动重新获取 GIL
 
-    // 5. 将结果完美展平为 Python 的 list of dicts (可被 pandas.DataFrame 无缝接收)
-    pybind11::list out_list;
+    std::map<std::string, std::vector<SubjectFitResult>> grouped_res;
     for (const auto& r : cpp_res) {
-        pybind11::dict res_dict;
-        res_dict["subid"] = r.subid;
-        res_dict["logL"] = r.logL;
-        res_dict["aic"] = r.aic;
-        res_dict["bic"] = r.bic;
-        res_dict["status"] = r.status;
-        
-        // 遍历最佳参数字典，进行清爽的扁平化
-        for (const auto& kv : r.best_params) {
-            if (kv.second.size() == 1) {
-                res_dict[pybind11::str(kv.first)] = kv.second[0]; // 标量参数
-            } else {
-                // 向量参数 (如 c_conf) 展平为 c_conf_1, c_conf_2 ...
-                for (size_t j = 0; j < kv.second.size(); ++j) {
-                    std::string key_name = kv.first + "_" + std::to_string(j + 1);
-                    res_dict[pybind11::str(key_name)] = kv.second[j];
+        grouped_res[r.cond].push_back(r);
+    }
+
+    auto create_list = [](const std::vector<SubjectFitResult>& res_group) {
+        pybind11::list out_list;
+        for (const auto& r : res_group) {
+            pybind11::dict res_dict;
+            res_dict["subid"] = r.subid;
+            res_dict["logL"] = r.logL;
+            res_dict["aic"] = r.aic;
+            res_dict["bic"] = r.bic;
+            res_dict["status"] = r.status;
+            
+            for (const auto& kv : r.best_params) {
+                if (kv.second.size() == 1) {
+                    res_dict[pybind11::str(kv.first)] = kv.second[0];
+                } else {
+                    for (size_t j = 0; j < kv.second.size(); ++j) {
+                        std::string key_name = kv.first + "_" + std::to_string(j + 1);
+                        res_dict[pybind11::str(key_name)] = kv.second[j];
+                    }
                 }
             }
+            out_list.append(res_dict);
         }
-        out_list.append(res_dict);
+        return out_list;
+    };
+
+    if (grouped_res.size() == 1 && grouped_res.begin()->first == "") {
+        return create_list(grouped_res.begin()->second);
+    } else {
+        pybind11::dict out_dict;
+        for (const auto& kv : grouped_res) {
+            out_dict[pybind11::str(kv.first)] = create_list(kv.second);
+        }
+        return out_dict;
     }
-    
-    return out_list;
 }
 
 // ==========================================================

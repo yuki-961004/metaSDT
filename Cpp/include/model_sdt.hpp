@@ -10,11 +10,11 @@ template <typename T>
 class ModelSDT {
 private:
     // 内部核心参数
-    T d;
+    std::vector<T> d_vec; // 升级为向量，支持不同难度下的多个 d
     T sd_noise;
     T sd_signal;
-    T mu_noise;
-    T mu_signal;
+    std::vector<T> mu_noise_vec;
+    std::vector<T> mu_signal_vec;
     std::vector<T> criteria; // 自动生成的切割点
 
 public:
@@ -28,16 +28,16 @@ public:
     // 输出的两个累积分布函数 (CDF)
     // ==========================================================
     // 默认无参版本，使用内部自动生成的 criteria
-    std::vector<T> cdf_noise() const;
-    std::vector<T> cdf_signal() const;
+    std::vector<std::vector<T>> cdf_noise() const;
+    std::vector<std::vector<T>> cdf_signal() const;
 
     // 支持传入单个 x 值计算
-    T cdf_noise(T x) const;
-    T cdf_signal(T x) const;
+    T cdf_noise(T x, size_t dim_idx) const;
+    T cdf_signal(T x, size_t dim_idx) const;
 
     // 支持传入 x 向量批量计算
-    std::vector<T> cdf_noise(const std::vector<T>& x_vec) const;
-    std::vector<T> cdf_signal(const std::vector<T>& x_vec) const;
+    std::vector<T> cdf_noise(const std::vector<T>& x_vec, size_t dim_idx) const;
+    std::vector<T> cdf_signal(const std::vector<T>& x_vec, size_t dim_idx) const;
 };
 
 #endif // MODEL_SDT_HPP

@@ -7,18 +7,20 @@
 struct PySubjectData {
     pybind11::dict info;
     pybind11::dict condition;
+    pybind11::dict difficulty;
     pybind11::object raw;
 };
 
 pybind11::dict py_data_info(
     pybind11::dict df, 
-    pybind11::object colnames = pybind11::none(), 
-    pybind11::object condition = pybind11::none()
+    pybind11::object colnames = pybind11::none()
 ) {
     // 1. 转换 DataFrame 列数据
     std::unordered_map<std::string, std::vector<double>> cpp_df;
     for (auto item : df) {
-        cpp_df[pybind11::str(item.first)] = item.second.cast<std::vector<double>>();
+        cpp_df[pybind11::str(item.first)] = item.second.cast<
+            std::vector<double>
+        >();
     }
 
     // 2. 转换列名映射字典
@@ -29,33 +31,18 @@ pybind11::dict py_data_info(
         }
     }
 
-    // 3. 转换条件列表
-    std::vector<std::string> cpp_condition;
-    if (!condition.is_none()) {
-        if (pybind11::isinstance<pybind11::str>(condition)) {
-            cpp_condition.push_back(condition.cast<std::string>());
-        } else if (
-            pybind11::isinstance<pybind11::list>(condition) || 
-            pybind11::isinstance<pybind11::tuple>(condition)
-        ) {
-            for (auto item : condition) {
-                cpp_condition.push_back(pybind11::str(item));
-            }
-        }
-    }
 
     // 4. 调用纯 C++ 核心执行极速扫描
     DataInfoResult res;
     try {
-        res = data_info(cpp_df, cpp_colnames, cpp_condition);
+        res = data_info(/*df=*/cpp_df, /*colnames=*/cpp_colnames);
     } catch (const std::exception& e) {
         throw pybind11::value_error(e.what());
     }
 
-    // 5. 拦截 C++ 产生的警告，并发送给 Python 的 warnings 模块
-    pybind11::object warn = pybind11::module_::import("warnings").attr("warn");
-    for (const auto& w : res.warnings) {
-        warn(pybind11::str(w));
+    // 5. 拦截 C++ 产生的提示，使用 Python 原生 print 打印
+    for (const auto& msg : res.messages) {
+        pybind11::print(msg);
     }
 
     // 6. 将结果打包回 Python 字典
@@ -84,10 +71,23 @@ pybind11::dict py_data_info(
                 py_condition[pybind11::int_(int_key)] = pybind11::cast(cond_kv.second);
             } catch (...) {
                 // 如果转换失败（比如本来就是纯字符串），则退回使用字符串键
-                py_condition[pybind11::str(cond_kv.first)] = pybind11::cast(cond_kv.second);
+            py_condition[pybind11::str(cond_kv.first)] = 
+                pybind11::cast(cond_kv.second);
             }
         }
         subj_data.condition = py_condition;
+
+        pybind11::dict py_difficulty;
+        for (const auto& diff_kv : kv.second.difficulty) {
+            try {
+                int int_key = static_cast<int>(std::stod(diff_kv.first));
+                py_difficulty[pybind11::int_(int_key)] = pybind11::cast(diff_kv.second);
+            } catch (...) {
+            py_difficulty[pybind11::str(diff_kv.first)] = 
+                pybind11::cast(diff_kv.second);
+            }
+        }
+        subj_data.difficulty = py_difficulty;
 
         r_subjects[pybind11::str(sub_key)] = pybind11::cast(subj_data);
     }
@@ -104,11 +104,11 @@ PYBIND11_MODULE(_core_data_info, m) {
     pybind11::class_<PySubjectData>(m, "SubjectData")
         .def_readonly("info", &PySubjectData::info)
         .def_readonly("condition", &PySubjectData::condition)
+        .def_readonly("difficulty", &PySubjectData::difficulty)
         .def_readonly("raw", &PySubjectData::raw);
 
     m.def("data_info", &py_data_info, 
           "Intelligently scan the dataset and extract subject-level information.",
           pybind11::arg("df"), 
-          pybind11::arg("colnames") = pybind11::none(), 
-          pybind11::arg("condition") = pybind11::none());
+          pybind11::arg("colnames") = pybind11::none());
 }

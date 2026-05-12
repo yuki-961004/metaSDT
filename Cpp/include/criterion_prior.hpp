@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 #include <cmath>
+#include <algorithm>
+#include <numeric>
 
 // ==============================================================================
 // 核心类：模块化先验分布注入器 (Prior Injector)
@@ -99,8 +101,9 @@ public:
                     double shape2 = spec.param2;
                     if (val > 0.0 && val < 1.0) {
                         // 严格加上 Beta 分布的归一化常数：lgamma(a) + lgamma(b) - lgamma(a+b)
-                        double log_beta = std::lgamma(shape1) + std::lgamma(shape2) 
-                                          - std::lgamma(shape1 + shape2);
+                        double log_beta = std::lgamma(shape1) + 
+                                          std::lgamma(shape2) - 
+                                          std::lgamma(shape1 + shape2);
                         log_prior += (shape1 - 1.0) * log(val) + 
                                      (shape2 - 1.0) * log(1.0 - val) - log_beta;
                     } else {
@@ -122,6 +125,105 @@ public:
             }
         }
         return log_prior;
+    }
+
+    // ==========================================================
+    // 3. 经验贝叶斯核心：基于群体推断更新先验 (EM-MAP M-Step)
+    // ==========================================================
+    // 接收所有被试在当前迭代下估计出的自由参数矩阵 (N_subjects x K_params)
+    // 使用矩估计 (Method of Moments) 或鲁棒统计在原生参数空间下更新超参数。
+    void update(const std::vector<std::vector<double>>& group_free_params) {
+        if (group_free_params.empty()) return;
+        size_t n_subjects = group_free_params.size();
+        
+        // 如果少于2个被试，无法估计群体方差，直接跳过更新
+        if (n_subjects < 2) return; 
+        
+        size_t k_params = group_free_params[0].size();
+
+        for (auto& kv : prior_specs_) {
+            int j = kv.first;
+            if (j >= static_cast<int>(k_params)) continue;
+            
+            PriorSpec& spec = kv.second;
+            // 均匀分布通常用于代表无信息边界，不参与群体推断的更新
+            if (spec.type == PriorType::NONE || spec.type == PriorType::UNIFORM) {
+                continue;
+            }
+
+            // 提取所有被试的第 j 个参数
+            std::vector<double> x(n_subjects);
+            for (size_t i = 0; i < n_subjects; ++i) {
+                x[i] = group_free_params[i][j];
+            }
+
+            // 计算均值和无偏样本方差
+            double mean = std::accumulate(x.begin(), x.end(), 0.0) / n_subjects;
+            double var = 0.0;
+            for (double v : x) var += (v - mean) * (v - mean);
+            var /= (n_subjects - 1.0);
+
+            // 设定最小容差，防止方差坍缩导致除以0或密度函数爆炸
+            double min_var = 1e-6; 
+            if (var < min_var) var = min_var;
+
+            // 核心分发：依据分布类型进行原生空间映射更新
+            switch (spec.type) {
+                case PriorType::NORMAL: {
+                    spec.param1 = mean;
+                    spec.param2 = std::sqrt(var);
+                    break;
+                }
+                case PriorType::LOGNORMAL: {
+                    std::vector<double> log_x(n_subjects);
+                    double log_sum = 0.0;
+                    for (size_t i = 0; i < n_subjects; ++i) {
+                        double val = x[i] > 1e-8 ? x[i] : 1e-8; // 防御性保护
+                        log_x[i] = std::log(val);
+                        log_sum += log_x[i];
+                    }
+                    double log_mean = log_sum / n_subjects;
+                    double log_var = 0.0;
+                    for (double v : log_x) log_var += (v - log_mean) * (v - log_mean);
+                    log_var /= (n_subjects - 1.0);
+                    
+                    spec.param1 = log_mean;
+                    spec.param2 = std::sqrt(std::max(log_var, min_var));
+                    break;
+                }
+                case PriorType::BETA: {
+                    // 防御：强制裁剪均值，防止处于绝对的 0 或 1 导致计算崩溃
+                    double m = std::max(1e-4, std::min(mean, 1.0 - 1e-4));
+                    // Beta 分布的方差必须严格小于 m * (1 - m)
+                    double max_var = m * (1.0 - m) - 1e-6;
+                    if (var > max_var) var = max_var; 
+
+                    double common_term = (m * (1.0 - m) / var) - 1.0;
+                    double alpha = m * common_term;
+                    double beta = (1.0 - m) * common_term;
+
+                    spec.param1 = std::max(alpha, 1e-3);
+                    spec.param2 = std::max(beta, 1e-3);
+                    break;
+                }
+                case PriorType::EXPONENTIAL: {
+                    double rate = 1.0 / std::max(mean, 1e-6);
+                    spec.param1 = rate;
+                    break;
+                }
+                case PriorType::CAUCHY: {
+                    // 柯西分布没有均值和方差，使用中位数 (Median) 和四分位距的一半 (IQR/2)
+                    std::sort(x.begin(), x.end());
+                    spec.param1 = (n_subjects % 2 == 0) ? 
+                        (x[n_subjects / 2 - 1] + x[n_subjects / 2]) / 2.0 : 
+                        x[n_subjects / 2];
+                    double iqr = x[n_subjects * 3 / 4] - x[n_subjects / 4];
+                    spec.param2 = std::max(iqr / 2.0, 1e-4);
+                    break;
+                }
+                default: break;
+            }
+        }
     }
 };
 

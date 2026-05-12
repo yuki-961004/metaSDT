@@ -6,14 +6,14 @@ format: html
 
 ```{r}
 # 1. 编译并加载整个 R 包 (指定包根目录为 ./R)
-#devtools::clean_dll("./R")
+devtools::clean_dll("./R")
 devtools::load_all("./R")
 ```
 
 ## core
 
 ```{r}
-data <- read.csv("data/data.csv")
+data <- read.csv("data/exp1.csv")
 
 sub1 <- data |> dplyr::filter(subj_id == 1)
 
@@ -97,8 +97,8 @@ std_params <- modify_params(user_params = list(
 # 直接传入参数，model_sdt 现在会自动读取 c_conf 和 c_resp，智能生成全套积分面积！
 res_cdf <- model_sdt(std_params)
 
-cat("False Alarm Rates (所有切点的虚报率):\n", 1 - res_cdf$cdf_noise, "\n")
-cat("Hit Rates (所有切点的击中率):\n", 1 - res_cdf$cdf_signal, "\n")
+cat("False Alarm Rates (所有切点的虚报率):\n", 1 - res_cdf$cdf_noise[[1]], "\n")
+cat("Hit Rates (所有切点的击中率):\n", 1 - res_cdf$cdf_signal[[1]], "\n")
 ```
 
 ```{r}
@@ -127,7 +127,7 @@ criterion_likelihood(freq_mat, prob_mat, std_params)
 
 ```{r}
 fit_df <- estimate_mle(
-  df = read.csv("data/data.csv"), 
+  df = read.csv("data/exp1.csv"), 
   params = list(
     free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)), # 设定我们要找出的自由参数
     fixed = list(sd_signal = 1.0, sd_noise = 1.0)
@@ -138,6 +138,26 @@ fit_df <- estimate_mle(
 print(head(fit_df))
 ```
 
+```{r}
+fit_df <- estimate_mle(
+  df = read.csv("data/exp3.csv"), 
+  colnames = list(
+    condition = "FlippedWheel",
+    difficulty = "NoiseLevel_Deg"
+  ),
+  params = list(
+    free = list(
+      d = c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1),
+      c_resp = 0.0,
+      c_conf = c(0.5, 1.0, 1.5)
+    ), # 设定我们要找出的自由参数
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+  ),
+  model = "sdt"
+)
+
+print(head(fit_df))
+```
 
 ```{r}
 # 生成想要评估的当前参数集 (故意打乱自由参数、固定参数的传递顺序，并打乱 c_conf 内部边界！)
@@ -203,7 +223,6 @@ log_posterior_unif <- criterion_posterior(
 print(log_posterior_unif)
 ```
 
-
 ```{r}
 # ==========================================
 # 手动验证 C++ 底层的 Log-Prior 计算
@@ -226,14 +245,8 @@ log_prior_c_conf_full <- sum(dbeta(x = c_conf_vals, shape1 = shape1, shape2 = sh
 # 因为有 3 个 c_conf 值，所以产生了 3 次常数累加
 beta_constant <- sum(-lbeta(shape1, shape2) * rep(1, length(c_conf_vals)))
 
-# 剥离常数，得到 C++ 引擎实际使用的核心核函数：(a-1)*log(x) + (b-1)*log(1-x)
-log_prior_c_conf_cpp <- log_prior_c_conf_full - beta_constant
-
 # 3. 汇总对比
 total_prior_full <- log_prior_d + log_prior_c_conf_full
-total_prior_cpp <- log_prior_d + log_prior_c_conf_cpp
 
 cat("R 原生 dnorm + dbeta 计算结果 (含常数):", total_prior_full, "\n")
-cat("C++ 优化核函数计算结果 (剥离常数):", total_prior_cpp, "\n")
-
 ```

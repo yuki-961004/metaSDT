@@ -9,21 +9,21 @@ pybind11::dict py_criterion_likelihood(
     pybind11::object prob_obj,
     pybind11::dict std_params
 ) {
-    std::vector<std::vector<double>> freq_mat;
-    std::vector<std::vector<double>> prob_mat;
+    std::vector<std::vector<std::vector<double>>> freq_mat;
+    std::vector<std::vector<std::vector<double>>> prob_mat;
 
     if (pybind11::isinstance<pybind11::dict>(freq_obj)) {
         freq_mat = freq_obj.cast<pybind11::dict>()["freq_mat"]
-                           .cast<std::vector<std::vector<double>>>();
+                           .cast<std::vector<std::vector<std::vector<double>>>>();
     } else {
-        freq_mat = freq_obj.cast<std::vector<std::vector<double>>>();
+        freq_mat = freq_obj.cast<std::vector<std::vector<std::vector<double>>>>();
     }
     
     if (pybind11::isinstance<pybind11::dict>(prob_obj)) {
         prob_mat = prob_obj.cast<pybind11::dict>()["prob_mat"]
-                           .cast<std::vector<std::vector<double>>>();
+                           .cast<std::vector<std::vector<std::vector<double>>>>();
     } else {
-        prob_mat = prob_obj.cast<std::vector<std::vector<double>>>();
+        prob_mat = prob_obj.cast<std::vector<std::vector<std::vector<double>>>>();
     }
 
     int k = 0;
@@ -44,7 +44,7 @@ pybind11::dict py_criterion_likelihood(
     auto cpp_mult = ::matrix_mult<double>(freq_mat, prob_mat, cpp_params);
     
     std::vector<double> free_params; 
-    auto res = criterion_likelihood(
+    auto res = criterion_likelihood<double>(
         cpp_mult, freq_mat, k, free_params, cpp_params
     );
     

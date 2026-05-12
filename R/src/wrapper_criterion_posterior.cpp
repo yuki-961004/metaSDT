@@ -33,13 +33,18 @@ namespace {
 //' Evaluate Log-Posterior
 //' @export
 // [[Rcpp::export(name = "criterion_posterior")]]
-double r_criterion_posterior(NumericMatrix freq_mat, List user_priors, RObject std_params = R_NilValue) {
-    int n_rows = freq_mat.nrow();
-    int n_cols = freq_mat.ncol();
-    std::vector<std::vector<double>> cpp_freq(n_rows, std::vector<double>(n_cols));
-    for (int i = 0; i < n_rows; ++i) {
-        for (int j = 0; j < n_cols; ++j) {
-            cpp_freq[i][j] = freq_mat(i, j);
+double r_criterion_posterior(List freq_mat, List user_priors, RObject std_params = R_NilValue) {
+    int n_dims = freq_mat.size();
+    NumericMatrix first = as<NumericMatrix>(freq_mat[0]);
+    int n_rows = first.nrow();
+    int n_cols = first.ncol();
+    std::vector<std::vector<std::vector<double>>> cpp_freq(n_dims, std::vector<std::vector<double>>(n_rows, std::vector<double>(n_cols)));
+    for (int d = 0; d < n_dims; ++d) {
+        NumericMatrix f = as<NumericMatrix>(freq_mat[d]);
+        for (int i = 0; i < n_rows; ++i) {
+            for (int j = 0; j < n_cols; ++j) {
+                cpp_freq[d][i][j] = f(i, j);
+            }
         }
     }
 

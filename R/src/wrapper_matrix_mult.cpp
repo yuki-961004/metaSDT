@@ -11,18 +11,24 @@ using namespace Rcpp;
 //' Calculate the Log-Likelihood product matrix
 //' @export
 // [[Rcpp::export(name = "matrix_mult")]]
-NumericMatrix r_matrix_mult(NumericMatrix freq_mat, NumericMatrix prob_mat, List std_params) {
-    int n_rows = freq_mat.nrow();
-    int n_cols = freq_mat.ncol();
+List r_matrix_mult(List freq_mat, List prob_mat, List std_params) {
+    int n_dims = freq_mat.size();
+    NumericMatrix first = as<NumericMatrix>(freq_mat[0]);
+    int n_rows = first.nrow();
+    int n_cols = first.ncol();
 
-    // 1. 将 R 的 NumericMatrix 转换为底层的 2D vector
-    std::vector<std::vector<double>> cpp_freq(n_rows, std::vector<double>(n_cols));
-    std::vector<std::vector<double>> cpp_prob(n_rows, std::vector<double>(n_cols));
+    // 1. 将 R 的 List of NumericMatrix 转换为底层的 3D vector
+    std::vector<std::vector<std::vector<double>>> cpp_freq(n_dims, std::vector<std::vector<double>>(n_rows, std::vector<double>(n_cols)));
+    std::vector<std::vector<std::vector<double>>> cpp_prob(n_dims, std::vector<std::vector<double>>(n_rows, std::vector<double>(n_cols)));
 
-    for (int i = 0; i < n_rows; ++i) {
-        for (int j = 0; j < n_cols; ++j) {
-            cpp_freq[i][j] = freq_mat(i, j);
-            cpp_prob[i][j] = prob_mat(i, j);
+    for (int d = 0; d < n_dims; ++d) {
+        NumericMatrix f = as<NumericMatrix>(freq_mat[d]);
+        NumericMatrix p = as<NumericMatrix>(prob_mat[d]);
+        for (int i = 0; i < n_rows; ++i) {
+            for (int j = 0; j < n_cols; ++j) {
+                cpp_freq[d][i][j] = f(i, j);
+                cpp_prob[d][i][j] = p(i, j);
+            }
         }
     }
 
@@ -43,13 +49,18 @@ NumericMatrix r_matrix_mult(NumericMatrix freq_mat, NumericMatrix prob_mat, List
     // 3. 调用核心 C++ 函数
     auto res = ::matrix_mult<double>(cpp_freq, cpp_prob, cpp_params);
 
-    // 4. 将结果转换回 R 的 NumericMatrix 并保留原有的行列名
-    NumericMatrix out_mat(n_rows, n_cols);
-    for (int i = 0; i < n_rows; ++i) {
-        for (int j = 0; j < n_cols; ++j) {
-            out_mat(i, j) = res[i][j];
+    // 4. 将结果转换回 R 的 List of NumericMatrix 并保留原有的行列名
+    List out_list;
+    for (int d = 0; d < n_dims; ++d) {
+        NumericMatrix out_mat(n_rows, n_cols);
+        for (int i = 0; i < n_rows; ++i) {
+            for (int j = 0; j < n_cols; ++j) {
+                out_mat(i, j) = res[d][i][j];
+            }
         }
+        out_mat.attr("dimnames") = first.attr("dimnames");
+        out_list.push_back(out_mat);
     }
-    out_mat.attr("dimnames") = freq_mat.attr("dimnames");
-    return out_mat;
+    out_list.names() = freq_mat.names();
+    return out_list;
 }

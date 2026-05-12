@@ -10,6 +10,7 @@
 // 它是完美实现多线程和解耦的灵魂载体
 struct SubjectFitTask {
     double subid;
+    std::string cond;
     std::string model;                // 用户指定的模型名称
     MatrixFreq freq;                  // 该被试提前算好并缓存的二维频数矩阵
     ModifiedParamsResult params;      // 标准化后的参数字典与结构信息
@@ -28,7 +29,8 @@ std::vector<SubjectFitTask> build_fit_tasks(
 // 供 NLOPT 直接调用的标准化静态目标函数
 // 将会在多线程中被各自的 CPU 核心独立并发调用
 double nll(
-    const std::vector<double>& x, 
-    std::vector<double>& grad, 
+    unsigned n, 
+    const double* x, 
+    double* grad, 
     void* f_data
 );

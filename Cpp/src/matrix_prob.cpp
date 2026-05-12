@@ -3,8 +3,8 @@
 
 template <typename T>
 MatrixProb<T> matrix_prob(
-    const std::vector<T>& cdf_noise,
-    const std::vector<T>& cdf_signal,
+    const std::vector<std::vector<T>>& cdf_noise,
+    const std::vector<std::vector<T>>& cdf_signal,
     const std::unordered_map<std::string, std::vector<T>>& std_params
 ) {
     // ==========================================================
@@ -19,7 +19,11 @@ MatrixProb<T> matrix_prob(
         );
     }
 
-    size_t n_criteria = cdf_noise.size();
+    size_t n_diffs = cdf_noise.size();
+    if (cdf_noise[0].empty() || cdf_signal[0].empty()) {
+        throw std::invalid_argument("Error: CDF vectors must not be empty.");
+    }
+    size_t n_criteria = cdf_noise[0].size();
     size_t n_cols = n_criteria + 1; // 判定标准将分布切割为 N+1 个反应区间
 
     // ==========================================================
@@ -57,7 +61,10 @@ MatrixProb<T> matrix_prob(
     }
 
     MatrixProb<T> result;
-    result.prob_mat.assign(2, std::vector<T>(n_cols, 0.0));
+    result.prob_mat.assign(
+        n_diffs, 
+        std::vector<std::vector<T>>(2, std::vector<T>(n_cols, 0.0))
+    );
 
     // SDT 中的判断选项通常是偶数（例如 2键辨别, 或 2键x3置信度=6选项）
     if (n_cols % 2 != 0) {
@@ -72,19 +79,21 @@ MatrixProb<T> matrix_prob(
     // ==========================================================
     // 按照 X 轴从左到右 (321123 的自然顺序) 直接填充概率矩阵
 
-    // 第一个区间: P(X < c_1)
-    result.prob_mat[0][0] = cdf_noise[0];
-    result.prob_mat[1][0] = cdf_signal[0];
+    for (size_t d = 0; d < n_diffs; ++d) {
+        // 第一个区间: P(X < c_1)
+        result.prob_mat[d][0][0] = cdf_noise[d][0];
+        result.prob_mat[d][1][0] = cdf_signal[d][0];
 
-    // 中间的各个区间: P(c_i < X < c_{i+1}) = CDF(c_{i+1}) - CDF(c_i)
-    for (size_t i = 1; i < n_criteria; ++i) {
-        result.prob_mat[0][i] = cdf_noise[i] - cdf_noise[i - 1];
-        result.prob_mat[1][i] = cdf_signal[i] - cdf_signal[i - 1];
+        // 中间的各个区间: P(c_i < X < c_{i+1}) = CDF(c_{i+1}) - CDF(c_i)
+        for (size_t i = 1; i < n_criteria; ++i) {
+            result.prob_mat[d][0][i] = cdf_noise[d][i] - cdf_noise[d][i - 1];
+            result.prob_mat[d][1][i] = cdf_signal[d][i] - cdf_signal[d][i - 1];
+        }
+
+        // 最后一个区间: P(X > c_N) = 1.0 - CDF(c_N)
+        result.prob_mat[d][0][n_cols - 1] = 1.0 - cdf_noise[d][n_criteria - 1];
+        result.prob_mat[d][1][n_cols - 1] = 1.0 - cdf_signal[d][n_criteria - 1];
     }
-
-    // 最后一个区间: P(X > c_N) = 1.0 - CDF(c_N)
-    result.prob_mat[0][n_cols - 1] = 1.0 - cdf_noise[n_criteria - 1];
-    result.prob_mat[1][n_cols - 1] = 1.0 - cdf_signal[n_criteria - 1];
 
     // ==========================================================
     // 4. 全局变异修正 (引入按错键/走神概率 rate_lapse)
@@ -96,12 +105,14 @@ MatrixProb<T> matrix_prob(
     }
 
     if (lapse > 0.0) {
-        for (int i = 0; i < 2; ++i) {
-            for (size_t j = 0; j < n_cols; ++j) {
-                // 反应概率 = 完全随机猜测的均等概率 + 认真作答的概率
-                result.prob_mat[i][j] = 
-                    (lapse / static_cast<T>(n_cols)) + 
-                    ((1.0 - lapse) * result.prob_mat[i][j]);
+        for (size_t d = 0; d < n_diffs; ++d) {
+            for (int i = 0; i < 2; ++i) {
+                for (size_t j = 0; j < n_cols; ++j) {
+                    // 反应概率 = 完全随机猜测的均等概率 + 认真作答的概率
+                    result.prob_mat[d][i][j] = 
+                        (lapse / static_cast<T>(n_cols)) + 
+                        ((1.0 - lapse) * result.prob_mat[d][i][j]);
+                }
             }
         }
     }
@@ -128,6 +139,7 @@ MatrixProb<T> matrix_prob(
 }
 
 template MatrixProb<double> matrix_prob<double>(
-    const std::vector<double>&, 
-    const std::vector<double>&, 
-    const std::unordered_map<std::string, std::vector<double>>&);
+    const std::vector<std::vector<double>>&, 
+    const std::vector<std::vector<double>>&, 
+    const std::unordered_map<std::string, std::vector<double>>&
+);

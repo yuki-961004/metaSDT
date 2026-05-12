@@ -3,27 +3,29 @@
 
 #include "../../Cpp/include/matrix_mult.hpp"
 
-std::vector<std::vector<double>> py_matrix_mult(
+std::vector<std::vector<std::vector<double>>> py_matrix_mult(
     pybind11::object freq_obj,
     pybind11::object prob_obj,
     pybind11::dict std_params
 ) {
-    std::vector<std::vector<double>> freq_mat;
-    std::vector<std::vector<double>> prob_mat;
+    std::vector<std::vector<std::vector<double>>> freq_mat;
+    std::vector<std::vector<std::vector<double>>> prob_mat;
 
     // 智能提取：如果传来的是包装好的字典，自动提取其中的矩阵
     if (pybind11::isinstance<pybind11::dict>(freq_obj)) {
         freq_mat = freq_obj.cast<pybind11::dict>()["freq_mat"]
-                           .cast<std::vector<std::vector<double>>>();
+            .cast<std::vector<std::vector<std::vector<double>>>>();
     } else {
-        freq_mat = freq_obj.cast<std::vector<std::vector<double>>>();
+        freq_mat = freq_obj
+            .cast<std::vector<std::vector<std::vector<double>>>>();
     }
     
     if (pybind11::isinstance<pybind11::dict>(prob_obj)) {
         prob_mat = prob_obj.cast<pybind11::dict>()["prob_mat"]
-                           .cast<std::vector<std::vector<double>>>();
+            .cast<std::vector<std::vector<std::vector<double>>>>();
     } else {
-        prob_mat = prob_obj.cast<std::vector<std::vector<double>>>();
+        prob_mat = prob_obj
+            .cast<std::vector<std::vector<std::vector<double>>>>();
     }
 
     std::unordered_map<std::string, std::vector<double>> cpp_params;
@@ -41,7 +43,9 @@ std::vector<std::vector<double>> py_matrix_mult(
     }
     
     // 调用底层的 C++ 函数计算
-    return matrix_mult<double>(freq_mat, prob_mat, cpp_params);
+    return matrix_mult<double>(
+        /*freq_mat=*/freq_mat, /*prob_mat=*/prob_mat, /*std_params=*/cpp_params
+    );
 }
 
 PYBIND11_MODULE(_core_matrix_mult, m) {

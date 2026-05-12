@@ -68,22 +68,30 @@ pybind11::dict py_modify_params(pybind11::object user_params = pybind11::none())
 
         if (is_structured) {
             if (d.contains("free")) {
-                py_dict_to_cpp_map(d["free"], cpp_user_params.free);
+                py_dict_to_cpp_map(
+                    /*py_obj=*/d["free"], /*cpp_map=*/cpp_user_params.free
+                );
             }
             if (d.contains("fixed")) {
-                py_dict_to_cpp_map(d["fixed"], cpp_user_params.fixed);
+                py_dict_to_cpp_map(
+                    /*py_obj=*/d["fixed"], /*cpp_map=*/cpp_user_params.fixed
+                );
             }
             if (d.contains("constant")) {
-                py_dict_to_cpp_map(d["constant"], cpp_user_params.constant);
+                py_dict_to_cpp_map(
+                    /*py_obj=*/d["constant"], /*cpp_map=*/cpp_user_params.constant
+                );
             }
         } else {
             // 如果是一维扁平字典 (如 {"d": 2.5})，默认将其所有元素视作 free 参数
-            py_dict_to_cpp_map(user_params, cpp_user_params.free);
+            py_dict_to_cpp_map(
+                /*py_obj=*/user_params, /*cpp_map=*/cpp_user_params.free
+            );
         }
     }
 
     // 调用纯 C++ 底层的核心计算函数
-    auto cpp_result = modify_params(cpp_user_params);
+    auto cpp_result = modify_params(/*user_params=*/cpp_user_params);
 
     // 得益于 <pybind11/stl.h>，C++ 的 map 会被自动且安全地转化为 Python 的 dict
     pybind11::dict out_dict = pybind11::cast(cpp_result.flat);

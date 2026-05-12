@@ -9,10 +9,15 @@ using namespace Rcpp;
 
 //' Calculate Probability Matrix
 // [[Rcpp::export(name = "matrix_prob")]]
-NumericMatrix r_matrix_prob(NumericVector cdf_noise, NumericVector cdf_signal, List params) {
-    // 1. 转换向量
-    std::vector<double> cpp_noise = as<std::vector<double>>(cdf_noise);
-    std::vector<double> cpp_signal = as<std::vector<double>>(cdf_signal);
+List r_matrix_prob(List cdf_noise, List cdf_signal, List params) {
+    // 1. 转换 2D 向量
+    int n_dims = cdf_noise.size();
+    std::vector<std::vector<double>> cpp_noise(n_dims);
+    std::vector<std::vector<double>> cpp_signal(n_dims);
+    for (int d = 0; d < n_dims; ++d) {
+        cpp_noise[d] = as<std::vector<double>>(cdf_noise[d]);
+        cpp_signal[d] = as<std::vector<double>>(cdf_signal[d]);
+    }
     
     // 2. 转换参数字典
     std::unordered_map<std::string, std::vector<double>> cpp_params;
@@ -35,16 +40,22 @@ NumericMatrix r_matrix_prob(NumericVector cdf_noise, NumericVector cdf_signal, L
     // 3. 调用核心 C++ 函数
     MatrixProb<double> res = ::matrix_prob<double>(cpp_noise, cpp_signal, cpp_params);
 
-    // 4. 将 2D std::vector 优雅地转换为 R 的 NumericMatrix
-    NumericMatrix out_mat(res.prob_mat.size(), res.prob_mat[0].size());
-    for (size_t i = 0; i < res.prob_mat.size(); ++i) {
-        for (size_t j = 0; j < res.prob_mat[0].size(); ++j) {
-            out_mat(i, j) = res.prob_mat[i][j];
-        }
-    }
-
-    // 5. 赋予 R 语言中矩阵原生的 dimnames (行列名)
-    out_mat.attr("dimnames") = List::create(res.row_names, res.col_names);
+    // 4. 将 3D std::vector 转换为 R 的 List of NumericMatrix
+    List out_list;
+    n_dims = res.prob_mat.size();
+    int n_rows = (n_dims > 0) ? res.prob_mat[0].size() : 0;
+    int n_cols = (n_rows > 0) ? res.prob_mat[0][0].size() : 0;
     
-    return out_mat;
+    for (int d = 0; d < n_dims; ++d) {
+        NumericMatrix out_mat(n_rows, n_cols);
+        for (int i = 0; i < n_rows; ++i) {
+            for (int j = 0; j < n_cols; ++j) {
+                out_mat(i, j) = res.prob_mat[d][i][j];
+            }
+        }
+        out_mat.attr("dimnames") = List::create(res.row_names, res.col_names);
+        out_list.push_back(out_mat);
+    }
+    out_list.names() = res.dim_names;
+    return out_list;
 }

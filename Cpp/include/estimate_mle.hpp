@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include "objective_function.hpp" // 引入任务包与 nll 函数
+#include "build_objective.hpp" // 引入任务包与 nll 函数
 
 // NLOPT 优化器的超参数配置结构体
 struct NLoptControl {
@@ -23,6 +23,7 @@ struct NLoptControl {
 // 定义返回给外层的单个被试拟合结果
 struct SubjectFitResult {
     double subid = 0.0;
+    std::string cond;
     double logL = 0.0; // 最大对数似然
     double aic = 0.0;  // 赤池信息量准则
     double bic = 0.0;  // 贝叶斯信息量准则

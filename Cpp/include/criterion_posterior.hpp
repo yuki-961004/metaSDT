@@ -1,7 +1,6 @@
 #ifndef CRITERION_POSTERIOR_HPP
 #define CRITERION_POSTERIOR_HPP
 
-#include <Eigen/Dense>
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -19,7 +18,7 @@
 class CriterionPosterior {
 private:
     // 客观数据是恒定的且不可导 (强制维持 double)
-    std::vector<std::vector<double>> freq_mat_;
+    std::vector<std::vector<std::vector<double>>> freq_mat_;
     
     // 为了能从一维 Eigen 向量中还原回你层级化的字典结构，我们需要记录映射维度
     std::vector<std::string> param_names_;
@@ -31,13 +30,14 @@ private:
     CriterionPrior prior_handler_;
 
 public:
-    CriterionPosterior(const std::vector<std::vector<double>>& freq_mat,
-                       const std::vector<std::string>& param_names,
-                       const std::vector<int>& param_sizes,
-                       const std::unordered_map<std::string, 
-                                                std::vector<double>>& 
-                               static_params,
-                       const CriterionPrior& priors)
+    CriterionPosterior(
+        const std::vector<std::vector<std::vector<double>>>& freq_mat,
+        const std::vector<std::string>& param_names,
+        const std::vector<int>& param_sizes,
+        const std::unordered_map<std::string, 
+                                 std::vector<double>>& static_params,
+        const CriterionPrior& priors
+    )
         : freq_mat_(freq_mat), 
           param_names_(param_names), 
           param_sizes_(param_sizes),
