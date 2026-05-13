@@ -15,7 +15,7 @@
 #include "../../Cpp/include/progress_bar.hpp"
 #define PY_MODIFY_OUT_IMPL "py_modify_outputs.cpp"
 #include PY_MODIFY_OUT_IMPL
-#define PY_CTRL_WRAP_IMPL "wrapper_modify_control.cpp"
+#define PY_CTRL_WRAP_IMPL "py_modify_control.cpp"
 #include PY_CTRL_WRAP_IMPL
 
 namespace {

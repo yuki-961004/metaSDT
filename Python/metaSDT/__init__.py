@@ -1,14 +1,17 @@
 ﻿import pandas
 from . import _core_matrix_freq, _core_matrix_prob, _core_matrix_mult
 from . import _core_criterion_likelihood, _core_criterion_prior, _core_criterion_posterior
-from . import _help_data_info, _help_modify_params, _help_modify_prior
-from . import _model_sdt, _estimate_mle, _estimate_map, _ui
+from . import _help_data_info
+from . import _help_modify_params, _help_modify_prior
+from . import _estimate_mle, _estimate_map, _progress_bar
+from . import _progress_bar
+from . import _model_sdt, 
 
 
 class _UI:
     @staticmethod
     def progress_start(total, title="Progress", refresh_ms=100, mode="auto", line_interval_sec=2, line_interval_pct=5.0):
-        _ui.progress_start(
+        _progress_bar.progress_start(
             total=total,
             title=title,
             refresh_ms=refresh_ms,
@@ -19,19 +22,19 @@ class _UI:
 
     @staticmethod
     def progress_bar(current):
-        _ui.progress_bar(current=current)
+        _progress_bar.progress_bar(current=current)
 
     @staticmethod
     def progress_advance(step=1):
-        _ui.progress_advance(step=step)
+        _progress_bar.progress_advance(step=step)
 
     @staticmethod
     def progress_finish():
-        _ui.progress_finish()
+        _progress_bar.progress_finish()
 
     @staticmethod
     def progress_snapshot():
-        return _ui.progress_snapshot()
+        return _progress_bar.progress_snapshot()
 
 
 ui = _UI()

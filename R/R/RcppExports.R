@@ -86,3 +86,23 @@ modify_prior <- function(user_priors, std_params = NULL) {
     .Call(`_metaSDT_r_modify_prior`, user_priors, std_params)
 }
 
+progress_start <- function(total, title = "Progress", refresh_ms = 100L, mode = "auto", line_interval_sec = 2.0, line_interval_pct = 5.0) {
+    invisible(.Call(`_metaSDT_r_progress_start`, total, title, refresh_ms, mode, line_interval_sec, line_interval_pct))
+}
+
+progress_set <- function(current) {
+    invisible(.Call(`_metaSDT_r_progress_set`, current))
+}
+
+progress_advance <- function(step = 1.0) {
+    invisible(.Call(`_metaSDT_r_progress_advance`, step))
+}
+
+progress_finish <- function() {
+    invisible(.Call(`_metaSDT_r_progress_finish`))
+}
+
+progress_snapshot <- function() {
+    .Call(`_metaSDT_r_progress_snapshot`)
+}
+

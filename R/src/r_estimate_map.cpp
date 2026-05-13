@@ -8,7 +8,7 @@
 #include "../../Cpp/include/modify_prior.hpp"
 #define R_MODIFY_OUT_IMPL "r_modify_outputs.cpp"
 #include R_MODIFY_OUT_IMPL
-#define R_CTRL_WRAP_IMPL "wrapper_modify_control.cpp"
+#define R_CTRL_WRAP_IMPL "r_modify_control.cpp"
 #include R_CTRL_WRAP_IMPL
 
 #define CORE_IMPL_MAP "../../Cpp/src/estimate_map.cpp"

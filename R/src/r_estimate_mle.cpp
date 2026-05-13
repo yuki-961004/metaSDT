@@ -4,7 +4,7 @@
 #include "../../Cpp/include/modify_control.hpp"
 #define R_MODIFY_OUT_IMPL "r_modify_outputs.cpp"
 #include R_MODIFY_OUT_IMPL
-#define R_CTRL_WRAP_IMPL "wrapper_modify_control.cpp"
+#define R_CTRL_WRAP_IMPL "r_modify_control.cpp"
 #include R_CTRL_WRAP_IMPL
 
 #define CORE_IMPL "../../Cpp/src/estimate_mle.cpp"
@@ -13,9 +13,6 @@
 #include OBJ_IMPL
 #define CTRL_IMPL "../../Cpp/src/modify_control.cpp"
 #include CTRL_IMPL
-#define UI_PROGRESS_IMPL "../../Cpp/src/progress_bar.cpp"
-#include UI_PROGRESS_IMPL
-
 namespace {
 void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
     if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) return;

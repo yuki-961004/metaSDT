@@ -52,6 +52,7 @@ add_library(metaSDT_core STATIC
     Cpp/src/matrix_prob.cpp
     Cpp/src/matrix_mult.cpp
     Cpp/src/build_objective.cpp
+    Cpp/src/modify_outputs.cpp
     Cpp/src/modify_control.cpp
     Cpp/src/progress_bar.cpp
     Cpp/src/estimate_mle.cpp

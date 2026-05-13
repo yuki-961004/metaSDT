@@ -170,6 +170,60 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// r_progress_start
+void r_progress_start(double total, std::string title, int refresh_ms, std::string mode, double line_interval_sec, double line_interval_pct);
+RcppExport SEXP _metaSDT_r_progress_start(SEXP totalSEXP, SEXP titleSEXP, SEXP refresh_msSEXP, SEXP modeSEXP, SEXP line_interval_secSEXP, SEXP line_interval_pctSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type total(totalSEXP);
+    Rcpp::traits::input_parameter< std::string >::type title(titleSEXP);
+    Rcpp::traits::input_parameter< int >::type refresh_ms(refresh_msSEXP);
+    Rcpp::traits::input_parameter< std::string >::type mode(modeSEXP);
+    Rcpp::traits::input_parameter< double >::type line_interval_sec(line_interval_secSEXP);
+    Rcpp::traits::input_parameter< double >::type line_interval_pct(line_interval_pctSEXP);
+    r_progress_start(total, title, refresh_ms, mode, line_interval_sec, line_interval_pct);
+    return R_NilValue;
+END_RCPP
+}
+// r_progress_set
+void r_progress_set(double current);
+RcppExport SEXP _metaSDT_r_progress_set(SEXP currentSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type current(currentSEXP);
+    r_progress_set(current);
+    return R_NilValue;
+END_RCPP
+}
+// r_progress_advance
+void r_progress_advance(double step);
+RcppExport SEXP _metaSDT_r_progress_advance(SEXP stepSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type step(stepSEXP);
+    r_progress_advance(step);
+    return R_NilValue;
+END_RCPP
+}
+// r_progress_finish
+void r_progress_finish();
+RcppExport SEXP _metaSDT_r_progress_finish() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    r_progress_finish();
+    return R_NilValue;
+END_RCPP
+}
+// r_progress_snapshot
+Rcpp::List r_progress_snapshot();
+RcppExport SEXP _metaSDT_r_progress_snapshot() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(r_progress_snapshot());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_criterion_likelihood", (DL_FUNC) &_metaSDT_r_criterion_likelihood, 3},
@@ -184,6 +238,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_model_sdt", (DL_FUNC) &_metaSDT_r_model_sdt, 1},
     {"_metaSDT_r_modify_params", (DL_FUNC) &_metaSDT_r_modify_params, 1},
     {"_metaSDT_r_modify_prior", (DL_FUNC) &_metaSDT_r_modify_prior, 2},
+    {"_metaSDT_r_progress_start", (DL_FUNC) &_metaSDT_r_progress_start, 6},
+    {"_metaSDT_r_progress_set", (DL_FUNC) &_metaSDT_r_progress_set, 1},
+    {"_metaSDT_r_progress_advance", (DL_FUNC) &_metaSDT_r_progress_advance, 1},
+    {"_metaSDT_r_progress_finish", (DL_FUNC) &_metaSDT_r_progress_finish, 0},
+    {"_metaSDT_r_progress_snapshot", (DL_FUNC) &_metaSDT_r_progress_snapshot, 0},
     {NULL, NULL, 0}
 };
 

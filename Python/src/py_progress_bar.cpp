@@ -1,11 +1,8 @@
 #include <pybind11/pybind11.h>
 #include "../../Cpp/include/progress_bar.hpp"
 
-// This module exposes progress-state APIs to Python. It intentionally keeps
-// logic thin so rendering strategy can stay in Python-side caller code.
-
-PYBIND11_MODULE(_ui, m) {
-    m.doc() = "metaSDT UI helpers";
+PYBIND11_MODULE(_progress_bar, m) {
+    m.doc() = "metaSDT progress helpers";
 
     m.def("progress_start",
           [](std::size_t total, const std::string& title, int refresh_ms,
