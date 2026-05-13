@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include "matrix_freq.hpp"
 #include "modify_params.hpp"
+#include "criterion_prior.hpp"
+#include "modify_prior.hpp"
 
 // 专门为每一个被试独立准备的拟合任务包 (Context Payload)
 // 它是完美实现多线程和解耦的灵魂载体
@@ -14,6 +16,7 @@ struct SubjectFitTask {
     std::string model;                // 用户指定的模型名称
     MatrixFreq freq;                  // 该被试提前算好并缓存的二维频数矩阵
     ModifiedParamsResult params;      // 标准化后的参数字典与结构信息
+    CriterionPrior prior;             // 针对该被试的先验概率分布求值器 (MAP 用)
 };
 
 // 任务工厂函数：接收全体数据，拆分被试，生成可供多核并行使用的独立任务包集合
@@ -23,7 +26,9 @@ std::vector<SubjectFitTask> build_fit_tasks(
     const ParamGroup& user_params,
     const std::string& model_name,
     const std::unordered_map<std::string, std::vector<double>>& custom_lower = {},
-    const std::unordered_map<std::string, std::vector<double>>& custom_upper = {}
+    const std::unordered_map<std::string, std::vector<double>>& custom_upper = {},
+    bool apply_priors = false,
+    const std::unordered_map<std::string, UserPrior>& user_priors = {}
 );
 
 // 供 NLOPT 直接调用的标准化静态目标函数

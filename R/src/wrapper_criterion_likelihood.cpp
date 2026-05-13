@@ -1,16 +1,12 @@
-#include <Rcpp.h>
+﻿#include <Rcpp.h>
 #include "../../Cpp/include/criterion_likelihood.hpp"
 #include "../../Cpp/include/matrix_mult.hpp"
-
-
-using namespace Rcpp;
-
 //' Calculate Model Likelihood indicators (NLL, AIC, BIC)
 //' @export
 // [[Rcpp::export(name = "criterion_likelihood")]]
-List r_criterion_likelihood(List freq_mat, List prob_mat, List std_params) {
+Rcpp::List r_criterion_likelihood(Rcpp::List freq_mat, Rcpp::List prob_mat, Rcpp::List std_params) {
     int n_dims = freq_mat.size();
-    NumericMatrix first = as<NumericMatrix>(freq_mat[0]);
+    Rcpp::NumericMatrix first = Rcpp::as<Rcpp::NumericMatrix>(freq_mat[0]);
     int n_rows = first.nrow();
     int n_cols = first.ncol();
 
@@ -18,8 +14,8 @@ List r_criterion_likelihood(List freq_mat, List prob_mat, List std_params) {
     std::vector<std::vector<std::vector<double>>> cpp_prob(n_dims, std::vector<std::vector<double>>(n_rows, std::vector<double>(n_cols)));
 
     for (int d = 0; d < n_dims; ++d) {
-        NumericMatrix f = as<NumericMatrix>(freq_mat[d]);
-        NumericMatrix p = as<NumericMatrix>(prob_mat[d]);
+        Rcpp::NumericMatrix f = Rcpp::as<Rcpp::NumericMatrix>(freq_mat[d]);
+        Rcpp::NumericMatrix p = Rcpp::as<Rcpp::NumericMatrix>(prob_mat[d]);
         for (int i = 0; i < n_rows; ++i) {
             for (int j = 0; j < n_cols; ++j) {
                 cpp_freq[d][i][j] = f(i, j);
@@ -33,25 +29,25 @@ List r_criterion_likelihood(List freq_mat, List prob_mat, List std_params) {
     
     if (std_params.size() > 0 && std_params.hasAttribute("names")) {
         if (std_params.containsElementNamed("numb_free")) {
-            k = as<int>(std_params["numb_free"]);
+            k = Rcpp::as<int>(std_params["numb_free"]);
         } else {
-            stop("Error: 'params' must contain 'numb_free'.");
+            Rcpp::stop("Error: 'params' must contain 'numb_free'.");
         }
-        CharacterVector names = std_params.names();
+        Rcpp::CharacterVector names = std_params.names();
         for (int i = 0; i < std_params.size(); ++i) {
-            std::string key = as<std::string>(names[i]);
+            std::string key = Rcpp::as<std::string>(names[i]);
             if (key != "name_free" && key != "name_fixed" && key != "name_constant" && 
                 key != "numb_free" && key != "numb_fixed" && key != "numb_constant" &&
                 key != "free_params" && key != "fixed_params" && key != "constant_params") {
-                cpp_params[key] = as<std::vector<double>>(std_params[i]);
+                cpp_params[key] = Rcpp::as<std::vector<double>>(std_params[i]);
             }
         }
         if (std_params.containsElementNamed("flat")) {
-            List flat = as<List>(std_params["flat"]);
-            if (flat.containsElementNamed("calc_tol")) cpp_params["calc_tol"] = as<std::vector<double>>(flat["calc_tol"]);
+            Rcpp::List flat = Rcpp::as<Rcpp::List>(std_params["flat"]);
+            if (flat.containsElementNamed("calc_tol")) cpp_params["calc_tol"] = Rcpp::as<std::vector<double>>(flat["calc_tol"]);
         }
     } else {
-        stop("Error: 'params' must contain 'numb_free'.");
+        Rcpp::stop("Error: 'params' must contain 'numb_free'.");
     }
 
     auto cpp_mult = ::matrix_mult<double>(cpp_freq, cpp_prob, cpp_params);
@@ -59,8 +55,8 @@ List r_criterion_likelihood(List freq_mat, List prob_mat, List std_params) {
     
     auto res = ::criterion_likelihood<double>(cpp_mult, cpp_freq, k, free_params, cpp_params);
 
-    return List::create(
-        Named("logL") = res.logL, Named("nll") = res.nll, Named("k") = res.k,
-        Named("aic") = res.aic, Named("bic") = res.bic
+    return Rcpp::List::create(
+        Rcpp::Named("logL") = res.logL, Rcpp::Named("nll") = res.nll, Rcpp::Named("k") = res.k,
+        Rcpp::Named("aic") = res.aic, Rcpp::Named("bic") = res.bic
     );
 }

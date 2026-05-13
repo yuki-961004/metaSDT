@@ -1,18 +1,10 @@
-#include <Rcpp.h>
+﻿#include <Rcpp.h>
 #include "../../Cpp/include/modify_params.hpp"
 
-// 使用宏定义包住 include，骗过 Rcpp::sourceCpp 的正则检查
-// 避免它自作主张将 cpp 文件单独抽出编译，从而解决"重复链接"和"未定义引用"的问题
 #define CORE_IMPL "../../Cpp/src/modify_params.cpp"
 #include CORE_IMPL
-
-
-using namespace Rcpp;
-
-// 辅助函数：将 R 端的 list 或 named vector 安全地转换为 C++ 的 map
 void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
     if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) {
-        return; // 如果传入的是 NULL 或空对象，则直接返回
     }
 
     Rcpp::RObject robj(r_obj);
@@ -22,7 +14,6 @@ void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<do
     }
     Rcpp::CharacterVector names = robj.attr("names");
 
-    // 必须是完全命名的对象才能被解析
     if (names.isNULL() || Rf_length(names) != Rf_length(robj)) {
         return;
     }
@@ -35,7 +26,6 @@ void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<do
     } else if (Rcpp::is<Rcpp::NumericVector>(robj)) {
         Rcpp::NumericVector r_vec(robj);
         for (int i = 0; i < r_vec.size(); ++i) {
-            // R 的命名向量中每个元素都是标量，转为 C++ 这边长度为 1 的 vector
             cpp_map[Rcpp::as<std::string>(names[i])] = { r_vec[i] };
         }
     }
@@ -46,20 +36,20 @@ void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<do
 //' @description
 //' A robust function to manage model parameters. It takes user-defined parameters,
 //' merges them with a set of defaults, resolves any conflicts based on a
-//' `free > fixed > constant` priority, and returns a single flattened list.
+//' `free > fixed > constant` priority, and returns a single flattened Rcpp::List.
 //'
-//' @param params A list or a named vector specifying user parameters.
-//'   - If `params` is a list containing `free`, `fixed`, or `constant` slots,
+//' @param params A Rcpp::List or a Rcpp::Named vector specifying user parameters.
+//'   - If `params` is a Rcpp::List containing `free`, `fixed`, or `constant` slots,
 //'     it's treated as a structured parameter set.
-//'   - If `params` is a simple named list (e.g., `list(d=2)`) or a named vector
+//'   - If `params` is a simple Rcpp::Named Rcpp::List (e.g., `Rcpp::List(d=2)`) or a Rcpp::Named vector
 //'     (e.g., `c(d=2)`), all its elements are treated as **free** parameters by default.
 //'   - If `params` is empty or `NULL`, the function returns the default flattened parameter set.
 //'
-//' @return A named list containing the final, flattened parameters.
+//' @return A Rcpp::Named Rcpp::List containing the final, flattened parameters.
 //' @import Rcpp
 //' @export
 // [[Rcpp::export(name = "modify_params")]]
-List r_modify_params(RObject user_params = R_NilValue) {
+Rcpp::List r_modify_params(Rcpp::RObject user_params = R_NilValue) {
     ParamGroup cpp_user_params;
 
     if (!user_params.isNULL() && Rf_length(user_params) > 0) {
@@ -70,30 +60,27 @@ List r_modify_params(RObject user_params = R_NilValue) {
                                  r_list.containsElementNamed("fixed") || 
                                  r_list.containsElementNamed("constant");
 
-            if (is_structured) { // Case 1: Structured list like list(free=...)
+            if (is_structured) { // Case 1: Structured Rcpp::List like Rcpp::List(free=...)
                 if (r_list.containsElementNamed("free"))   
                     r_obj_to_cpp_map(r_list["free"], cpp_user_params.free);
                 if (r_list.containsElementNamed("fixed"))  
                     r_obj_to_cpp_map(r_list["fixed"], cpp_user_params.fixed);
                 if (r_list.containsElementNamed("constant")) 
                     r_obj_to_cpp_map(r_list["constant"], cpp_user_params.constant);
-            } else { // Case 2: Flat list like list(d=2), treat as free
+            } else { // Case 2: Flat Rcpp::List like Rcpp::List(d=2), treat as free
                 r_obj_to_cpp_map(user_params, cpp_user_params.free);
             }
         } else if (Rcpp::is<Rcpp::NumericVector>(user_params)) { // Case 3: Flat vector like c(d=2), treat as free
             r_obj_to_cpp_map(user_params, cpp_user_params.free);
         } else {
-            stop("Input 'params' must be a list, a named numeric vector, or NULL.");
+            Rcpp::stop("Input 'params' must be a Rcpp::List, a Rcpp::Named numeric vector, or NULL.");
         }
     }
 
-    // 调用纯 C++ 核心函数
     auto cpp_result = ::modify_params(cpp_user_params);
 
-    // 将 C++ 的 flat 结果转回 R 的 List 作为主体
-    List out_list = Rcpp::wrap(cpp_result.flat);
+    Rcpp::List out_list = Rcpp::wrap(cpp_result.flat);
     
-    // 直接将名称与数量信息附加到 R 的 List 中
     out_list["name_free"] = cpp_result.name_free;
     out_list["name_fixed"] = cpp_result.name_fixed;
     out_list["name_constant"] = cpp_result.name_constant;

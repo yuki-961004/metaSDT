@@ -1,14 +1,10 @@
-// [[Rcpp::depends(RcppEigen)]]
+﻿// [[Rcpp::depends(RcppEigen)]]
 
 #include <Rcpp.h>
 #include <Eigen/Dense>
 #include "../../Cpp/include/modify_params.hpp"
 #include "../../Cpp/include/modify_prior.hpp"
 #include "../../Cpp/include/criterion_prior.hpp"
-
-
-using namespace Rcpp;
-
 namespace {
     void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
         if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) return;
@@ -33,7 +29,7 @@ namespace {
 //' Evaluate Log-Prior
 //' @export
 // [[Rcpp::export(name = "criterion_prior")]]
-double r_criterion_prior(List user_priors, RObject std_params = R_NilValue) {
+double r_criterion_prior(Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
     ModifiedParamsResult param_info;
     if (!std_params.isNULL() && Rf_length(std_params) > 0) {
         if (Rcpp::is<Rcpp::List>(std_params)) {
@@ -69,23 +65,22 @@ double r_criterion_prior(List user_priors, RObject std_params = R_NilValue) {
 
     std::unordered_map<std::string, UserPrior> cpp_user_priors;
     if (user_priors.length() > 0 && user_priors.hasAttribute("names")) {
-        CharacterVector names = user_priors.names();
+        Rcpp::CharacterVector names = user_priors.names();
         for (int i = 0; i < user_priors.size(); ++i) {
-            std::string p_name = as<std::string>(names[i]);
-            List spec = as<List>(user_priors[i]);
+            std::string p_name = Rcpp::as<std::string>(names[i]);
+            Rcpp::List spec = Rcpp::as<Rcpp::List>(user_priors[i]);
             UserPrior up;
-            up.type = as<std::string>(spec["type"]);
-            CharacterVector arg_names = spec.names();
+            up.type = Rcpp::as<std::string>(spec["type"]);
+            Rcpp::CharacterVector arg_names = spec.names();
             for (int j = 0; j < spec.size(); ++j) {
-                std::string key = as<std::string>(arg_names[j]);
-                if (key != "type") up.args[key] = as<double>(spec[j]);
+                std::string key = Rcpp::as<std::string>(arg_names[j]);
+                if (key != "type") up.args[key] = Rcpp::as<double>(spec[j]);
             }
             cpp_user_priors[p_name] = up;
         }
     }
     CriterionPrior cp = ::modify_prior(cpp_user_priors, param_info);
     
-    // 自动在 Wrapper 层组装用于底层计算的扁平探索数组
     std::vector<double> cpp_free_params;
     for (const auto& name : param_info.name_free) {
         const auto& vals = param_info.structured.free.at(name);

@@ -52,7 +52,10 @@ add_library(metaSDT_core STATIC
     Cpp/src/matrix_prob.cpp
     Cpp/src/matrix_mult.cpp
     Cpp/src/build_objective.cpp
+    Cpp/src/modify_control.cpp
+    Cpp/src/progress_bar.cpp
     Cpp/src/estimate_mle.cpp
+    Cpp/src/estimate_map.cpp
 )
 
 # 开启 fPIC 确保能够链接入后续的 Python/R 动态库中
@@ -72,6 +75,36 @@ target_link_libraries(metaSDT_core PUBLIC nlopt OpenMP::OpenMP_CXX)
 # 4. 导出与安装系统 (Export & Install) - 预编译解耦的核心
 # ==============================================================================
 include(GNUInstallDirs)
+
+# 4.1 安装前清理旧产物（仅清理 metaSDT 自己的安装内容）
+# 目的：保留增量编译速度，同时避免 install 前缀中残留过时文件。
+option(METASDT_PREINSTALL_CLEAN
+       "Remove stale installed metaSDT artifacts before install"
+       ON)
+
+if(METASDT_PREINSTALL_CLEAN)
+    install(CODE [[
+        message(STATUS "metaSDT: cleaning stale installed artifacts...")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -E rm -rf
+                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/Eigen")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -E rm -rf
+                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/metaSDT")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -E rm -rf
+                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -E rm -f
+                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libmetaSDT_core.a")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -E rm -f
+                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/metaSDT_core.lib")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -E rm -f
+                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/metaSDT_core.dll")
+    ]])
+endif()
 
 # 导出目标库 (静态库本体)
 install(TARGETS metaSDT_core EXPORT metaSDT_Targets

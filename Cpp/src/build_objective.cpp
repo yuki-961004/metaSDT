@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <set>
+#include <algorithm>
 
 // ////////////////////////////////////////////////////////////////////////////
 // 概念映射 (给 R 用户的快速指南):
@@ -27,7 +28,9 @@ std::vector<SubjectFitTask> build_fit_tasks(
     const ParamGroup& user_params,
     const std::string& model_name,
     const std::unordered_map<std::string, std::vector<double>>& custom_lower,
-    const std::unordered_map<std::string, std::vector<double>>& custom_upper
+    const std::unordered_map<std::string, std::vector<double>>& custom_upper,
+    bool apply_priors,
+    const std::unordered_map<std::string, UserPrior>& user_priors
 ) {
     // ////////////////////////////////////////////////////////////////////////
     // 1. 数据智能扫描 (Data Scanning & Splitting)
@@ -188,6 +191,7 @@ std::vector<SubjectFitTask> build_fit_tasks(
             task.model = model_name;
             task.freq = freq_obj;
             task.params = subj_params;
+            task.prior = modify_prior(user_priors, subj_params, apply_priors);
             tasks.push_back(task);
         };
 
@@ -239,6 +243,11 @@ double nll(unsigned n, const double* x, double* grad, void* f_data) {
             }
         }
 
+        auto it_c_conf = std_params.find("c_conf");
+        if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
+            std::sort(it_c_conf->second.begin(), it_c_conf->second.end());
+        }
+
         // ////////////////////////////////////////////////////////////////////
         // 3. 模型正向推导流水线
         // 环境齐全了，参数也有了名字，开始像工厂流水线一样计算！
@@ -276,8 +285,14 @@ double nll(unsigned n, const double* x, double* grad, void* f_data) {
 
         // ////////////////////////////////////////////////////////////////////
         // 4. 返回计算好的 NLL，交还给 NLOPT，指引它下一步瞎猜的方向
+        // MAP estimation: minimize negative log-posterior = NLL - log_prior
         // ////////////////////////////////////////////////////////////////////
-        return loss.nll;
+        Eigen::VectorXd eigen_free_params(free_params_vec.size());
+        for (size_t i = 0; i < free_params_vec.size(); ++i) {
+            eigen_free_params(i) = free_params_vec[i];
+        }
+        double log_prior = task->prior.evaluate<double>(eigen_free_params);
+        return loss.nll - log_prior;
     } catch (const std::exception& e) {
         static thread_local bool error_printed = false;
         if (!error_printed) {
@@ -287,7 +302,7 @@ double nll(unsigned n, const double* x, double* grad, void* f_data) {
             }
             error_printed = true;
         }
-        // C++ 防御底线：万一出错，返回一个极差的惩罚值，绝不能让 NLOPT 崩溃
+        // Fallback: Return a large penalty to avoid crashing NLOPT
         return 1e10;
     }
 }

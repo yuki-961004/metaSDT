@@ -1,20 +1,93 @@
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h> // 必须引入：自动处理 C++ STL 和 Python list/dict/str 的无缝双向转换
+#include <pybind11/stl.h>
+
+#include <algorithm>
+#include <cctype>
+#include <map>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "../../Cpp/include/estimate_mle.hpp"
+#include "../../Cpp/include/modify_control.hpp"
+#include "../../Cpp/include/progress_bar.hpp"
+#define PY_MODIFY_OUT_IMPL "py_modify_outputs.cpp"
+#include PY_MODIFY_OUT_IMPL
+#define PY_CTRL_WRAP_IMPL "wrapper_modify_control.cpp"
+#include PY_CTRL_WRAP_IMPL
 
-// 辅助函数：将 Python 嵌套字典提取到 C++ 的 ParamGroup 中
+namespace {
+
+// ============================
+// Input Conversion Helpers
+// ============================
+// This helper converts Python dictionaries of parameter vectors into the
+// C++ map format expected by the estimation core. The loop iterates over
+// every key to preserve explicit field-level mapping.
+
 void py_dict_to_cpp_map(
-    const pybind11::dict& d, 
+    const pybind11::dict& d,
     std::unordered_map<std::string, std::vector<double>>& out
 ) {
     for (auto item : d) {
-        std::string key = pybind11::str(item.first);
+        const std::string key = pybind11::str(item.first);
         out[key] = item.second.cast<std::vector<double>>();
     }
 }
 
-pybind11::object py_estimate_mle(
+
+pybind11::list create_fit_rows(
+    const std::vector<SubjectFitResult>& res_group,
+    bool is_map,
+    const std::vector<std::string>& ordered_params,
+    const std::unordered_map<std::string, size_t>& param_sizes
+) {
+    // The loop builds one output row per subject result.
+    // We explicitly reconstruct flattened parameter keys in stable order
+    // so downstream R/Python displays are deterministic.
+    pybind11::list out_rows;
+    for (const auto& r : res_group) {
+        pybind11::dict row;
+        row["subid"] = r.subid;
+        row["logL"] = r.logL;
+        if (is_map) {
+            row["logPrior"] = r.logPrior;
+            row["logPost"] = r.logPost;
+        }
+        row["aic"] = r.aic;
+        row["bic"] = r.bic;
+        row["status"] = r.status;
+
+        auto flat_keys = py_modify_outputs::ordered_flat_names(ordered_params, param_sizes, r.best_params);
+        for (const auto& key : flat_keys) {
+            auto pos = key.rfind('_');
+            std::string base = key;
+            size_t idx = 0;
+            bool is_indexed = false;
+            if (pos != std::string::npos) {
+                std::string tail = key.substr(pos + 1);
+                bool all_digit = !tail.empty() && std::all_of(tail.begin(), tail.end(), ::isdigit);
+                if (all_digit) {
+                    base = key.substr(0, pos);
+                    idx = static_cast<size_t>(std::stoul(tail) - 1);
+                    is_indexed = true;
+                }
+            }
+            auto it = r.best_params.find(base);
+            if (it == r.best_params.end()) continue;
+            std::vector<double> values = it->second;
+            if (base == "c_conf" && !values.empty()) std::sort(values.begin(), values.end());
+            if (!is_indexed && values.size() == 1) row[pybind11::str(key)] = values[0];
+            else if (is_indexed && idx < values.size()) row[pybind11::str(key)] = values[idx];
+        }
+        out_rows.append(row);
+    }
+    return out_rows;
+}
+
+} // namespace
+
+pybind11::dict py_estimate_mle(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,
     const pybind11::dict& params,
@@ -23,149 +96,128 @@ pybind11::object py_estimate_mle(
     const pybind11::dict& lower = pybind11::dict(),
     const pybind11::dict& upper = pybind11::dict()
 ) {
-    // 1. 转换模型参数 (ParamGroup)
+    // ============================
+    // Parameter Preparation
+    // ============================
+    // The wrapper first captures parameter order from user input. This
+    // order is reused later to keep output columns stable and readable.
     ParamGroup user_params;
-    if (params.contains("free")) {
-        py_dict_to_cpp_map(/*d=*/params["free"].cast<pybind11::dict>(), 
-                           /*out=*/user_params.free);
-    }
-    if (params.contains("fixed")) {
-        py_dict_to_cpp_map(/*d=*/params["fixed"].cast<pybind11::dict>(), 
-                           /*out=*/user_params.fixed);
-    }
-    if (params.contains("constant")) {
-        py_dict_to_cpp_map(/*d=*/params["constant"].cast<pybind11::dict>(), 
-                           /*out=*/user_params.constant);
-    }
-    
-    // 支持扁平直接传入
-    if (!params.contains("free") && !params.contains("fixed") && 
-        !params.contains("constant")) {
-        py_dict_to_cpp_map(/*d=*/params, /*out=*/user_params.free);
+    std::vector<std::string> ordered_params;
+    std::unordered_map<std::string, size_t> param_sizes;
+    auto capture_order = [&](const pybind11::dict& d) {
+        for (auto item : d) {
+            const std::string key = pybind11::str(item.first);
+            if (param_sizes.find(key) == param_sizes.end()) ordered_params.push_back(key);
+            try { param_sizes[key] = item.second.cast<std::vector<double>>().size(); }
+            catch (...) { param_sizes[key] = 1; }
+        }
+    };
+    if (params.contains("free")) { pybind11::dict d = params["free"].cast<pybind11::dict>(); py_dict_to_cpp_map(d, user_params.free); capture_order(d); }
+    if (params.contains("fixed")) { pybind11::dict d = params["fixed"].cast<pybind11::dict>(); py_dict_to_cpp_map(d, user_params.fixed); capture_order(d); }
+    if (params.contains("constant")) { pybind11::dict d = params["constant"].cast<pybind11::dict>(); py_dict_to_cpp_map(d, user_params.constant); capture_order(d); }
+    if (!params.contains("free") && !params.contains("fixed") && !params.contains("constant")) {
+        py_dict_to_cpp_map(params, user_params.free);
+        capture_order(params);
     }
 
-    // 2. 转换控制参数 (NLoptControl)
+    // ============================
+    // Control Normalization
+    // ============================
+    // First apply user-provided control fields, then call modify_control()
+    // so estimator defaults are injected in one place.
     NLoptControl cpp_control;
-    if (control.contains("algorithm")) {
-        cpp_control.algorithm = control["algorithm"].cast<std::string>();
-    }
-    if (control.contains("xtol_rel")) {
-        cpp_control.xtol_rel = control["xtol_rel"].cast<double>();
-    }
-    if (control.contains("maxeval")) {
-        cpp_control.maxeval = control["maxeval"].cast<int>();
-    }
-    if (control.contains("ftol_rel")) {
-        cpp_control.ftol_rel = control["ftol_rel"].cast<double>();
-    }
-    if (control.contains("ftol_abs")) {
-        cpp_control.ftol_abs = control["ftol_abs"].cast<double>();
-    }
-    if (control.contains("xtol_abs")) {
-        cpp_control.xtol_abs = control["xtol_abs"].cast<double>();
-    }
-    if (control.contains("maxtime")) {
-        cpp_control.maxtime = control["maxtime"].cast<double>();
-    }
-    if (control.contains("stopval")) {
-        cpp_control.stopval = control["stopval"].cast<double>();
-    }
-    if (control.contains("population")) {
-        cpp_control.population = control["population"].cast<int>();
-    }
-    if (control.contains("initial_step")) {
-        cpp_control.initial_step = control["initial_step"].cast<double>();
-    }
-    if (control.contains("local_algorithm")) {
-        cpp_control.local_algorithm = 
-            control["local_algorithm"].cast<std::string>();
-    }
+    py_wrapper_modify_control::apply_control_from_dict(
+        control, cpp_control, false
+    );
+    cpp_control = modify_control(cpp_control, "mle");
 
-    // 3. 转换边界参数
     std::unordered_map<std::string, std::vector<double>> cpp_lower, cpp_upper;
-    if (lower.size() > 0) {
-        py_dict_to_cpp_map(/*d=*/lower, /*out=*/cpp_lower);
-    }
-    if (upper.size() > 0) {
-        py_dict_to_cpp_map(/*d=*/upper, /*out=*/cpp_upper);
-    }
+    if (!lower.empty()) py_dict_to_cpp_map(lower, cpp_lower);
+    if (!upper.empty()) py_dict_to_cpp_map(upper, cpp_upper);
 
-    // 4. 调用底层的 C++ 多线程并行 MLE 优化！
+    // ============================
+    // Core Estimation Call
+    // ============================
+    // GIL is released during heavy C++ work to avoid blocking Python-side
+    // scheduling and to allow OpenMP/threads to run without GIL contention.
     std::vector<SubjectFitResult> cpp_res;
-    
-    // 【究极大招】：释放 Python GIL 全局解释器锁！
-    // 因为我们的底层 C++ 是纯净的，不涉及 Python 对象，
-    // 释放 GIL 后，OpenMP 将不受 Python 阻塞，实现真正的全核心并行加速！
     {
-        pybind11::gil_scoped_release release; 
-        cpp_res = ::estimate_mle(
-            /*df=*/df, 
-            /*colnames=*/colnames, 
-            /*user_params=*/user_params, 
-            /*model_name=*/model, 
-            /*control=*/cpp_control, 
-            /*custom_lower=*/cpp_lower, 
-            /*custom_upper=*/cpp_upper
-        );
-    } // 离开作用域后自动重新获取 GIL
+        pybind11::gil_scoped_release release;
+        cpp_res = ::estimate_mle(df, colnames, user_params, model, cpp_control, cpp_lower, cpp_upper);
+    }
 
     std::map<std::string, std::vector<SubjectFitResult>> grouped_res;
-    for (const auto& r : cpp_res) {
-        grouped_res[r.cond].push_back(r);
-    }
+    for (const auto& r : cpp_res) grouped_res[r.cond].push_back(r);
 
-    auto create_list = [](const std::vector<SubjectFitResult>& res_group) {
-        pybind11::list out_list;
-        for (const auto& r : res_group) {
-            pybind11::dict res_dict;
-            res_dict["subid"] = r.subid;
-            res_dict["logL"] = r.logL;
-            res_dict["aic"] = r.aic;
-            res_dict["bic"] = r.bic;
-            res_dict["status"] = r.status;
-            
-            for (const auto& kv : r.best_params) {
-                if (kv.second.size() == 1) {
-                    res_dict[pybind11::str(kv.first)] = kv.second[0];
-                } else {
-                    for (size_t j = 0; j < kv.second.size(); ++j) {
-                        std::string key_name = kv.first + "_" + std::to_string(j + 1);
-                        res_dict[pybind11::str(key_name)] = kv.second[j];
-                    }
-                }
-            }
-            out_list.append(res_dict);
-        }
-        return out_list;
-    };
-
+    // ============================
+    // Output Assembly
+    // ============================
+    // When condition is not split, fit is a single table-like list.
+    // Otherwise, fit is split by condition and keyed by condition name.
+    pybind11::object fit;
     if (grouped_res.size() == 1 && grouped_res.begin()->first == "") {
-        return create_list(grouped_res.begin()->second);
+        fit = create_fit_rows(grouped_res.begin()->second, false, ordered_params, param_sizes);
     } else {
-        pybind11::dict out_dict;
-        for (const auto& kv : grouped_res) {
-            out_dict[pybind11::str(kv.first)] = create_list(kv.second);
-        }
-        return out_dict;
+        pybind11::dict fit_by_cond;
+        for (const auto& kv : grouped_res) fit_by_cond[pybind11::str(kv.first)] = create_fit_rows(kv.second, false, ordered_params, param_sizes);
+        fit = std::move(fit_by_cond);
     }
+
+    pybind11::dict estimator;
+    estimator["name"] = "MLE";
+    estimator["backend"] = "nlopt";
+    estimator["global_algorithm"] = cpp_control.algorithm;
+    estimator["local_algorithm"] = cpp_control.local_algorithm;
+    estimator["control"] = py_wrapper_modify_control::control_to_dict(
+        cpp_control, false
+    );
+
+    pybind11::list subject_opt;
+    for (const auto& r : cpp_res) {
+        pybind11::dict d;
+        d["subid"] = r.subid;
+        d["condition"] = r.cond;
+        d["status"] = r.status;
+        d["n_evals"] = r.n_evals;
+        d["result_code"] = r.status;
+        d["result_message"] = r.result_message;
+        d["stop_reason"] = r.stop_reason;
+        d["optimum_value"] = r.optimum_value;
+        subject_opt.append(d);
+    }
+
+    ui::ProgressSnapshot ps = ui::progress_last_snapshot();
+    pybind11::dict progress;
+    progress["requested_mode"] = ps.requested_mode;
+    progress["resolved_mode"] = ps.resolved_mode;
+    progress["elapsed_sec"] = ps.elapsed_sec;
+    progress["total_iterations"] = pybind11::int_(ps.total);
+    progress["completed_iterations"] = pybind11::int_(ps.completed);
+    progress["speed"] = ps.speed;
+    progress["finished"] = ps.finished;
+
+    pybind11::dict diagnostics;
+    diagnostics["subject_optimization"] = subject_opt;
+    diagnostics["progress"] = progress;
+
+    pybind11::dict out;
+    out["fit"] = fit;
+    out["estimator"] = estimator;
+    out["diagnostics"] = diagnostics;
+    return out;
 }
 
-// ==========================================================
-// PYBIND11 模块注册入口
-// ==========================================================
 PYBIND11_MODULE(_estimate_mle, m) {
-    m.doc() = "metaSDT: High-performance Meta-Cognitive SDT modeling via C++";
-
-    // 将 C++ 函数注册给 Python
-    m.def("estimate_mle", &py_estimate_mle, 
-          "Perform Maximum Likelihood Estimation",
-          pybind11::arg("df"),
-          pybind11::arg("colnames"),
-          pybind11::arg("params"),
-          pybind11::arg("model") = "sdt",
-          pybind11::arg("control") = pybind11::dict(),
-          pybind11::arg("lower") = pybind11::dict(),
-          pybind11::arg("upper") = pybind11::dict());
-          
-    // 注意：pybind11 会自动将 C++ 异常 (std::invalid_argument) 转为 Python 的 ValueError！
+    m.doc() = "metaSDT: estimate_mle wrapper";
+    m.def(
+        "estimate_mle",
+        &py_estimate_mle,
+        pybind11::arg("df"),
+        pybind11::arg("colnames"),
+        pybind11::arg("params"),
+        pybind11::arg("model") = "sdt",
+        pybind11::arg("control") = pybind11::dict(),
+        pybind11::arg("lower") = pybind11::dict(),
+        pybind11::arg("upper") = pybind11::dict()
+    );
 }

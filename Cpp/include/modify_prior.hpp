@@ -24,7 +24,8 @@ std::unordered_map<std::string, UserPrior> default_priors();
 // 自动计算每个参数在 Eigen 梯度向量中的一维绝对索引，并装载到 CriterionPrior 引擎中。
 CriterionPrior modify_prior(
     const std::unordered_map<std::string, UserPrior>& user_priors,
-    const ModifiedParamsResult& param_info
+    const ModifiedParamsResult& param_info,
+    bool apply_priors = true
 );
 
 #endif // MODIFY_PRIOR_HPP

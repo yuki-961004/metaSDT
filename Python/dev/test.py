@@ -1,7 +1,7 @@
 # %%
 # 环境安装区 (如果已经安装成功，以后不需要运行此块)
 # %pip install pandas
-# %pip install -e ./Python
+# %pip install -e ./Python --no-build-isolation
 
 # %%
 import pandas
@@ -24,7 +24,11 @@ std_data = metaSDT.data_info(df=data)
 sub1_info = std_data["subjects"]["1"]
 
 sub1_raw = data.iloc[sub1_info.raw]
-sub1_condition = data.iloc[sub1_info.condition[1]]
+if sub1_info.condition:
+    first_cond_key = list(sub1_info.condition.keys())[0]
+    sub1_condition = data.iloc[sub1_info.condition[first_cond_key]]
+else:
+    sub1_condition = sub1_raw
 
 # %%
 # ==============================================================================
@@ -159,7 +163,7 @@ print(log_posterior_unif)
 
 # %%
 # 2. 运行多线程 MLE 拟合
-fit_res = metaSDT.estimate_mle(
+fit_mle_exp1 = metaSDT.estimate_mle(
     df=pandas.read_csv("data/exp1.csv"),
     colnames={},  # 传入空字典让底层 C++ 自动使用正则去匹配列名 (如 stim, resp, conf)
     params={
@@ -175,7 +179,7 @@ fit_res = metaSDT.estimate_mle(
 
 # %%
 # 2. 运行多线程 MLE 拟合
-fit_res = metaSDT.estimate_mle(
+fit_mle_exp3 = metaSDT.estimate_mle(
     df=pandas.read_csv("data/exp3.csv"),
     colnames={
         "condition": "FlippedWheel",
@@ -191,3 +195,48 @@ fit_res = metaSDT.estimate_mle(
     },
     model="sdt",
 )
+
+# %%
+# ==============================================================================
+# 5. 测试 estimate_map (最大后验 MAP 估计)
+# ==============================================================================
+print("\n=== Test 15: estimate_map (Default Priors) ===")
+# 先验测试1：留空 user_priors，测试 C++ 底层的默认 SDT 先验能否正常激活并限制极端值
+fit_map_exp1 = metaSDT.estimate_map(
+    df=pandas.read_csv("data/exp1.csv"),
+    colnames={},
+    params={
+        "free": {
+            "d": [1.5],
+            "c_resp": [0.0],
+            "c_conf": [0.5, 1.0, 1.5],
+        },
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+    },
+    model="sdt",
+)
+
+# %%
+print("\n=== Test 16: estimate_map (Custom Priors) ===")
+# 先验测试2：传入自定义 user_priors，测试 EM-MAP 场景下每次更新先验的过程
+fit_map_exp3 = metaSDT.estimate_map(
+    df=pandas.read_csv("data/exp3.csv"),
+    colnames={
+        "condition": "FlippedWheel",
+        "difficulty": "NoiseLevel_Deg"
+    },
+    params={
+        "free": {
+            "d": [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+            "c_resp": [0.0],
+            "c_conf": [0.5, 1.0, 1.5],
+        },
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+    },
+    model="sdt",
+    user_priors={
+        "d": {"type": "norm", "mean": 1.2, "sd": 0.8},
+        "c_conf": {"type": "norm", "mean": 0.0, "sd": 1.5}
+    }
+)
+

@@ -1,12 +1,9 @@
-#include <Rcpp.h>
+﻿#include <Rcpp.h>
 #include "../../Cpp/include/modify_params.hpp"
 #include "../../Cpp/include/modify_prior.hpp"
 
 #define CORE_IMPL2 "../../Cpp/src/modify_prior.cpp"
 #include CORE_IMPL2
-
-using namespace Rcpp;
-
 namespace {
     void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
         if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) return;
@@ -31,7 +28,7 @@ namespace {
 //' Modify and align prior distributions
 //' @export
 // [[Rcpp::export(name = "modify_prior")]]
-List r_modify_prior(List user_priors, RObject std_params = R_NilValue) {
+Rcpp::List r_modify_prior(Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
     ModifiedParamsResult param_info;
     if (!std_params.isNULL() && Rf_length(std_params) > 0) {
         if (Rcpp::is<Rcpp::List>(std_params)) {
@@ -67,16 +64,16 @@ List r_modify_prior(List user_priors, RObject std_params = R_NilValue) {
 
     std::unordered_map<std::string, UserPrior> cpp_user_priors;
     if (user_priors.length() > 0 && user_priors.hasAttribute("names")) {
-        CharacterVector names = user_priors.names();
+        Rcpp::CharacterVector names = user_priors.names();
         for (int i = 0; i < user_priors.size(); ++i) {
-            std::string p_name = as<std::string>(names[i]);
-            List spec = as<List>(user_priors[i]);
+            std::string p_name = Rcpp::as<std::string>(names[i]);
+            Rcpp::List spec = Rcpp::as<Rcpp::List>(user_priors[i]);
             UserPrior up;
-            up.type = as<std::string>(spec["type"]);
-            CharacterVector arg_names = spec.names();
+            up.type = Rcpp::as<std::string>(spec["type"]);
+            Rcpp::CharacterVector arg_names = spec.names();
             for (int j = 0; j < spec.size(); ++j) {
-                std::string key = as<std::string>(arg_names[j]);
-                if (key != "type") up.args[key] = as<double>(spec[j]);
+                std::string key = Rcpp::as<std::string>(arg_names[j]);
+                if (key != "type") up.args[key] = Rcpp::as<double>(spec[j]);
             }
             cpp_user_priors[p_name] = up;
         }
@@ -84,7 +81,7 @@ List r_modify_prior(List user_priors, RObject std_params = R_NilValue) {
 
     CriterionPrior cp = ::modify_prior(cpp_user_priors, param_info);
 
-    List out;
+    Rcpp::List out;
     for (const auto& kv : cp.prior_specs_) {
         std::string type_str;
         switch(kv.second.type) {
@@ -96,8 +93,8 @@ List r_modify_prior(List user_priors, RObject std_params = R_NilValue) {
             case CriterionPrior::PriorType::EXPONENTIAL: type_str = "exponential"; break;
             case CriterionPrior::PriorType::NONE: type_str = "none"; break;
         }
-        out[std::to_string(kv.first)] = List::create(
-            Named("type") = type_str, Named("param1") = kv.second.param1, Named("param2") = kv.second.param2
+        out[std::to_string(kv.first)] = Rcpp::List::create(
+            Rcpp::Named("type") = type_str, Rcpp::Named("param1") = kv.second.param1, Rcpp::Named("param2") = kv.second.param2
         );
     }
     return out;

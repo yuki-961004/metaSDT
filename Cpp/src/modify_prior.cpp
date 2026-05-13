@@ -13,19 +13,29 @@ namespace {
 std::unordered_map<std::string, UserPrior> default_priors() {
     std::unordered_map<std::string, UserPrior> priors;
     
-    // 默认情况下，极大似然估计等同于假设纯正的均匀分布 (无信息先验)
-    // 因此这里默认为空。当你要强制所有用户在 MAP 中接受惩罚时，可在此解开注释：
-    // priors["d"] = {"normal", {{"mean", 1.5}, {"sd", 3.0}}}; 
-    // priors["c_resp"] = {"normal", {{"mean", 0.0}, {"sd", 2.0}}};
+    // Default priors based on SDT theory (MAP/Bayesian estimation):
+    // d' (sensitivity): Normal(1.5, 3.0)
+    // c_resp (criterion): Normal(0.0, 2.0)
+    // c_conf (meta-criteria): Normal(0.0, 2.0)
+    priors["d"] = {"normal", {{"mean", 1.5}, {"sd", 3.0}}}; 
+    priors["c_resp"] = {"normal", {{"mean", 0.0}, {"sd", 2.0}}};
+    priors["c_conf"] = {"normal", {{"mean", 0.0}, {"sd", 2.0}}};
+    priors["lapse"] = {"beta", {{"shape1", 1.5}, {"shape2", 18.5}}};
     
     return priors;
 }
 
 CriterionPrior modify_prior(
     const std::unordered_map<std::string, UserPrior>& user_priors,
-    const ModifiedParamsResult& param_info
+    const ModifiedParamsResult& param_info,
+    bool apply_priors
 ) {
     CriterionPrior criterion_prior;
+
+    if (!apply_priors) {
+        // Return an empty prior evaluator for MLE
+        return criterion_prior;
+    }
 
     // 1. 合并默认先验与用户输入的先验 (以用户输入为最高优先级)
     auto merged_priors = default_priors();

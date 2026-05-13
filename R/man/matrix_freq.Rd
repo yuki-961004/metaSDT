@@ -4,7 +4,7 @@
 \alias{matrix_freq}
 \title{Calculate the frequency matrix for Signal Detection Theory (C++ core)}
 \usage{
-matrix_freq(stim, resp, conf = NULL)
+matrix_freq(stim, resp, conf = NULL, diff = NULL)
 }
 \arguments{
 \item{stim}{The numeric vector indicating the signal type.}
@@ -12,6 +12,8 @@ matrix_freq(stim, resp, conf = NULL)
 \item{resp}{The numeric vector indicating the decision or response.}
 
 \item{conf}{The numeric vector indicating the confidence level (optional).}
+
+\item{diff}{The numeric vector indicating the difficulty level (optional).}
 }
 \description{
 Calculate the frequency matrix for Signal Detection Theory (C++ core)

@@ -226,6 +226,22 @@ MatrixFreq matrix_freq(
     auto unique_conf = get_unique_sorted(conf_col);
     auto unique_diff = get_unique_sorted(diff_col);
 
+    // If model parameters specify expected confidence bins, lock matrix columns
+    // to that schema so missing observed bins become zero-count columns instead
+    // of shrinking freq_mat dimensions and causing downstream mismatch.
+    int expected_conf_bins = -1;
+    if (std_params != nullptr && std_params->count("n_conf") && !std_params->at("n_conf").empty()) {
+        int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
+        expected_conf_bins = (n_criteria + 1) / 2;
+        if (expected_conf_bins > 1) {
+            unique_conf.clear();
+            unique_conf.reserve(static_cast<size_t>(expected_conf_bins));
+            for (int lv = 1; lv <= expected_conf_bins; ++lv) {
+                unique_conf.push_back(static_cast<double>(lv));
+            }
+        }
+    }
+
     // ////////////////////////////////////////////////////////////////////////
     // 3. 终极频数汇总矩阵预分配 (Matrix Allocation)
     // 这里的 result.freq_mat 就是信号检测论里用于 MLE 拟合的核心矩阵！
@@ -270,6 +286,14 @@ MatrixFreq matrix_freq(
         int conf_idx = find_index(
             /*vec=*/unique_conf, /*target=*/num_mat[i][2]
         );
+        if (conf_idx < 0 && expected_conf_bins > 1) {
+            double c = num_mat[i][2];
+            // Fallback for unusual coding: linearly project to 1..expected bins.
+            int mapped = static_cast<int>(std::round(c));
+            if (mapped < 1) mapped = 1;
+            if (mapped > expected_conf_bins) mapped = expected_conf_bins;
+            conf_idx = mapped - 1;
+        }
         int diff_idx = find_index(
             /*vec=*/unique_diff, /*target=*/num_mat[i][3]
         );

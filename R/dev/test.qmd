@@ -126,7 +126,7 @@ criterion_likelihood(freq_mat, prob_mat, std_params)
 ## fit
 
 ```{r}
-fit_df <- estimate_mle(
+fit_mle_exp1 <- estimate_mle(
   df = read.csv("data/exp1.csv"), 
   params = list(
     free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)), # 设定我们要找出的自由参数
@@ -139,7 +139,7 @@ print(head(fit_df))
 ```
 
 ```{r}
-fit_df <- estimate_mle(
+fit_mle_exp3 <- estimate_mle(
   df = read.csv("data/exp3.csv"), 
   colnames = list(
     condition = "FlippedWheel",
@@ -157,6 +157,46 @@ fit_df <- estimate_mle(
 )
 
 print(head(fit_df))
+```
+
+```{r}
+# ==============================================================================
+# 5. 测试 estimate_map (最大后验 MAP 估计)
+# ==============================================================================
+# 先验测试1：留空 user_priors，测试 C++ 底层的默认 SDT 先验能否正常激活并限制极端值
+fit_map_df1 <- estimate_map(
+  df = read.csv("data/exp1.csv"), 
+  params = list(
+    free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)), 
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+  ),
+  model = "sdt"
+)
+
+```
+
+```{r}
+# 先验测试2：传入自定义 user_priors，测试 EM-MAP 场景下每次更新先验的过程
+fit_map_df3 <- estimate_map(
+  df = read.csv("data/exp3.csv"), 
+  colnames = list(
+    condition = "FlippedWheel",
+    difficulty = "NoiseLevel_Deg"
+  ),
+  params = list(
+    free = list(
+      d = c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1),
+      c_resp = 0.0,
+      c_conf = c(0.5, 1.0, 1.5)
+    ), 
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+  ),
+  model = "sdt",
+  user_priors = list(
+    d = list(type = "norm", mean = 1.2, sd = 0.8),
+    c_conf = list(type = "norm", mean = 0.0, sd = 1.5)
+  )
+)
 ```
 
 ```{r}

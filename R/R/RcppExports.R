@@ -24,21 +24,10 @@ data_info <- function(df, colnames = NULL) {
     .Call(`_metaSDT_r_data_info`, df, colnames)
 }
 
-#' Perform Maximum Likelihood Estimation (MLE) for metaSDT models
-#'
-#' @description
-#' Multi-threaded optimization using NLOPT to find the best fitting parameters 
-#' for each subject independently.
-#' 
-#' @param df The dataset as a data.frame.
-#' @param colnames A list mapping standard roles (stim, resp, conf, etc.) to your column names.
-#' @param params A list of user-defined parameters (free, fixed, constant).
-#' @param model_name The name of the model to fit (e.g., "sdt").
-#' 
-#' @return A data.frame of fitting results for each subject.
-#' @import Rcpp
-#' @import nloptr
-#' @export
+estimate_map <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, user_priors = NULL) {
+    .Call(`_metaSDT_r_estimate_map`, df, colnames, params, model, control, lower, upper, user_priors)
+}
+
 estimate_mle <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL) {
     .Call(`_metaSDT_r_estimate_mle`, df, colnames, params, model, control, lower, upper)
 }
@@ -75,16 +64,16 @@ model_sdt <- function(params) {
 #' @description
 #' A robust function to manage model parameters. It takes user-defined parameters,
 #' merges them with a set of defaults, resolves any conflicts based on a
-#' `free > fixed > constant` priority, and returns a single flattened list.
+#' `free > fixed > constant` priority, and returns a single flattened Rcpp::List.
 #'
-#' @param params A list or a named vector specifying user parameters.
-#'   - If `params` is a list containing `free`, `fixed`, or `constant` slots,
+#' @param params A Rcpp::List or a Rcpp::Named vector specifying user parameters.
+#'   - If `params` is a Rcpp::List containing `free`, `fixed`, or `constant` slots,
 #'     it's treated as a structured parameter set.
-#'   - If `params` is a simple named list (e.g., `list(d=2)`) or a named vector
+#'   - If `params` is a simple Rcpp::Named Rcpp::List (e.g., `Rcpp::List(d=2)`) or a Rcpp::Named vector
 #'     (e.g., `c(d=2)`), all its elements are treated as **free** parameters by default.
 #'   - If `params` is empty or `NULL`, the function returns the default flattened parameter set.
 #'
-#' @return A named list containing the final, flattened parameters.
+#' @return A Rcpp::Named Rcpp::List containing the final, flattened parameters.
 #' @import Rcpp
 #' @export
 modify_params <- function(user_params = NULL) {

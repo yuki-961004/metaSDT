@@ -1,14 +1,10 @@
-// [[Rcpp::depends(RcppEigen)]]
+﻿// [[Rcpp::depends(RcppEigen)]]
 
 #include <Rcpp.h>
 #include <Eigen/Dense>
 #include "../../Cpp/include/modify_params.hpp"
 #include "../../Cpp/include/modify_prior.hpp"
 #include "../../Cpp/include/criterion_posterior.hpp"
-
-
-using namespace Rcpp;
-
 namespace {
     void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
         if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) return;
@@ -33,14 +29,14 @@ namespace {
 //' Evaluate Log-Posterior
 //' @export
 // [[Rcpp::export(name = "criterion_posterior")]]
-double r_criterion_posterior(List freq_mat, List user_priors, RObject std_params = R_NilValue) {
+double r_criterion_posterior(Rcpp::List freq_mat, Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
     int n_dims = freq_mat.size();
-    NumericMatrix first = as<NumericMatrix>(freq_mat[0]);
+    Rcpp::NumericMatrix first = Rcpp::as<Rcpp::NumericMatrix>(freq_mat[0]);
     int n_rows = first.nrow();
     int n_cols = first.ncol();
     std::vector<std::vector<std::vector<double>>> cpp_freq(n_dims, std::vector<std::vector<double>>(n_rows, std::vector<double>(n_cols)));
     for (int d = 0; d < n_dims; ++d) {
-        NumericMatrix f = as<NumericMatrix>(freq_mat[d]);
+        Rcpp::NumericMatrix f = Rcpp::as<Rcpp::NumericMatrix>(freq_mat[d]);
         for (int i = 0; i < n_rows; ++i) {
             for (int j = 0; j < n_cols; ++j) {
                 cpp_freq[d][i][j] = f(i, j);
@@ -83,16 +79,16 @@ double r_criterion_posterior(List freq_mat, List user_priors, RObject std_params
 
     std::unordered_map<std::string, UserPrior> cpp_user_priors;
     if (user_priors.length() > 0 && user_priors.hasAttribute("names")) {
-        CharacterVector names = user_priors.names();
+        Rcpp::CharacterVector names = user_priors.names();
         for (int i = 0; i < user_priors.size(); ++i) {
-            std::string p_name = as<std::string>(names[i]);
-            List spec = as<List>(user_priors[i]);
+            std::string p_name = Rcpp::as<std::string>(names[i]);
+            Rcpp::List spec = Rcpp::as<Rcpp::List>(user_priors[i]);
             UserPrior up;
-            up.type = as<std::string>(spec["type"]);
-            CharacterVector arg_names = spec.names();
+            up.type = Rcpp::as<std::string>(spec["type"]);
+            Rcpp::CharacterVector arg_names = spec.names();
             for (int j = 0; j < spec.size(); ++j) {
-                std::string key = as<std::string>(arg_names[j]);
-                if (key != "type") up.args[key] = as<double>(spec[j]);
+                std::string key = Rcpp::as<std::string>(arg_names[j]);
+                if (key != "type") up.args[key] = Rcpp::as<double>(spec[j]);
             }
             cpp_user_priors[p_name] = up;
         }
@@ -107,7 +103,6 @@ double r_criterion_posterior(List freq_mat, List user_priors, RObject std_params
 
     CriterionPosterior posterior(cpp_freq, param_info.name_free, p_sizes, static_p, cp);
     
-    // 自动在 Wrapper 层组装用于底层计算的扁平探索数组
     std::vector<double> cpp_free_params;
     for (const auto& name : param_info.name_free) {
         const auto& vals = param_info.structured.free.at(name);

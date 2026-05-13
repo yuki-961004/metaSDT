@@ -1,23 +1,68 @@
 #include "../include/estimate_mle.hpp"
+#include "../include/modify_control.hpp"
+#include "../include/progress_bar.hpp"
 #include <nlopt.h>               // 直接使用系统内置的纯 C 语言头文件，彻底抛弃脆弱的 C++ 包装器
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
 
 // 引入 OpenMP 支持多线程并行
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+namespace {
+std::string nlopt_result_message(nlopt_result code) {
+    switch (code) {
+        case NLOPT_SUCCESS: return "Success";
+        case NLOPT_STOPVAL_REACHED: return "Stop value reached";
+        case NLOPT_FTOL_REACHED: return "Function tolerance reached";
+        case NLOPT_XTOL_REACHED: return "Parameter tolerance reached";
+        case NLOPT_MAXEVAL_REACHED: return "Maximum evaluations reached";
+        case NLOPT_MAXTIME_REACHED: return "Maximum time reached";
+        case NLOPT_FAILURE: return "Generic failure";
+        case NLOPT_INVALID_ARGS: return "Invalid arguments";
+        case NLOPT_OUT_OF_MEMORY: return "Out of memory";
+        case NLOPT_ROUNDOFF_LIMITED: return "Roundoff limited progress";
+        case NLOPT_FORCED_STOP: return "Forced stop";
+        default: return "Unknown result";
+    }
+}
+
+std::string nlopt_stop_reason(nlopt_result code) {
+    switch (code) {
+        case NLOPT_STOPVAL_REACHED: return "stopval";
+        case NLOPT_FTOL_REACHED: return "ftol";
+        case NLOPT_XTOL_REACHED: return "xtol";
+        case NLOPT_MAXEVAL_REACHED: return "maxeval";
+        case NLOPT_MAXTIME_REACHED: return "maxtime";
+        case NLOPT_SUCCESS: return "success";
+        case NLOPT_ROUNDOFF_LIMITED: return "roundoff_limited";
+        case NLOPT_FORCED_STOP: return "forced_stop";
+        default: return "failure";
+    }
+}
+}
+
 std::vector<SubjectFitResult> estimate_mle(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,
     const ParamGroup& user_params,
     const std::string& model_name,
-    const NLoptControl& control,
+    const NLoptControl& raw_control,
     const std::unordered_map<std::string, std::vector<double>>& custom_lower,
     const std::unordered_map<std::string, std::vector<double>>& custom_upper
 ) {
+    const NLoptControl control = modify_control(raw_control, "mle");
+#ifdef _OPENMP
+    if (control.threads > 0) {
+        omp_set_num_threads(control.threads);
+    }
+#endif
+    if (control.seed >= 0) {
+        nlopt_srand(static_cast<unsigned long>(control.seed));
+    }
     // 1. 任务工厂：瞬间生成所有被试的独立环境包
     std::vector<SubjectFitTask> tasks = build_fit_tasks(
         /*df=*/df, 
@@ -36,6 +81,14 @@ std::vector<SubjectFitResult> estimate_mle(
     // 2. 多核并行启动！每个线程接管一个被试
     // (如果编译器支持并开启了 OpenMP，这里将把几百个被试自动分配给所有 CPU 核心)
     int n_tasks = static_cast<int>(tasks.size());
+    if (control.print_level > 0 && n_tasks > 0) {
+        ui::ProgressOptions popts;
+        popts.mode = control.progress;
+        popts.refresh_ms = control.progress_refresh_ms;
+        popts.line_interval_sec = control.progress_line_interval_sec;
+        popts.line_interval_pct = control.progress_line_interval_pct;
+        ui::progress_start(static_cast<std::size_t>(n_tasks), "MLE", control.progress_refresh_ms, popts);
+    }
     #pragma omp parallel for
     for (int i = 0; i < n_tasks; ++i) {
         auto& task = tasks[i];
@@ -154,12 +207,28 @@ std::vector<SubjectFitResult> estimate_mle(
             if (control.stopval != 0.0) {
                 nlopt_set_stopval(/*opt=*/opt, /*stopval=*/control.stopval);
             }
+            if (!control.x_weights.empty()) {
+                if (control.x_weights.size() != static_cast<size_t>(task.params.numb_free)) {
+                    throw std::invalid_argument("Error: control.x_weights length must equal number of free parameters.");
+                }
+                nlopt_set_x_weights(/*opt=*/opt, /*w=*/control.x_weights.data());
+            }
+            if (control.vector_storage > 0) {
+                nlopt_set_vector_storage(/*opt=*/opt, /*M=*/control.vector_storage);
+            }
+            for (const auto& kv : control.nlopt_params) {
+                nlopt_set_param(/*opt=*/opt, /*name=*/kv.first.c_str(), /*val=*/kv.second);
+            }
 
             double minf = 0.0;
             // 🔥 启动探索！这行代码会内部循环调用 nll 几百上千次
             nlopt_result nlopt_res = nlopt_optimize(
                 /*opt=*/opt, /*x=*/x0.data(), /*minf=*/&minf
             );
+            res.n_evals = static_cast<int>(nlopt_get_numevals(opt));
+            res.optimum_value = minf;
+            res.result_message = nlopt_result_message(nlopt_res);
+            res.stop_reason = nlopt_stop_reason(nlopt_res);
 
             if (nlopt_res < 0) {
                 #pragma omp critical
@@ -199,6 +268,16 @@ std::vector<SubjectFitResult> estimate_mle(
                     best_p[name][k] = x0[x_idx++];
                 }
             }
+            
+            // 修正显示 bug：由于我们在计算概率前强制排序，优化器收敛到的是任意一种排列
+            // 所以在此处需要对最佳参数进行排序，以确保返回给用户的是真实的有意义的顺序
+            if (best_p.count("c_conf")) {
+                std::sort(best_p["c_conf"].begin(), best_p["c_conf"].end());
+            }
+            if (best_p.count("d") && best_p.count("sort_d") && !best_p["sort_d"].empty() && best_p["sort_d"][0] != 0.0) {
+                std::sort(best_p["d"].rbegin(), best_p["d"].rend());
+            }
+            
             res.best_params = best_p;
             
             // C API 需要手动释放优化器内存
@@ -214,10 +293,19 @@ std::vector<SubjectFitResult> estimate_mle(
                           << " fitting failed: " << e.what() << "\n";
             }
             res.status = -1; 
+            res.n_evals = 0;
+            res.result_message = e.what();
+            res.stop_reason = "exception";
         }
 
         // 将该被试的结果安全地放入预分配的槽位
         results[i] = res;
+        if (control.print_level > 0) {
+            ui::progress_advance(1);
+        }
+    }
+    if (control.print_level > 0 && n_tasks > 0) {
+        ui::progress_finish();
     }
     return results;
 }

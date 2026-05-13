@@ -3,13 +3,12 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include "build_objective.hpp" // 引入任务包与 nll 函数
+#include "build_objective.hpp"
 
-// NLOPT 优化器的超参数配置结构体
 struct NLoptControl {
     std::string algorithm = "LN_BOBYQA";
-    double xtol_rel = 1e-5;
-    int maxeval = 3000;
+    double xtol_rel = 1e-6;
+    int maxeval = 10000;
     double ftol_rel = 0.0;
     double ftol_abs = 0.0;
     double xtol_abs = 0.0;
@@ -17,21 +16,41 @@ struct NLoptControl {
     double stopval = 0.0;
     int population = 0;
     double initial_step = 0.0;
-    std::string local_algorithm = "LN_BOBYQA"; // 专供 MLSL/AUGLAG 使用的附属局部算法
+    std::string local_algorithm = "LN_BOBYQA";
+    std::vector<double> x_weights;
+    long seed = 1004;
+    std::unordered_map<std::string, double> nlopt_params;
+    int vector_storage = 0; // 0 means NLopt heuristic default.
+    int print_level = 1;
+    int threads = 0; // <=0 means use all available threads.
+    std::string progress = "dynamic"; // auto | dynamic | line | silent
+    int progress_refresh_ms = 100;
+    double progress_line_interval_sec = 2.0;
+    double progress_line_interval_pct = 5.0;
+
+    // EM-MAP controls (used by estimate_map only).
+    int em_max_iter = 100;
+    double em_tol = 1e-3;
+    int em_patience = 0; // 0 means disabled.
+    bool em_init_mle = true;
 };
 
-// 定义返回给外层的单个被试拟合结果
 struct SubjectFitResult {
     double subid = 0.0;
     std::string cond;
-    double logL = 0.0; // 最大对数似然
-    double aic = 0.0;  // 赤池信息量准则
-    double bic = 0.0;  // 贝叶斯信息量准则
-    std::unordered_map<std::string, std::vector<double>> best_params; // 最佳参数组合 (包含 fixed 和 constant)
-    int status = -1;  // NLOPT 优化结束的状态码 (如 1 代表成功收敛)
+    double logL = 0.0;
+    double logPrior = 0.0;
+    double logPost = 0.0;
+    double aic = 0.0;
+    double bic = 0.0;
+    std::unordered_map<std::string, std::vector<double>> best_params;
+    int status = -1;
+    int n_evals = 0;
+    double optimum_value = 0.0;
+    std::string result_message;
+    std::string stop_reason;
 };
 
-// 暴露给外层的极大似然估计主函数
 std::vector<SubjectFitResult> estimate_mle(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,
