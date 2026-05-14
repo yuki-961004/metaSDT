@@ -1,7 +1,7 @@
-﻿import pandas
+import pandas
 from . import _core_matrix_freq, _core_matrix_prob, _core_matrix_mult
 from . import _core_criterion_likelihood, _core_criterion_prior, _core_criterion_posterior
-from . import _help_data_info
+from . import _help_info_data
 from . import _help_modify_params, _help_modify_prior
 from . import _estimate_mle, _estimate_map, _progress_bar
 from . import _progress_bar
@@ -167,10 +167,14 @@ def model_sdt(std_params):
     return _model_sdt.model_sdt(std_params)
 
 
-def data_info(df, colnames=None):
+def info_data(df, colnames=None):
     if colnames is None:
         colnames = {}
-    return _help_data_info.data_info(df=_to_backend_df_dict(df), colnames=colnames)
+    return _help_info_data.info_data(
+        df=_to_backend_df_dict(df),
+        colnames=colnames,
+    )
+
 
 
 def estimate_mle(df, colnames=None, params=None, model="sdt", control=None, lower=None, upper=None):
@@ -197,6 +201,9 @@ def estimate_map(df, colnames=None, params=None, model="sdt", control=None, lowe
 __all__ = [
     "matrix_freq", "matrix_prob", "matrix_mult",
     "criterion_likelihood", "criterion_prior", "criterion_posterior",
-    "modify_params", "modify_prior", "data_info",
+    "modify_params", "modify_prior", "info_data",
     "model_sdt", "estimate_mle", "estimate_map", "ui",
 ]
+
+
+

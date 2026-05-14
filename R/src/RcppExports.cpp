@@ -49,18 +49,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// r_data_info
-Rcpp::List r_data_info(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames);
-RcppExport SEXP _metaSDT_r_data_info(SEXP dfSEXP, SEXP colnamesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type colnames(colnamesSEXP);
-    rcpp_result_gen = Rcpp::wrap(r_data_info(df, colnames));
-    return rcpp_result_gen;
-END_RCPP
-}
 // r_estimate_map
 Rcpp::RObject r_estimate_map(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames, Rcpp::Nullable<Rcpp::RObject> params, std::string model, Rcpp::Nullable<Rcpp::List> control, Rcpp::Nullable<Rcpp::List> lower, Rcpp::Nullable<Rcpp::List> upper, Rcpp::Nullable<Rcpp::List> user_priors);
 RcppExport SEXP _metaSDT_r_estimate_map(SEXP dfSEXP, SEXP colnamesSEXP, SEXP paramsSEXP, SEXP modelSEXP, SEXP controlSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP user_priorsSEXP) {
@@ -93,6 +81,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type lower(lowerSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type upper(upperSEXP);
     rcpp_result_gen = Rcpp::wrap(r_estimate_mle(df, colnames, params, model, control, lower, upper));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_info_data
+Rcpp::List r_info_data(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames);
+RcppExport SEXP _metaSDT_r_info_data(SEXP dfSEXP, SEXP colnamesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type colnames(colnamesSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_info_data(df, colnames));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -229,9 +229,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_criterion_likelihood", (DL_FUNC) &_metaSDT_r_criterion_likelihood, 3},
     {"_metaSDT_r_criterion_posterior", (DL_FUNC) &_metaSDT_r_criterion_posterior, 3},
     {"_metaSDT_r_criterion_prior", (DL_FUNC) &_metaSDT_r_criterion_prior, 2},
-    {"_metaSDT_r_data_info", (DL_FUNC) &_metaSDT_r_data_info, 2},
     {"_metaSDT_r_estimate_map", (DL_FUNC) &_metaSDT_r_estimate_map, 8},
     {"_metaSDT_r_estimate_mle", (DL_FUNC) &_metaSDT_r_estimate_mle, 7},
+    {"_metaSDT_r_info_data", (DL_FUNC) &_metaSDT_r_info_data, 2},
     {"_metaSDT_r_matrix_freq", (DL_FUNC) &_metaSDT_r_matrix_freq, 4},
     {"_metaSDT_r_matrix_mult", (DL_FUNC) &_metaSDT_r_matrix_mult, 3},
     {"_metaSDT_r_matrix_prob", (DL_FUNC) &_metaSDT_r_matrix_prob, 3},

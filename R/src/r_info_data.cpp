@@ -1,11 +1,11 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/data_info.hpp"
+#include <Rcpp.h>
+#include "../../Cpp/include/info_data.hpp"
 
-#define CORE_IMPL "../../Cpp/src/data_info.cpp"
+#define CORE_IMPL "../../Cpp/src/info_data.cpp"
 #include CORE_IMPL
 //' Intelligently scan the dataset and extract subject-level information.
-// [[Rcpp::export(name = "data_info")]]
-Rcpp::List r_data_info(
+// [[Rcpp::export(name = "info_data")]]
+Rcpp::List r_info_data(
     Rcpp::DataFrame df, 
     Rcpp::Nullable<Rcpp::List> colnames = R_NilValue
 ) {
@@ -35,7 +35,7 @@ Rcpp::List r_data_info(
     
     DataInfoResult res;
     try {
-        res = ::data_info(/*df=*/cpp_df, /*colnames=*/cpp_colnames);
+        res = ::info_data(/*df=*/cpp_df, /*colnames=*/cpp_colnames);
     } catch (std::exception& e) {
         Rcpp::stop(e.what());
     }
@@ -103,3 +103,4 @@ Rcpp::List r_data_info(
         Rcpp::Named("subjects") = r_subjects
     );
 }
+

@@ -331,3 +331,43 @@ ModifiedParamsResult modify_params(
     
     return result;
 }
+
+// ==========================================================
+// ModifiedParamsResult 方法实现
+// ==========================================================
+
+std::vector<double> ModifiedParamsResult::extract_free_vector(
+    const std::unordered_map<std::string, std::vector<double>>& params_map
+) const {
+    std::vector<double> out;
+    out.reserve(numb_free);
+    for (const auto& name : name_free) {
+        const auto it = params_map.find(name);
+        if (it != params_map.end()) {
+            out.insert(out.end(), it->second.begin(), it->second.end());
+        }
+    }
+    return out;
+}
+
+void ModifiedParamsResult::update_map_from_free_vector(
+    std::unordered_map<std::string, std::vector<double>>& params_map,
+    const std::vector<double>& free_vec
+) const {
+    size_t x_idx = 0;
+    for (const auto& name : name_free) {
+        const size_t param_len = structured.free.at(name).size();
+        for (size_t k = 0; k < param_len; ++k) {
+            params_map[name][k] = free_vec[x_idx++];
+        }
+    }
+}
+
+std::vector<int> ModifiedParamsResult::get_free_sizes() const {
+    std::vector<int> sizes;
+    sizes.reserve(name_free.size());
+    for (const auto& name : name_free) {
+        sizes.push_back(static_cast<int>(structured.free.at(name).size()));
+    }
+    return sizes;
+}

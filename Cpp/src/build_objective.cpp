@@ -1,6 +1,6 @@
 #include "../include/build_objective.hpp"
 #include "../include/criterion_likelihood.hpp"
-#include "../include/data_info.hpp"
+#include "../include/info_data.hpp"
 #include "../include/matrix_mult.hpp"
 #include "../include/matrix_prob.hpp"
 #include "../include/model_sdt.hpp"
@@ -20,7 +20,7 @@ std::vector<SubjectFitTask> build_fit_tasks(
     bool apply_priors,
     const std::unordered_map<std::string, UserPrior>& user_priors
 ) {
-    DataInfoResult info = data_info(/*df=*/df, /*colnames=*/colnames);
+    DataInfoResult info = info_data(/*df=*/df, /*colnames=*/colnames);
 
     if (!info.colnames.count("stim") || !info.colnames.count("resp")) {
         throw std::invalid_argument(
@@ -255,3 +255,4 @@ double nll(unsigned n, const double* x, double* grad, void* f_data) {
         return 1e10;
     }
 }
+

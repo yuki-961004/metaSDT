@@ -19,17 +19,17 @@ criterion_prior <- function(user_priors, std_params = NULL) {
     .Call(`_metaSDT_r_criterion_prior`, user_priors, std_params)
 }
 
-#' Intelligently scan the dataset and extract subject-level information.
-data_info <- function(df, colnames = NULL) {
-    .Call(`_metaSDT_r_data_info`, df, colnames)
-}
-
 estimate_map <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, user_priors = NULL) {
     .Call(`_metaSDT_r_estimate_map`, df, colnames, params, model, control, lower, upper, user_priors)
 }
 
 estimate_mle <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL) {
     .Call(`_metaSDT_r_estimate_mle`, df, colnames, params, model, control, lower, upper)
+}
+
+#' Intelligently scan the dataset and extract subject-level information.
+info_data <- function(df, colnames = NULL) {
+    .Call(`_metaSDT_r_info_data`, df, colnames)
 }
 
 #' Calculate the frequency matrix for Signal Detection Theory (C++ core)

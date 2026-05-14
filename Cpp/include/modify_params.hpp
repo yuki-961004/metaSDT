@@ -30,6 +30,22 @@ struct ModifiedParamsResult {
     int numb_free;
     int numb_fixed;
     int numb_constant;
+
+    // === 新增：参数结构工具函数 ===
+    
+    // 将参数字典(如 flat 或 best_params)中的自由参数按 name_free 顺序抽取为一维向量
+    std::vector<double> extract_free_vector(
+        const std::unordered_map<std::string, std::vector<double>>& params_map
+    ) const;
+
+    // 将一维自由参数向量(如 nlopt 优化后结果)的值更新回参数字典
+    void update_map_from_free_vector(
+        std::unordered_map<std::string, std::vector<double>>& params_map, 
+        const std::vector<double>& free_vec
+    ) const;
+
+    // 获取每个自由参数的维度大小(以 vector<int> 形式返回)
+    std::vector<int> get_free_sizes() const;
 };
 
 // 声明：核心处理函数
