@@ -1,4 +1,4 @@
-#include "../include/estimate_mle.hpp"
+﻿#include "../include/estimate_mle.hpp"
 #include "../include/algorithm_nlopt.hpp"
 #include "../include/info_nlopt.hpp"
 #include "../include/modify_control.hpp"
@@ -16,7 +16,7 @@
 #endif
 
 /* ========================================================================== *
- *                            主要公共 API                                    *
+ *                              Main Public API                               *
  * ========================================================================== */
 
 // 执行最大似然 (MLE) 估计的入口点

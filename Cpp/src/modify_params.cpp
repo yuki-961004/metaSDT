@@ -4,33 +4,33 @@
 #include <algorithm>
 
 /* ========================================================================== *
- *                           Default Parameter Values                          *
+ *                           Default Parameter Values                         *
  * ========================================================================== */
 
-// Build default parameter groups for all supported models.
+// 构建所有支持模型的默认参数组.
 ParamGroup default_params() {
     ParamGroup defaults;
 
-    /* ---------------------------------------------------------------------- *
-     *                           Free Parameters                               *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *                             Free Parameters                                *
+ * ========================================================================== */
 
     defaults.free["d"] = {1.5};
     defaults.free["c_resp"] = {0.0};
 
-    /* ---------------------------------------------------------------------- *
-     *                          Fixed Parameters                               *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *                             Fixed Parameters                               *
+ * ========================================================================== */
 
-    // Type-1 / sensory parameters.
+    // Type-1 / 感觉参数.
     defaults.fixed["sd_signal"] = {1.0};
     defaults.fixed["sd_noise"] = {1.0};
 
-    // Type-2 / confidence parameters.
+    // Type-2 / 置信度参数.
     defaults.fixed["c_conf"] = {};
     defaults.fixed["n_conf"] = {};
 
-    // Model-specific extensions.
+    // 特定模型的扩展参数.
     defaults.fixed["sigma_meta"] = {0.5};
     defaults.fixed["meta_uncertainty"] = {0.5};
     defaults.fixed["sigma_c"] = {0.1};
@@ -42,9 +42,9 @@ ParamGroup default_params() {
     defaults.fixed["w_u"] = {0.5};
     defaults.fixed["rho"] = {0.5};
 
-    /* ---------------------------------------------------------------------- *
-     *                         Constant Parameters                             *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *                           Constant Parameters                              *
+ * ========================================================================== */
 
     defaults.constant["sim_trials"] = {100000.0};
     defaults.constant["rate_lapse"] = {0.0};
@@ -53,31 +53,31 @@ ParamGroup default_params() {
     defaults.constant["penalty"] = {1.0};
     defaults.constant["rng_seed"] = {1004.0};
 
-    // Sort switch for d:
-    //  >0 ascending, <0 descending, 0 keep optimizer natural order.
+    // d 的排序开关：.
+    //  >0 升序，<0 降序，0 保持优化器的自然顺序.
     defaults.constant["sort_d"] = {0.0};
 
     return defaults;
 }
 
 /* ========================================================================== *
- *                             Default Bounds Map                              *
+ *                             Default Bounds Map                             *
  * ========================================================================== */
 
-// Build default lower/upper bounds for each parameter.
+// 为每个参数构建默认的上下界.
 std::unordered_map<std::string, std::vector<double>> default_bounds() {
     std::unordered_map<std::string, std::vector<double>> bounds;
 
-    // Core sensory parameters.
+    // 核心感觉参数.
     bounds["d"] = {-1.0, 10.0};
     bounds["c_resp"] = {-5.0, 5.0};
     bounds["sd_signal"] = {1e-4, 5.0};
     bounds["sd_noise"] = {1e-4, 5.0};
 
-    // Confidence boundaries.
+    // 置信度边界.
     bounds["c_conf"] = {1e-4, 20.0};
 
-    // Model-specific bounds.
+    // 特定模型的边界.
     bounds["sigma_meta"] = {1e-4, 5.0};
     bounds["meta_uncertainty"] = {1e-4, 5.0};
     bounds["sigma_c"] = {1e-4, 5.0};
@@ -93,7 +93,7 @@ std::unordered_map<std::string, std::vector<double>> default_bounds() {
 }
 
 /* ========================================================================== *
- *                         Core Parameter Normalization                        *
+ *                         Core Parameter Normalization                       *
  * ========================================================================== */
 
 ModifiedParamsResult modify_params(
@@ -102,14 +102,14 @@ ModifiedParamsResult modify_params(
     const std::unordered_map<std::string, std::vector<double>>& custom_upper
 ) {
 
-    /* ---------------------------------------------------------------------- *
-     *                 1) Init defaults and free-parameter demotion            *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *               1) Init defaults and free-parameter demotion                 *
+ * ========================================================================== */
 
     ParamGroup params = default_params();
 
-    // If user explicitly provides a free set, default free parameters that are
-    // not listed are demoted to fixed so optimization scope is explicit.
+    // 如果用户显式提供了一个自由参数集，未列出的默认自由参数.
+    // 将被降级为固定参数，以明确优化范围.
     if (!user_params.free.empty()) {
         std::vector<std::string> to_demote;
         for (const auto& kv : params.free) {
@@ -123,12 +123,12 @@ ModifiedParamsResult modify_params(
         }
     }
 
-    /* ---------------------------------------------------------------------- *
-     *                  2) Overlay user inputs with mutual cleanup             *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *                2) Overlay user inputs with mutual cleanup                  *
+ * ========================================================================== */
 
-    // Apply by priority: constant -> fixed -> free.
-    // Each insert erases lower-priority duplicates from other groups.
+    // 按优先级应用：constant -> fixed -> free.
+    // 每次插入都会从其他组中清除优先级较低的重复项.
     for (const auto& kv : user_params.constant) {
         params.constant[kv.first] = kv.second;
         params.free.erase(kv.first);
@@ -147,9 +147,9 @@ ModifiedParamsResult modify_params(
         params.constant.erase(kv.first);
     }
 
-    /* ---------------------------------------------------------------------- *
-     *                     3) Flatten grouped params to one map                *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *                   3) Flatten grouped params to one map                     *
+ * ========================================================================== */
 
     std::unordered_map<std::string, std::vector<double>> flat_params;
 
@@ -163,9 +163,9 @@ ModifiedParamsResult modify_params(
         flat_params[kv.first] = kv.second;
     }
 
-    /* ---------------------------------------------------------------------- *
-     *                  4) n_conf / c_conf / c_resp consistency                *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *                 4) n_conf / c_conf / c_resp consistency                    *
+ * ========================================================================== */
 
     auto it_n_conf = flat_params.find("n_conf");
     auto it_c_conf = flat_params.find("c_conf");
@@ -177,16 +177,16 @@ ModifiedParamsResult modify_params(
 
     if (!has_n_conf) {
         if (has_c_conf) {
-            // Symmetric rule: n_conf = 2 * len(c_conf) + 1.
+            // 对称规则：n_conf = 2 * len(c_conf) + 1.
             double calc_n_conf = 2.0 * it_c_conf->second.size() + 1.0;
             flat_params["n_conf"] = {calc_n_conf};
             params.fixed["n_conf"] = {calc_n_conf};
         }
     } else {
-        // If n_conf is given, c_conf is treated as full criterion vector.
+        // 如果给定了 n_conf，则 c_conf 将被视为完整的准则向量.
         int n_conf_val = static_cast<int>(it_n_conf->second[0]);
         if (has_c_conf) {
-            // For odd n_conf, enforce median(c_conf) as c_resp.
+            // 对于奇数的 n_conf，强制将 c_conf 的中位数作为 c_resp.
             if (n_conf_val % 2 != 0) {
                 int mid_idx = n_conf_val / 2;
                 if (mid_idx < static_cast<int>(it_c_conf->second.size())) {
@@ -224,7 +224,7 @@ ModifiedParamsResult modify_params(
     result.flat = flat_params;
     result.structured = params;
 
-    // Detect whether c_conf is full absolute criterion vector.
+    // 检测 c_conf 是否为完整的绝对准则向量.
     bool is_full_vector = false;
     if (has_n_conf && has_c_conf) {
         int n_conf_val = static_cast<int>(it_n_conf->second[0]);
@@ -233,19 +233,19 @@ ModifiedParamsResult modify_params(
         }
     }
 
-    /* ---------------------------------------------------------------------- *
-     *                 5) Collect names/counts and build final bounds          *
-     * ---------------------------------------------------------------------- */
+/* ========================================================================== *
+ *              5) Collect names/counts and build final bounds                *
+ * ========================================================================== */
 
     result.numb_free = 0;
     auto bounds_dict = default_bounds();
 
-    // Sort keys alphabetically to ensure deterministic iteration order.
+    // 按字母顺序对键进行排序，以确保确定性的迭代顺序.
     auto sort_keys = [](std::vector<std::string>& keys) {
         std::sort(keys.begin(), keys.end());
     };
 
-    // Free parameters: record names, counts, and per-element bounds.
+    // 自由参数：记录名称、数量以及每个元素的边界.
     std::vector<std::string> keys_free;
     for (const auto& kv : params.free) {
         keys_free.push_back(kv.first);
@@ -265,7 +265,7 @@ ModifiedParamsResult modify_params(
             ub_base = bounds_dict[key][1];
         }
 
-        // Full-vector c_conf can cross zero, so use symmetric wide bounds.
+        // 完整向量形式的 c_conf 可以跨越零，因此使用对称的宽边界.
         if (key == "c_conf" && is_full_vector) {
             lb_base = -10.0;
             ub_base = 10.0;
@@ -295,7 +295,7 @@ ModifiedParamsResult modify_params(
         }
     }
 
-    // Fixed parameters: record names and element counts.
+    // 固定参数：记录名称和元素数量.
     result.numb_fixed = 0;
     std::vector<std::string> keys_fixed;
     for (const auto& kv : params.fixed) {
@@ -307,7 +307,7 @@ ModifiedParamsResult modify_params(
         result.numb_fixed += params.fixed.at(key).size();
     }
 
-    // Constant parameters: record names and element counts.
+    // 常量参数：记录名称和元素数量.
     result.numb_constant = 0;
     std::vector<std::string> keys_constant;
     for (const auto& kv : params.constant) {
@@ -323,7 +323,7 @@ ModifiedParamsResult modify_params(
 }
 
 /* ========================================================================== *
- *                    ModifiedParamsResult Member Functions                    *
+ *                    ModifiedParamsResult Member Functions                   *
  * ========================================================================== */
 
 std::vector<double> ModifiedParamsResult::extract_free_vector(
@@ -332,7 +332,7 @@ std::vector<double> ModifiedParamsResult::extract_free_vector(
     std::vector<double> out;
     out.reserve(numb_free);
 
-    // Append free parameters in the exact order stored in name_free.
+    // 严格按照 name_free 中存储的顺序追加自由参数.
     for (const auto& name : name_free) {
         const auto it = params_map.find(name);
         if (it != params_map.end()) {
@@ -349,7 +349,7 @@ void ModifiedParamsResult::update_map_from_free_vector(
 ) const {
     size_t x_idx = 0;
 
-    // Write values back by free-parameter order and original vector lengths.
+    // 按自由参数顺序和原始向量长度写回数值.
     for (const auto& name : name_free) {
         const size_t param_len = structured.free.at(name).size();
         for (size_t k = 0; k < param_len; ++k) {
@@ -362,7 +362,7 @@ std::vector<int> ModifiedParamsResult::get_free_sizes() const {
     std::vector<int> sizes;
     sizes.reserve(name_free.size());
 
-    // Return each free parameter vector length in name_free order.
+    // 按 name_free 的顺序返回每个自由参数向量的长度.
     for (const auto& name : name_free) {
         sizes.push_back(static_cast<int>(structured.free.at(name).size()));
     }

@@ -4,7 +4,7 @@
 #include <string>
 
 /* ========================================================================== *
- *                      NLopt Optimizer Construction Helpers                   *
+ *                      NLopt Optimizer Construction Helpers                  *
  * ========================================================================== */
 
 void sanitize_initial_point(

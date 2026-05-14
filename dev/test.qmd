@@ -1,11 +1,11 @@
 ---
-title: "test"
+title: "Untitled"
 format: html
 ---
 
 
 ```{r}
-# 1. 编译并加载整�?R �?(指定包根目录�?./R)
+# 1. 编译并加载整个 R 包 (指定包根目录为 ./R)
 devtools::clean_dll("./R")
 devtools::load_all("./R")
 ```
@@ -17,22 +17,22 @@ data <- read.csv("data/exp1.csv")
 
 sub1 <- data |> dplyr::filter(subj_id == 1)
 
-#Rcpp::sourceCpp("./R/src/r_info_data.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_data_info.cpp")
 
-info <- info_data(data)
+info <- data_info(data)
 
-# 1. �?info_data 的结果中，提取出被试 '29' 的行号索�?
+# 1. 从 data_info 的结果中，提取出被试 '29' 的行号索引
 sub29 <- info$subjects$`29`$raw
 
 # 2. 使用这串行号，从原始的、完整的 `data` 数据框中进行切片，得到真实的 dataframe
 df_sub29 <- data[sub29, ]
 
-# (可�? 打印一下，看看是不是成功提取了 29 号被试的数据
+# (可选) 打印一下，看看是不是成功提取了 29 号被试的数据
 head(df_sub29)
 ```
 
 ```{r}
-#Rcpp::sourceCpp("./R/src/r_matrix_freq.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_freq.cpp")
 
 freq_mat <- matrix_freq(
   stim = sub1$stim,
@@ -42,37 +42,37 @@ freq_mat <- matrix_freq(
 ```
 
 ```{r}
-# 1. 直接编译并加载新封装�?C++ 包装器函�?(兼容从项目根目录执行)
+# 1. 直接编译并加载新封装的 C++ 包装器函数 (兼容从项目根目录执行)
 # ==============================================================================
-# 2. 测试全新�?modify_params 功能
+# 2. 测试全新的 modify_params 功能
 # ==============================================================================
 # 编译并加载包装器函数 (兼容从项目根目录执行)
-# 注意：如果您之后使用 devtools::load_all() 整体加载了包，这行就可以删掉�?
-#Rcpp::sourceCpp("./R/src/r_modify_params.cpp")
-#Rcpp::sourceCpp("./R/src/r_model_sdt.cpp")
-#Rcpp::sourceCpp("./R/src/r_matrix_prob.cpp")
+# 注意：如果您之后使用 devtools::load_all() 整体加载了包，这行就可以删掉了
+#Rcpp::sourceCpp("./R/src/wrapper_modify_params.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
 
 # ==============================================================================
-# 2. 测试全新�?modify_params 功能
+# 2. 测试全新的 modify_params 功能
 # ==============================================================================
 
 cat("=== Test 1: 扁平 List 输入 (默认全部当做 free 参数) ===\n")
 res1 <- modify_params(list(d = 2.5))
 print(res1$d)          # 预期: 2.5
 
-cat("\n=== Test 2: 降维移动 (使用结构�?List，将默认�?free �?c_resp 固定�?fixed) ===\n")
+cat("\n=== Test 2: 降维移动 (使用结构化 List，将默认在 free 的 c_resp 固定到 fixed) ===\n")
 res2 <- modify_params(list(fixed = list(c_resp = 1.0)))
 print(res2$c_resp)     # 预期: 1.0
 
-cat("\n=== Test 3: 向量序列输入 (自适应转化�?C++ vector) ===\n")
+cat("\n=== Test 3: 向量序列输入 (自适应转化为 C++ vector) ===\n")
 res3 <- modify_params(list(c_conf = c(0.1, 0.5, 0.9, 1.2)))
 print(res3$c_conf)     # 预期: 0.1 0.5 0.9 1.2
 
-cat("\n=== Test 4: 乌龙冲突处理 (同参数出现在多槽，高优先�?free 胜出) ===\n")
+cat("\n=== Test 4: 乌龙冲突处理 (同参数出现在多槽，高优先级 free 胜出) ===\n")
 res4 <- modify_params(list(free = list(rate_decay = 0.8), fixed = list(rate_decay = 0.5)))
 print(res4$rate_decay) # 预期: 0.8
 
-cat("\n=== Test 5: 极端情况，传�?NULL (返回默认参数�? ===\n")
+cat("\n=== Test 5: 极端情况，传入 NULL (返回默认参数集) ===\n")
 res5 <- modify_params(NULL)
 
 print(res5$d)          # 预期: 1.5
@@ -83,29 +83,29 @@ rm(res1, res2, res3, res4, res5)
 
 ```{r}
 # ==============================================================================
-# 3. 测试 ModelSDT 模型 (计算击中率与虚报�?
+# 3. 测试 ModelSDT 模型 (计算击中率与虚报率)
 # ==============================================================================
-#Rcpp::sourceCpp("./R/src/r_model_sdt.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_model_sdt.cpp")
 
 cat("\n=== Test 6: ModelSDT 核心引擎测试 ===\n")
-# 获取处理好的完整参数 (�?d=2.0, c_resp=0.5)
+# 获取处理好的完整参数 (设 d=2.0, c_resp=0.5)
 std_params <- modify_params(user_params = list(
   free = list(d = 2.0, c_conf = c(0.1, 0.5, 0.9)),
   fixed = list(c_resp = 0)
 ))
 
-# 直接传入参数，model_sdt 现在会自动读�?c_conf �?c_resp，智能生成全套积分面积！
+# 直接传入参数，model_sdt 现在会自动读取 c_conf 和 c_resp，智能生成全套积分面积！
 res_cdf <- model_sdt(std_params)
 
-cat("False Alarm Rates (所有切点的虚报�?:\n", 1 - res_cdf$cdf_noise[[1]], "\n")
-cat("Hit Rates (所有切点的击中�?:\n", 1 - res_cdf$cdf_signal[[1]], "\n")
+cat("False Alarm Rates (所有切点的虚报率):\n", 1 - res_cdf$cdf_noise[[1]], "\n")
+cat("Hit Rates (所有切点的击中率):\n", 1 - res_cdf$cdf_signal[[1]], "\n")
 ```
 
 ```{r}
 # ==============================================================================
 # 4. 测试 matrix_prob 概率矩阵
 # ==============================================================================
-#Rcpp::sourceCpp("./R/src/r_matrix_prob.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_prob.cpp")
 
 cat("\n=== Test 7: Matrix Prob 理论概率矩阵 ===\n")
 prob_mat <- matrix_prob(res_cdf$cdf_noise, res_cdf$cdf_signal, std_params)
@@ -113,20 +113,20 @@ prob_mat <- matrix_prob(res_cdf$cdf_noise, res_cdf$cdf_signal, std_params)
 
 
 ```{r}
-#Rcpp::sourceCpp("./R/src/r_matrix_mult.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_matrix_mult.cpp")
 matrix_mult(freq_mat, prob_mat, std_params)
 ```
 
 
 ```{r}
-#Rcpp::sourceCpp("./R/src/r_criterion_likelihood.cpp")
+#Rcpp::sourceCpp("./R/src/wrapper_criterion_likelihood.cpp")
 criterion_likelihood(freq_mat, prob_mat, std_params)
 ```
 
 ## fit
 
 ```{r}
-fit_mle_exp1 <- estimate_mle(
+fit_df <- estimate_mle(
   df = read.csv("data/exp1.csv"), 
   params = list(
     free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)), # 设定我们要找出的自由参数
@@ -139,7 +139,7 @@ print(head(fit_df))
 ```
 
 ```{r}
-fit_mle_exp3 <- estimate_mle(
+fit_df <- estimate_mle(
   df = read.csv("data/exp3.csv"), 
   colnames = list(
     condition = "FlippedWheel",
@@ -160,47 +160,7 @@ print(head(fit_df))
 ```
 
 ```{r}
-# ==============================================================================
-# 5. 测试 estimate_map (最大后�?MAP 估计)
-# ==============================================================================
-# 先验测试1：留�?user_priors，测�?C++ 底层的默�?SDT 先验能否正常激活并限制极端�?
-fit_map_exp1 <- estimate_map(
-  df = read.csv("data/exp1.csv"), 
-  params = list(
-    free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)), 
-    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
-  ),
-  model = "sdt"
-)
-
-```
-
-```{r}
-# 先验测试2：传入自定义 user_priors，测�?EM-MAP 场景下每次更新先验的过程
-fit_map_exp3 <- estimate_map(
-  df = read.csv("data/exp3.csv"), 
-  colnames = list(
-    condition = "FlippedWheel",
-    difficulty = "NoiseLevel_Deg"
-  ),
-  params = list(
-    free = list(
-      d = c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1),
-      c_resp = 0.0,
-      c_conf = c(0.5, 1.0, 1.5)
-    ), 
-    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
-  ),
-  model = "sdt",
-  user_priors = list(
-    d = list(type = "norm", mean = 1.2, sd = 0.8),
-    c_conf = list(type = "norm", mean = 0.0, sd = 1.5)
-  )
-)
-```
-
-```{r}
-# 生成想要评估的当前参数集 (故意打乱自由参数、固定参数的传递顺序，并打�?c_conf 内部边界�?
+# 生成想要评估的当前参数集 (故意打乱自由参数、固定参数的传递顺序，并打乱 c_conf 内部边界！)
 current_params <- modify_params(user_params = list(
   fixed = list(c_resp = 0.5),
   free = list(c_conf = c(0.5, 0.2, 0.3), d = 2.0)
@@ -244,17 +204,17 @@ log_posterior <- criterion_posterior(
 )
 print(log_posterior)
 
-cat("\n=== Test 11: Uniform Prior (�?Log-Likelihood 验证) ===\n")
-# 利用均匀分布特性：若上限与下限之差�?1，则先验概率密度�?1，对数先�?log(1)恒为 0�?
-# 此时 criterion_posterior 返回的值将 100% 等价于没有任何先验干涉的对数似然 (LogL)�?
+cat("\n=== Test 11: Uniform Prior (纯 Log-Likelihood 验证) ===\n")
+# 利用均匀分布特性：若上限与下限之差为 1，则先验概率密度为 1，对数先验 log(1)恒为 0。
+# 此时 criterion_posterior 返回的值将 100% 等价于没有任何先验干涉的对数似然 (LogL)！
 
 log_posterior_unif <- criterion_posterior(
   freq_mat = freq_mat,
   user_priors = list(
-    # c_conf �?[0.2, 0.3, 0.5]，都落在 [0, 1] 区间，差值为 1
+    # c_conf 是 [0.2, 0.3, 0.5]，都落在 [0, 1] 区间，差值为 1
     c_conf = list(type = "unif", min = 0.0, max = 1.0), 
     
-    # d �?2.0，落�?[1.5, 2.5] 区间，差值为 1 (同理支持 lower �?upper 命名)
+    # d 是 2.0，落在 [1.5, 2.5] 区间，差值为 1 (同理支持 lower 和 upper 命名)
     d = list(type = "uniform", lower = 1.5, upper = 2.5)
   ),
   std_params = current_params
@@ -265,29 +225,28 @@ print(log_posterior_unif)
 
 ```{r}
 # ==========================================
-# 手动验证 C++ 底层�?Log-Prior 计算
+# 手动验证 C++ 底层的 Log-Prior 计算
 # ==========================================
 
-# 1. 计算 d 的对数先验概率密�?(正态分�?
+# 1. 计算 d 的对数先验概率密度 (正态分布)
 # 对应 C++: -0.5 * log(2*PI*sigma^2) - 0.5 * ((x-mu)/sigma)^2
 d_val <- 2.0
 log_prior_d <- dnorm(x = d_val, mean = 1.5, sd = 0.5, log = TRUE)
 
-# 2. 计算 c_conf 的对数先验概率密�?(Beta分布)
+# 2. 计算 c_conf 的对数先验概率密度 (Beta分布)
 c_conf_vals <- c(0.5, 0.2, 0.3)
 shape1 <- 2.0
 shape2 <- 5.0
 
-# R 自带�?dbeta 会包�?Beta 分布的归一化常�?
+# R 自带的 dbeta 会包含 Beta 分布的归一化常数
 log_prior_c_conf_full <- sum(dbeta(x = c_conf_vals, shape1 = shape1, shape2 = shape2, log = TRUE))
 
-# 提取 R 中的归一化常数部�?( -lbeta(a,b) )
-# 因为�?3 �?c_conf 值，所以产生了 3 次常数累�?
+# 提取 R 中的归一化常数部分 ( -lbeta(a,b) )
+# 因为有 3 个 c_conf 值，所以产生了 3 次常数累加
 beta_constant <- sum(-lbeta(shape1, shape2) * rep(1, length(c_conf_vals)))
 
-# 3. 汇总对�?
+# 3. 汇总对比
 total_prior_full <- log_prior_d + log_prior_c_conf_full
 
-cat("R 原生 dnorm + dbeta 计算结果 (含常�?:", total_prior_full, "\n")
+cat("R 原生 dnorm + dbeta 计算结果 (含常数):", total_prior_full, "\n")
 ```
-
