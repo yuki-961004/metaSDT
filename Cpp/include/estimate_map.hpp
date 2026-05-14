@@ -6,6 +6,13 @@
 #include "estimate_mle.hpp" // 引入 SubjectFitResult 和 NLoptControl
 #include "modify_prior.hpp" // 引入 UserPrior
 
+// 保存单个条件运行结果的轻量级内部结构体
+struct CondRunResult {
+    std::vector<SubjectFitResult> results;
+    int iter_used = 0;
+    std::string stop_reason = "not_started";
+};
+
 // 暴露给外层的最大后验估计 (MAP) 主函数
 std::vector<SubjectFitResult> estimate_map(
     const std::unordered_map<std::string, std::vector<double>>& df,
