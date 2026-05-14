@@ -257,7 +257,7 @@ Rcpp::RObject r_estimate_map(
     Rcpp::Nullable<Rcpp::List> control = R_NilValue,
     Rcpp::Nullable<Rcpp::List> lower = R_NilValue,
     Rcpp::Nullable<Rcpp::List> upper = R_NilValue,
-    Rcpp::Nullable<Rcpp::List> user_priors = R_NilValue
+    Rcpp::Nullable<Rcpp::List> priors = R_NilValue
 ) {
     std::unordered_map<std::string, std::vector<double>> cpp_df;
     Rcpp::CharacterVector df_names = df.names();
@@ -310,7 +310,7 @@ Rcpp::RObject r_estimate_map(
     if (upper.isNotNull()) r_obj_to_cpp_map(upper, cpp_upper);
 
     std::unordered_map<std::string, UserPrior> cpp_priors;
-    if (user_priors.isNotNull()) r_obj_to_user_priors(user_priors, cpp_priors);
+    if (priors.isNotNull()) r_obj_to_user_priors(priors, cpp_priors);
 
     int em_iterations_used = 0;
     std::unordered_map<std::string, int> em_by_cond;

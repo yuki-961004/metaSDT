@@ -3,8 +3,7 @@ from . import _core_matrix_freq, _core_matrix_prob, _core_matrix_mult
 from . import _core_criterion_likelihood, _core_criterion_prior, _core_criterion_posterior
 from . import _help_info_data
 from . import _help_modify_params, _help_modify_prior
-from . import _estimate_mle, _estimate_map, _progress_bar
-from . import _progress_bar
+from . import _estimate_mle, _estimate_map, _estimate_mcmc, _progress_bar
 from . import _model_sdt
 
 
@@ -175,34 +174,114 @@ def info_data(df, colnames=None):
         colnames=colnames,
     )
 
-
-
-def estimate_mle(df, colnames=None, params=None, model="sdt", control=None, lower=None, upper=None):
-    if colnames is None: colnames = {}
-    if params is None: params = {}
-    if control is None: control = {}
-    if lower is None: lower = {}
-    if upper is None: upper = {}
-    res = _estimate_mle.estimate_mle(df=_to_backend_df_dict(df), colnames=colnames, params=params, model=model, control=control, lower=lower, upper=upper)
+def estimate_mle(
+    df,
+    colnames=None,
+    params=None,
+    model="sdt",
+    control=None,
+    lower=None,
+    upper=None,
+):
+    if colnames is None:
+        colnames = {}
+    if params is None:
+        params = {}
+    if control is None:
+        control = {}
+    if lower is None:
+        lower = {}
+    if upper is None:
+        upper = {}
+    res = _estimate_mle.estimate_mle(
+        df=_to_backend_df_dict(df),
+        colnames=colnames,
+        params=params,
+        model=model,
+        control=control,
+        lower=lower,
+        upper=upper,
+    )
     return _as_meta_result(res, estimator_name="MLE", control=control)
 
 
-def estimate_map(df, colnames=None, params=None, model="sdt", control=None, lower=None, upper=None, user_priors=None):
-    if colnames is None: colnames = {}
-    if params is None: params = {}
-    if control is None: control = {}
-    if lower is None: lower = {}
-    if upper is None: upper = {}
-    if user_priors is None: user_priors = {}
-    res = _estimate_map.estimate_map(df=_to_backend_df_dict(df), colnames=colnames, params=params, model=model, control=control, lower=lower, upper=upper, user_priors=user_priors)
+def estimate_map(
+    df,
+    colnames=None,
+    params=None,
+    model="sdt",
+    control=None,
+    lower=None,
+    upper=None,
+    priors=None,
+):
+    if colnames is None:
+        colnames = {}
+    if params is None:
+        params = {}
+    if control is None:
+        control = {}
+    if lower is None:
+        lower = {}
+    if upper is None:
+        upper = {}
+    if priors is None:
+        priors = {}
+
+    res = _estimate_map.estimate_map(
+        df=_to_backend_df_dict(df),
+        colnames=colnames,
+        params=params,
+        model=model,
+        control=control,
+        lower=lower,
+        upper=upper,
+        priors=priors,
+    )
     return _as_meta_result(res, estimator_name="MAP", control=control)
+
+
+def estimate_mcmc(
+    df,
+    colnames=None,
+    params=None,
+    model="sdt",
+    control=None,
+    lower=None,
+    upper=None,
+    priors=None,
+):
+    if colnames is None:
+        colnames = {}
+    if params is None:
+        params = {}
+    if control is None:
+        control = {}
+    if lower is None:
+        lower = {}
+    if upper is None:
+        upper = {}
+    if priors is None:
+        priors = {}
+
+    res = _estimate_mcmc.estimate_mcmc(
+        df=_to_backend_df_dict(df),
+        colnames=colnames,
+        params=params,
+        model=model,
+        control=control,
+        lower=lower,
+        upper=upper,
+        priors=priors,
+    )
+    return _as_meta_result(res, estimator_name="MCMC", control=control)
 
 
 __all__ = [
     "matrix_freq", "matrix_prob", "matrix_mult",
     "criterion_likelihood", "criterion_prior", "criterion_posterior",
     "modify_params", "modify_prior", "info_data",
-    "model_sdt", "estimate_mle", "estimate_map", "ui",
+    "model_sdt", "estimate_mle", "estimate_map", "estimate_mcmc", "ui",
 ]
 
 

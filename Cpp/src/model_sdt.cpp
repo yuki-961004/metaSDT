@@ -21,8 +21,8 @@ ModelSDT<T>::ModelSDT(
     const std::unordered_map<std::string, std::vector<T>>& std_params
 ) {
     try {
-        // d 为每个难度维度对应的敏感度参数向量。
         // d 为每个难度维度对应的敏感度参数向量
+        d_vec = std_params.at("d");
 
         // 噪声分布标准差取标量首元素
         sd_noise = std_params.at("sd_noise")[0];

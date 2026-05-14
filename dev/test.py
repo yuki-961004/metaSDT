@@ -1,7 +1,6 @@
 # %%
 # 环境安装区 (如果已经安装成功，以后不需要运行此块)
 # %pip install pandas
-# %pip install -e ./Python
 # %pip install -e ./Python --config-settings=build-dir="build"
 
 # %%
@@ -40,7 +39,7 @@ freq_mat = metaSDT.matrix_freq(
 # 测试全新的 modify_params 功能
 # ==============================================================================
 # 注意：如果提示找不到模块，请确保已经将 _help 加入到了 Python 包的
-# setup.py (或 CMakeLists) 编译列表中，并重新运行了上方的 %pip install -e Python
+# pyproject.toml / CMakeLists 编译列表中，并重新运行上方的安装命令
 
 print("=== Test 1: 扁平 Dict 输入 (默认全部当做 free 参数) ===")
 res1 = metaSDT.modify_params({"d": 2.5})
@@ -192,3 +191,86 @@ fit_res = metaSDT.estimate_mle(
     },
     model="sdt",
 )
+
+# %%
+# ==============================================================================
+# 3. 运行多线程 MAP 拟合 (带经验贝叶斯先验更新)
+# ==============================================================================
+print("\n=== Test 15: MAP Estimation on exp1 ===")
+fit_map_exp1 = metaSDT.estimate_map(
+    df=pandas.read_csv("data/exp1.csv"),
+    params={
+        "free": {
+            "d": [1.5],
+            "c_resp": [0.0],
+            "c_conf": [0.5, 1.0, 1.5],
+        },
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+    },
+    priors={
+        "c_conf": {"type": "beta", "shape1": 2.0, "shape2": 5.0},
+        "d": {"type": "norm", "mean": 1.5, "sd": 0.5}
+    },
+    model="sdt",
+)
+print(fit_map_exp1)
+
+# %%
+print("\n=== Test 16: MAP Estimation on exp3 ===")
+fit_map_exp3 = metaSDT.estimate_map(
+    df=pandas.read_csv("data/exp3.csv"),
+    colnames={
+        "condition": "FlippedWheel",
+        "difficulty": "NoiseLevel_Deg"
+    },
+    params={
+        "free": {
+            "d": [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+            "c_resp": [0.0],
+            "c_conf": [0.5, 1.0, 1.5],
+        },
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+    },
+    priors={
+        "c_conf": {"type": "beta", "shape1": 2.0, "shape2": 5.0},
+        "d": {"type": "norm", "mean": 1.5, "sd": 0.5}
+    },
+    model="sdt",
+)
+
+# %%
+# ==============================================================================
+# 4. 运行 MCMC 贝叶斯后验采样 (NUTS 算法)
+# ==============================================================================
+print("\n=== Test 17: MCMC NUTS on exp1 ===")
+fit_mcmc_exp1 = metaSDT.estimate_mcmc(
+    df=pandas.read_csv("data/exp1.csv"),
+    params={
+        "free": {"d": [1.5], "c_resp": [0.0], "c_conf": [0.5, 1.0, 1.5]},
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]}
+    },
+    model="sdt",
+    control={"algorithm": "nuts", "samples": 100, "warmup": 50, "chains": 2}
+)
+
+
+# %%
+print("\n=== Test 18: MCMC NUTS on exp3 ===")
+fit_mcmc_3 = metaSDT.estimate_mcmc(
+    df=pandas.read_csv("data/exp3.csv"),
+    colnames={
+        "condition": "FlippedWheel",
+        "difficulty": "NoiseLevel_Deg"
+    },
+    params={
+        "free": {
+            "d": [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+            "c_resp": [0.0],
+            "c_conf": [0.5, 1.0, 1.5],
+        },
+        "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+    },
+    model="sdt",
+    control={"algorithm": "nuts", "samples": 100, "warmup": 50, "chains": 2}
+)
+print(fit_mcmc_3)

@@ -148,5 +148,109 @@ inline Rcpp::List control_to_list(const NLoptControl& c, bool include_em) {
     return out;
 }
 
+inline void apply_control_from_list(
+    const Rcpp::List& ctrl,
+    StanControl& out
+) {
+    if (ctrl.containsElementNamed("algorithm")) {
+        out.algorithm = Rcpp::as<std::string>(ctrl["algorithm"]);
+    }
+    if (ctrl.containsElementNamed("chains")) {
+        out.chains = Rcpp::as<int>(ctrl["chains"]);
+    }
+    if (ctrl.containsElementNamed("warmup")) {
+        out.warmup = Rcpp::as<int>(ctrl["warmup"]);
+    }
+    if (ctrl.containsElementNamed("samples")) {
+        out.samples = Rcpp::as<int>(ctrl["samples"]);
+    }
+    if (ctrl.containsElementNamed("thin")) {
+        out.thin = Rcpp::as<int>(ctrl["thin"]);
+    }
+    if (ctrl.containsElementNamed("step_size")) {
+        out.step_size = Rcpp::as<double>(ctrl["step_size"]);
+    }
+    if (ctrl.containsElementNamed("leapfrog_steps")) {
+        out.leapfrog_steps = Rcpp::as<int>(ctrl["leapfrog_steps"]);
+    }
+    if (ctrl.containsElementNamed("max_tree_depth")) {
+        out.max_tree_depth = Rcpp::as<int>(ctrl["max_tree_depth"]);
+    }
+    if (ctrl.containsElementNamed("adapt_step_size")) {
+        out.adapt_step_size = Rcpp::as<bool>(ctrl["adapt_step_size"]);
+    }
+    if (ctrl.containsElementNamed("target_accept")) {
+        out.target_accept = Rcpp::as<double>(ctrl["target_accept"]);
+    }
+    if (ctrl.containsElementNamed("min_step_size")) {
+        out.min_step_size = Rcpp::as<double>(ctrl["min_step_size"]);
+    }
+    if (ctrl.containsElementNamed("max_step_size")) {
+        out.max_step_size = Rcpp::as<double>(ctrl["max_step_size"]);
+    }
+    if (ctrl.containsElementNamed("max_delta_energy")) {
+        out.max_delta_energy = Rcpp::as<double>(ctrl["max_delta_energy"]);
+    }
+    if (ctrl.containsElementNamed("initial_jitter")) {
+        out.initial_jitter = Rcpp::as<double>(ctrl["initial_jitter"]);
+    }
+    if (ctrl.containsElementNamed("print_level")) {
+        out.print_level = Rcpp::as<int>(ctrl["print_level"]);
+    }
+    if (ctrl.containsElementNamed("threads") && !Rf_isNull(ctrl["threads"])) {
+        out.threads = Rcpp::as<int>(ctrl["threads"]);
+    }
+    if (ctrl.containsElementNamed("seed") && !Rf_isNull(ctrl["seed"])) {
+        out.seed = Rcpp::as<long>(ctrl["seed"]);
+    }
+    if (ctrl.containsElementNamed("progress") && !Rf_isNull(ctrl["progress"])) {
+        out.progress = Rcpp::as<std::string>(ctrl["progress"]);
+    }
+    if (ctrl.containsElementNamed("progress_refresh_ms")) {
+        out.progress_refresh_ms = Rcpp::as<int>(
+            ctrl["progress_refresh_ms"]
+        );
+    }
+    if (ctrl.containsElementNamed("progress_line_interval_sec")) {
+        out.progress_line_interval_sec = Rcpp::as<double>(
+            ctrl["progress_line_interval_sec"]
+        );
+    }
+    if (ctrl.containsElementNamed("progress_line_interval_pct")) {
+        out.progress_line_interval_pct = Rcpp::as<double>(
+            ctrl["progress_line_interval_pct"]
+        );
+    }
+}
+
+inline Rcpp::List control_to_list(const StanControl& c) {
+    Rcpp::RObject seed_obj = (c.seed >= 0) ? Rcpp::wrap(c.seed) : R_NilValue;
+    return Rcpp::List::create(
+        Rcpp::Named("algorithm") = c.algorithm,
+        Rcpp::Named("chains") = c.chains,
+        Rcpp::Named("warmup") = c.warmup,
+        Rcpp::Named("samples") = c.samples,
+        Rcpp::Named("thin") = c.thin,
+        Rcpp::Named("step_size") = c.step_size,
+        Rcpp::Named("leapfrog_steps") = c.leapfrog_steps,
+        Rcpp::Named("max_tree_depth") = c.max_tree_depth,
+        Rcpp::Named("adapt_step_size") = c.adapt_step_size,
+        Rcpp::Named("target_accept") = c.target_accept,
+        Rcpp::Named("min_step_size") = c.min_step_size,
+        Rcpp::Named("max_step_size") = c.max_step_size,
+        Rcpp::Named("max_delta_energy") = c.max_delta_energy,
+        Rcpp::Named("initial_jitter") = c.initial_jitter,
+        Rcpp::Named("seed") = seed_obj,
+        Rcpp::Named("print_level") = c.print_level,
+        Rcpp::Named("threads") = c.threads,
+        Rcpp::Named("progress") = c.progress,
+        Rcpp::Named("progress_refresh_ms") = c.progress_refresh_ms,
+        Rcpp::Named("progress_line_interval_sec") =
+            c.progress_line_interval_sec,
+        Rcpp::Named("progress_line_interval_pct") =
+            c.progress_line_interval_pct
+    );
+}
+
 } // namespace r_wrapper_modify_control
 

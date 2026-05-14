@@ -12,4 +12,4 @@ export(modify_prior)
 export(model_sdt)
 export(estimate_mle)
 export(estimate_map)
-
+export(estimate_mcmc)

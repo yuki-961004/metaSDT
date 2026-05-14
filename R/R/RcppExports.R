@@ -19,8 +19,12 @@ criterion_prior <- function(user_priors, std_params = NULL) {
     .Call(`_metaSDT_r_criterion_prior`, user_priors, std_params)
 }
 
-estimate_map <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, user_priors = NULL) {
-    .Call(`_metaSDT_r_estimate_map`, df, colnames, params, model, control, lower, upper, user_priors)
+estimate_map <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, priors = NULL) {
+    .Call(`_metaSDT_r_estimate_map`, df, colnames, params, model, control, lower, upper, priors)
+}
+
+estimate_mcmc <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, priors = NULL) {
+    .Call(`_metaSDT_r_estimate_mcmc`, df, colnames, params, model, control, lower, upper, priors)
 }
 
 estimate_mle <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL) {

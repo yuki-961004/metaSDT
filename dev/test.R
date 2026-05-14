@@ -1,18 +1,15 @@
----
-title: "Untitled"
-format: html
----
+# %% [markdown]
+# ---
+# title: "Untitled"
+# format: html
+# ---
 
-
-```{r}
+# %%
 # 1. 编译并加载整个 R 包 (指定包根目录为 ./R)
 devtools::clean_dll("./R")
 devtools::load_all("./R")
-```
 
-## core
-
-```{r}
+# %%
 data <- read.csv("data/exp1.csv")
 
 sub1 <- data |> dplyr::filter(subj_id == 1)
@@ -29,9 +26,8 @@ df_sub29 <- data[sub29, ]
 
 # (可选) 打印一下，看看是不是成功提取了 29 号被试的数据
 head(df_sub29)
-```
 
-```{r}
+# %%
 #Rcpp::sourceCpp("./R/src/wrapper_matrix_freq.cpp")
 
 freq_mat <- matrix_freq(
@@ -39,9 +35,8 @@ freq_mat <- matrix_freq(
   resp = sub1$resp,
   conf = sub1$conf 
 )
-```
 
-```{r}
+# %%
 # 1. 直接编译并加载新封装的 C++ 包装器函数 (兼容从项目根目录执行)
 # ==============================================================================
 # 2. 测试全新的 modify_params 功能
@@ -79,9 +74,8 @@ print(res5$d)          # 预期: 1.5
 print(res5$c_conf)     # 预期: 0.5 1.0 1.5
 
 rm(res1, res2, res3, res4, res5)
-```
 
-```{r}
+# %%
 # ==============================================================================
 # 3. 测试 ModelSDT 模型 (计算击中率与虚报率)
 # ==============================================================================
@@ -99,9 +93,8 @@ res_cdf <- model_sdt(std_params)
 
 cat("False Alarm Rates (所有切点的虚报率):\n", 1 - res_cdf$cdf_noise[[1]], "\n")
 cat("Hit Rates (所有切点的击中率):\n", 1 - res_cdf$cdf_signal[[1]], "\n")
-```
 
-```{r}
+# %%
 # ==============================================================================
 # 4. 测试 matrix_prob 概率矩阵
 # ==============================================================================
@@ -109,23 +102,19 @@ cat("Hit Rates (所有切点的击中率):\n", 1 - res_cdf$cdf_signal[[1]], "\n"
 
 cat("\n=== Test 7: Matrix Prob 理论概率矩阵 ===\n")
 prob_mat <- matrix_prob(res_cdf$cdf_noise, res_cdf$cdf_signal, std_params)
-```
 
-
-```{r}
+# %%
 #Rcpp::sourceCpp("./R/src/wrapper_matrix_mult.cpp")
 matrix_mult(freq_mat, prob_mat, std_params)
-```
 
-
-```{r}
+# %%
 #Rcpp::sourceCpp("./R/src/wrapper_criterion_likelihood.cpp")
 criterion_likelihood(freq_mat, prob_mat, std_params)
-```
 
-## fit
+# %% [markdown]
+# ## fit
 
-```{r}
+# %%
 fit_df <- estimate_mle(
   df = read.csv("data/exp1.csv"), 
   params = list(
@@ -136,9 +125,8 @@ fit_df <- estimate_mle(
 )
 
 print(head(fit_df))
-```
 
-```{r}
+# %%
 fit_df <- estimate_mle(
   df = read.csv("data/exp3.csv"), 
   colnames = list(
@@ -157,96 +145,39 @@ fit_df <- estimate_mle(
 )
 
 print(head(fit_df))
-```
 
-```{r}
-# 生成想要评估的当前参数集 (故意打乱自由参数、固定参数的传递顺序，并打乱 c_conf 内部边界！)
-current_params <- modify_params(user_params = list(
-  fixed = list(c_resp = 0.5),
-  free = list(c_conf = c(0.5, 0.2, 0.3), d = 2.0)
-))
-
-freq_mat <- matrix_freq(
-  stim = sub1$stim,
-  resp = sub1$resp,
-  conf = sub1$conf 
-)
-
-cat("\n=== Test 8: Modify Prior (先验映射测试) ===\n")
-prior_res <- modify_prior(
-  user_priors = list(
-    c_conf = list(type = "beta", shape1 = 2.0, shape2 = 5.0), # 故意打乱顺序，c_conf 放在前面
-    d = list(type = "norm", mean = 1.5, sd = 0.5)
+# %%
+cat("\n=== Test 12: MCMC NUTS on exp1 ===\n")
+fit_mcmc_1 <- estimate_mcmc(
+  df = read.csv("data/exp1.csv"),
+  params = list(
+    free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)),
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
   ),
-  std_params = current_params
+  model = "sdt",
+  control = list(algorithm = "nuts", samples = 100, warmup = 50, chains = 2)
 )
-print(prior_res)
 
-cat("\n=== Test 9: Criterion Prior (计算一维梯度带先验概率) ===\n")
+print(head(fit_mcmc_1$fit))
 
-log_prior <- criterion_prior(
-  user_priors = list(
-    c_conf = list(type = "beta", shape1 = 2.0, shape2 = 5.0),
-    d = list(type = "norm", mean = 1.5, sd = 0.5)
+# %%
+cat("\n=== Test 13: MCMC NUTS on exp3 ===\n")
+fit_mcmc_3 <- estimate_mcmc(
+  df = read.csv("data/exp3.csv"),
+  colnames = list(
+    condition = "FlippedWheel",
+    difficulty = "NoiseLevel_Deg"
   ),
-  std_params = current_params
-)
-print(log_prior)
-
-cat("\n=== Test 10: Criterion Posterior (MCMC/Stan 后验入口测试) ===\n")
-log_posterior <- criterion_posterior(
-  freq_mat = freq_mat,
-  user_priors = list(
-    c_conf = list(type = "beta", shape1 = 2.0, shape2 = 5.0),
-    d = list(type = "norm", mean = 1.5, sd = 0.5)
+  params = list(
+    free = list(
+      d = c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1),
+      c_resp = 0.0,
+      c_conf = c(0.5, 1.0, 1.5)
+    ),
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
   ),
-  std_params = current_params
-)
-print(log_posterior)
-
-cat("\n=== Test 11: Uniform Prior (纯 Log-Likelihood 验证) ===\n")
-# 利用均匀分布特性：若上限与下限之差为 1，则先验概率密度为 1，对数先验 log(1)恒为 0。
-# 此时 criterion_posterior 返回的值将 100% 等价于没有任何先验干涉的对数似然 (LogL)！
-
-log_posterior_unif <- criterion_posterior(
-  freq_mat = freq_mat,
-  user_priors = list(
-    # c_conf 是 [0.2, 0.3, 0.5]，都落在 [0, 1] 区间，差值为 1
-    c_conf = list(type = "unif", min = 0.0, max = 1.0), 
-    
-    # d 是 2.0，落在 [1.5, 2.5] 区间，差值为 1 (同理支持 lower 和 upper 命名)
-    d = list(type = "uniform", lower = 1.5, upper = 2.5)
-  ),
-  std_params = current_params
+  model = "sdt",
+  control = list(algorithm = "nuts", samples = 100, warmup = 50, chains = 2)
 )
 
-print(log_posterior_unif)
-```
-
-```{r}
-# ==========================================
-# 手动验证 C++ 底层的 Log-Prior 计算
-# ==========================================
-
-# 1. 计算 d 的对数先验概率密度 (正态分布)
-# 对应 C++: -0.5 * log(2*PI*sigma^2) - 0.5 * ((x-mu)/sigma)^2
-d_val <- 2.0
-log_prior_d <- dnorm(x = d_val, mean = 1.5, sd = 0.5, log = TRUE)
-
-# 2. 计算 c_conf 的对数先验概率密度 (Beta分布)
-c_conf_vals <- c(0.5, 0.2, 0.3)
-shape1 <- 2.0
-shape2 <- 5.0
-
-# R 自带的 dbeta 会包含 Beta 分布的归一化常数
-log_prior_c_conf_full <- sum(dbeta(x = c_conf_vals, shape1 = shape1, shape2 = shape2, log = TRUE))
-
-# 提取 R 中的归一化常数部分 ( -lbeta(a,b) )
-# 因为有 3 个 c_conf 值，所以产生了 3 次常数累加
-beta_constant <- sum(-lbeta(shape1, shape2) * rep(1, length(c_conf_vals)))
-
-# 3. 汇总对比
-total_prior_full <- log_prior_d + log_prior_c_conf_full
-
-cat("R 原生 dnorm + dbeta 计算结果 (含常数):", total_prior_full, "\n")
-```
+print(head(fit_mcmc_3$fit))

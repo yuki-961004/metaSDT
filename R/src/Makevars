@@ -1,4 +1,22 @@
 CXX_STD = CXX17
-# 屏蔽 Eigen 库产生的 SIMD 属性警告
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -Wno-ignored-attributes -Wno-deprecated-declarations
-PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) -lnlopt
+
+R_SCRIPT = "$(R_HOME)/bin$(R_ARCH_BIN)/Rscript"
+RCPP_PARALLEL_CXXFLAGS = $(shell $(R_SCRIPT) \
+	-e "RcppParallel::CxxFlags()")
+RCPP_PARALLEL_LIBS = $(shell $(R_SCRIPT) \
+	-e "RcppParallel::RcppParallelLibs()")
+STAN_CXXFLAGS = $(shell $(R_SCRIPT) -e "StanHeaders:::CxxFlags()")
+STAN_LIBS = $(shell $(R_SCRIPT) -e "StanHeaders:::LdFlags()")
+STANHEADERS_SRC = $(shell $(R_SCRIPT) \
+	-e "cat(system.file('include','src',package='StanHeaders',mustWork=TRUE))")
+
+PKG_CPPFLAGS = -I"$(STANHEADERS_SRC)"
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) \
+	$(RCPP_PARALLEL_CXXFLAGS) \
+	$(STAN_CXXFLAGS) \
+	-Wno-ignored-attributes \
+	-Wno-deprecated-declarations
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) \
+	$(RCPP_PARALLEL_LIBS) \
+	$(STAN_LIBS) \
+	-lnlopt

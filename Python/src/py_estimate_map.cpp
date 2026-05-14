@@ -286,7 +286,7 @@ pybind11::dict py_estimate_map(
     const pybind11::dict& control = pybind11::dict(),
     const pybind11::dict& lower = pybind11::dict(),
     const pybind11::dict& upper = pybind11::dict(),
-    const pybind11::dict& user_priors = pybind11::dict()
+    const pybind11::dict& priors = pybind11::dict()
 ) {
     // ============================
     // Parameter Preparation
@@ -329,7 +329,7 @@ pybind11::dict py_estimate_map(
     if (!upper.empty()) py_dict_to_cpp_map(upper, cpp_upper);
 
     std::unordered_map<std::string, UserPrior> cpp_priors;
-    if (!user_priors.empty()) py_dict_to_user_priors(user_priors, cpp_priors);
+    if (!priors.empty()) py_dict_to_user_priors(priors, cpp_priors);
 
     // ============================
     // Core MAP Estimation
@@ -429,6 +429,6 @@ PYBIND11_MODULE(_estimate_map, m) {
         pybind11::arg("control") = pybind11::dict(),
         pybind11::arg("lower") = pybind11::dict(),
         pybind11::arg("upper") = pybind11::dict(),
-        pybind11::arg("user_priors") = pybind11::dict()
+        pybind11::arg("priors") = pybind11::dict()
     );
 }

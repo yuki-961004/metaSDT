@@ -89,5 +89,103 @@ inline pybind11::dict control_to_dict(const NLoptControl& c, bool include_em) {
     return out;
 }
 
-} // namespace py_wrapper_modify_control
+inline void apply_control_from_dict(
+    const pybind11::dict& control,
+    StanControl& out
+) {
+    if (control.contains("algorithm")) {
+        out.algorithm = control["algorithm"].cast<std::string>();
+    }
+    if (control.contains("chains")) {
+        out.chains = control["chains"].cast<int>();
+    }
+    if (control.contains("warmup")) {
+        out.warmup = control["warmup"].cast<int>();
+    }
+    if (control.contains("samples")) {
+        out.samples = control["samples"].cast<int>();
+    }
+    if (control.contains("thin")) {
+        out.thin = control["thin"].cast<int>();
+    }
+    if (control.contains("step_size")) {
+        out.step_size = control["step_size"].cast<double>();
+    }
+    if (control.contains("leapfrog_steps")) {
+        out.leapfrog_steps = control["leapfrog_steps"].cast<int>();
+    }
+    if (control.contains("max_tree_depth")) {
+        out.max_tree_depth = control["max_tree_depth"].cast<int>();
+    }
+    if (control.contains("adapt_step_size")) {
+        out.adapt_step_size = control["adapt_step_size"].cast<bool>();
+    }
+    if (control.contains("target_accept")) {
+        out.target_accept = control["target_accept"].cast<double>();
+    }
+    if (control.contains("min_step_size")) {
+        out.min_step_size = control["min_step_size"].cast<double>();
+    }
+    if (control.contains("max_step_size")) {
+        out.max_step_size = control["max_step_size"].cast<double>();
+    }
+    if (control.contains("max_delta_energy")) {
+        out.max_delta_energy = control["max_delta_energy"].cast<double>();
+    }
+    if (control.contains("initial_jitter")) {
+        out.initial_jitter = control["initial_jitter"].cast<double>();
+    }
+    if (control.contains("print_level") &&
+        !control["print_level"].is_none()) {
+        out.print_level = control["print_level"].cast<int>();
+    }
+    if (control.contains("threads") && !control["threads"].is_none()) {
+        out.threads = control["threads"].cast<int>();
+    }
+    if (control.contains("seed") && !control["seed"].is_none()) {
+        out.seed = control["seed"].cast<long>();
+    }
+    if (control.contains("progress") && !control["progress"].is_none()) {
+        out.progress = control["progress"].cast<std::string>();
+    }
+    if (control.contains("progress_refresh_ms")) {
+        out.progress_refresh_ms =
+            control["progress_refresh_ms"].cast<int>();
+    }
+    if (control.contains("progress_line_interval_sec")) {
+        out.progress_line_interval_sec =
+            control["progress_line_interval_sec"].cast<double>();
+    }
+    if (control.contains("progress_line_interval_pct")) {
+        out.progress_line_interval_pct =
+            control["progress_line_interval_pct"].cast<double>();
+    }
+}
 
+inline pybind11::dict control_to_dict(const StanControl& c) {
+    pybind11::dict out;
+    out["algorithm"] = c.algorithm;
+    out["chains"] = c.chains;
+    out["warmup"] = c.warmup;
+    out["samples"] = c.samples;
+    out["thin"] = c.thin;
+    out["step_size"] = c.step_size;
+    out["leapfrog_steps"] = c.leapfrog_steps;
+    out["max_tree_depth"] = c.max_tree_depth;
+    out["adapt_step_size"] = c.adapt_step_size;
+    out["target_accept"] = c.target_accept;
+    out["min_step_size"] = c.min_step_size;
+    out["max_step_size"] = c.max_step_size;
+    out["max_delta_energy"] = c.max_delta_energy;
+    out["initial_jitter"] = c.initial_jitter;
+    out["seed"] = (c.seed >= 0) ? pybind11::cast(c.seed) : pybind11::none();
+    out["print_level"] = c.print_level;
+    out["threads"] = c.threads;
+    out["progress"] = c.progress;
+    out["progress_refresh_ms"] = c.progress_refresh_ms;
+    out["progress_line_interval_sec"] = c.progress_line_interval_sec;
+    out["progress_line_interval_pct"] = c.progress_line_interval_pct;
+    return out;
+}
+
+} // namespace py_wrapper_modify_control

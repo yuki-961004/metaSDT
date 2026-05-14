@@ -42,6 +42,41 @@ set(NLOPT_OCTAVE OFF CACHE BOOL "" FORCE)
 set(NLOPT_SWIG OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(nlopt)
 
+# Stan Math is pulled in as a header-oriented dependency for estimate_mcmc.
+# The sampler uses Stan Math finite-difference gradients around the existing
+# CriterionPosterior engine, so no generated Stan model file is needed here.
+set(METASDT_STAN_MATH_TAG "v5.2.0" CACHE STRING "Stan Math tag to fetch")
+FetchContent_Declare(
+  stan_math
+  GIT_REPOSITORY https://github.com/stan-dev/math.git
+  GIT_TAG ${METASDT_STAN_MATH_TAG}
+  GIT_SHALLOW TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+)
+FetchContent_GetProperties(stan_math)
+if(NOT stan_math_POPULATED)
+  FetchContent_Populate(stan_math)
+endif()
+
+file(GLOB METASDT_STAN_EIGEN_DIRS
+     CONFIGURE_DEPENDS "${stan_math_SOURCE_DIR}/lib/eigen_*")
+file(GLOB METASDT_STAN_BOOST_DIRS
+     CONFIGURE_DEPENDS "${stan_math_SOURCE_DIR}/lib/boost_*")
+file(GLOB METASDT_STAN_SUNDIALS_DIRS
+     CONFIGURE_DEPENDS "${stan_math_SOURCE_DIR}/lib/sundials_*")
+file(GLOB METASDT_STAN_TBB_DIRS
+     CONFIGURE_DEPENDS "${stan_math_SOURCE_DIR}/lib/tbb_*")
+
+set(METASDT_STAN_MATH_INCLUDE_DIRS ${stan_math_SOURCE_DIR})
+list(APPEND METASDT_STAN_MATH_INCLUDE_DIRS ${METASDT_STAN_EIGEN_DIRS})
+list(APPEND METASDT_STAN_MATH_INCLUDE_DIRS ${METASDT_STAN_BOOST_DIRS})
+foreach(stan_sundials_dir ${METASDT_STAN_SUNDIALS_DIRS})
+    list(APPEND METASDT_STAN_MATH_INCLUDE_DIRS "${stan_sundials_dir}/include")
+endforeach()
+foreach(stan_tbb_dir ${METASDT_STAN_TBB_DIRS})
+    list(APPEND METASDT_STAN_MATH_INCLUDE_DIRS "${stan_tbb_dir}/include")
+endforeach()
+
 # 3. 编译核心 C++ 源码为单独的静态库 (注意现在的路径以项目根目录为基准)
 add_library(metaSDT_core STATIC
     Cpp/src/modify_params.cpp
@@ -59,9 +94,11 @@ add_library(metaSDT_core STATIC
     Cpp/src/model_sdt.cpp
 
     Cpp/src/algorithm_nlopt.cpp
+    Cpp/src/algorithm_stan.cpp
     Cpp/src/build_objective.cpp
     Cpp/src/estimate_mle.cpp
     Cpp/src/estimate_map.cpp
+    Cpp/src/estimate_mcmc.cpp
 
     Cpp/src/progress_bar.cpp
 )
@@ -74,9 +111,14 @@ target_include_directories(metaSDT_core PUBLIC
     $<BUILD_INTERFACE:${eigen_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
+target_include_directories(
+    metaSDT_core
+    PRIVATE
+    ${METASDT_STAN_MATH_INCLUDE_DIRS}
+)
 
 # [解耦修复] Eigen 现在作为纯本地头文件存在, 不再作为 CMake Target 链接
-# 未来添加 Stan Math 时, 也只需将其路径加入上面的 target_include_directories 即可
+# Stan Math 仅供 estimate_mcmc 内部编译使用, 不暴露到公共头文件接口
 target_link_libraries(metaSDT_core PUBLIC nlopt OpenMP::OpenMP_CXX)
 
 # ==============================================================================
@@ -91,27 +133,36 @@ option(METASDT_PREINSTALL_CLEAN
        ON)
 
 if(METASDT_PREINSTALL_CLEAN)
-    install(CODE [[
-        message(STATUS "metaSDT: cleaning stale installed artifacts...")
+    install(CODE "
+        message(STATUS \"metaSDT: cleaning stale installed artifacts...\")
         execute_process(
-            COMMAND "${CMAKE_COMMAND}" -E rm -rf
-                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/Eigen")
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -rf
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/Eigen\")
         execute_process(
-            COMMAND "${CMAKE_COMMAND}" -E rm -rf
-                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/metaSDT")
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -rf
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/metaSDT\")
         execute_process(
-            COMMAND "${CMAKE_COMMAND}" -E rm -rf
-                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core")
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -rf
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core\")
         execute_process(
-            COMMAND "${CMAKE_COMMAND}" -E rm -f
-                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libmetaSDT_core.a")
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libmetaSDT_core.a\")
         execute_process(
-            COMMAND "${CMAKE_COMMAND}" -E rm -f
-                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/metaSDT_core.lib")
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/metaSDT_core.lib\")
         execute_process(
-            COMMAND "${CMAKE_COMMAND}" -E rm -f
-                    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/metaSDT_core.dll")
-    ]])
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/metaSDT_core.dll\")
+        execute_process(
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/mcmc_control.hpp\")
+        execute_process(
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/mcmc_result.hpp\")
+        execute_process(
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/sampler_hmc.hpp\")
+    ")
 endif()
 
 # 导出目标?(静态库本体)

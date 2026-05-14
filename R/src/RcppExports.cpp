@@ -50,8 +50,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // r_estimate_map
-Rcpp::RObject r_estimate_map(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames, Rcpp::Nullable<Rcpp::RObject> params, std::string model, Rcpp::Nullable<Rcpp::List> control, Rcpp::Nullable<Rcpp::List> lower, Rcpp::Nullable<Rcpp::List> upper, Rcpp::Nullable<Rcpp::List> user_priors);
-RcppExport SEXP _metaSDT_r_estimate_map(SEXP dfSEXP, SEXP colnamesSEXP, SEXP paramsSEXP, SEXP modelSEXP, SEXP controlSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP user_priorsSEXP) {
+Rcpp::RObject r_estimate_map(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames, Rcpp::Nullable<Rcpp::RObject> params, std::string model, Rcpp::Nullable<Rcpp::List> control, Rcpp::Nullable<Rcpp::List> lower, Rcpp::Nullable<Rcpp::List> upper, Rcpp::Nullable<Rcpp::List> priors);
+RcppExport SEXP _metaSDT_r_estimate_map(SEXP dfSEXP, SEXP colnamesSEXP, SEXP paramsSEXP, SEXP modelSEXP, SEXP controlSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP priorsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -62,8 +62,26 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type control(controlSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type lower(lowerSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type upper(upperSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type user_priors(user_priorsSEXP);
-    rcpp_result_gen = Rcpp::wrap(r_estimate_map(df, colnames, params, model, control, lower, upper, user_priors));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type priors(priorsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_estimate_map(df, colnames, params, model, control, lower, upper, priors));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_estimate_mcmc
+Rcpp::RObject r_estimate_mcmc(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames, Rcpp::Nullable<Rcpp::RObject> params, std::string model, Rcpp::Nullable<Rcpp::List> control, Rcpp::Nullable<Rcpp::List> lower, Rcpp::Nullable<Rcpp::List> upper, Rcpp::Nullable<Rcpp::List> priors);
+RcppExport SEXP _metaSDT_r_estimate_mcmc(SEXP dfSEXP, SEXP colnamesSEXP, SEXP paramsSEXP, SEXP modelSEXP, SEXP controlSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP priorsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type colnames(colnamesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::RObject> >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type upper(upperSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type priors(priorsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_estimate_mcmc(df, colnames, params, model, control, lower, upper, priors));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -230,6 +248,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_criterion_posterior", (DL_FUNC) &_metaSDT_r_criterion_posterior, 3},
     {"_metaSDT_r_criterion_prior", (DL_FUNC) &_metaSDT_r_criterion_prior, 2},
     {"_metaSDT_r_estimate_map", (DL_FUNC) &_metaSDT_r_estimate_map, 8},
+    {"_metaSDT_r_estimate_mcmc", (DL_FUNC) &_metaSDT_r_estimate_mcmc, 8},
     {"_metaSDT_r_estimate_mle", (DL_FUNC) &_metaSDT_r_estimate_mle, 7},
     {"_metaSDT_r_info_data", (DL_FUNC) &_metaSDT_r_info_data, 2},
     {"_metaSDT_r_matrix_freq", (DL_FUNC) &_metaSDT_r_matrix_freq, 4},

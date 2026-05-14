@@ -6,6 +6,7 @@
 #include "../include/model_sdt.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <iostream>
 #include <set>
 #include <stdexcept>
@@ -191,14 +192,22 @@ std::vector<SubjectFitTask> build_fit_tasks(
                 /*custom_upper=*/custom_upper
             );
 
-            // [边界检查日志] 检查是否有自由参数的下界大于或等于上界 (这会导致优化器直接崩溃)
-            for (size_t p_idx = 0; p_idx < subj_params.numb_free; ++p_idx) {
-                if (subj_params.lower_bounds[p_idx] >= subj_params.upper_bounds[p_idx]) {
-                    std::cerr << "\n[Warning] Boundary conflict detected for subject " 
-                              << subid << " in condition '" << cond_name << "'.\n"
-                              << "Parameter index " << p_idx 
-                              << " has lower bound (" << subj_params.lower_bounds[p_idx]
-                              << ") >= upper bound (" << subj_params.upper_bounds[p_idx] << ").\n";
+            // 检查自由参数边界, 避免优化器在无效区间上直接失败.
+            const std::size_t n_free = static_cast<std::size_t>(
+                std::max(subj_params.numb_free, 0)
+            );
+            for (std::size_t p_idx = 0; p_idx < n_free; ++p_idx) {
+                if (subj_params.lower_bounds[p_idx] >=
+                    subj_params.upper_bounds[p_idx]) {
+                    std::cerr
+                        << "\n[Warning] Boundary conflict detected for "
+                        << "subject " << subid << " in condition '"
+                        << cond_name << "'.\n"
+                        << "Parameter index " << p_idx
+                        << " has lower bound ("
+                        << subj_params.lower_bounds[p_idx]
+                        << ") >= upper bound ("
+                        << subj_params.upper_bounds[p_idx] << ").\n";
                 }
             }
 
