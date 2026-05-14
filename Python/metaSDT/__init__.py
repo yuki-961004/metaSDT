@@ -5,7 +5,7 @@ from . import _help_data_info
 from . import _help_modify_params, _help_modify_prior
 from . import _estimate_mle, _estimate_map, _progress_bar
 from . import _progress_bar
-from . import _model_sdt, 
+from . import _model_sdt
 
 
 class _UI:

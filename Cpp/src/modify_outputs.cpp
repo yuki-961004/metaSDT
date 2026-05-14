@@ -31,7 +31,9 @@ std::vector<std::string> ordered_flat_names(
     const std::unordered_map<std::string, std::vector<double>>& best_params
 ) {
     std::vector<std::string> out;
-    std::vector<std::string> bases = ordered_base_names(user_order, best_params);
+    std::vector<std::string> bases = ordered_base_names(
+        user_order, best_params
+    );
 
     for (const auto& base : bases) {
         std::size_t p_len = 0;

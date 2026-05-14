@@ -33,7 +33,8 @@ std::vector<std::vector<std::vector<T>>> matrix_mult(
             std::to_string(prob_mat.size()) + " x " + 
             std::to_string(prob_mat[0].size()) + " x " + 
             std::to_string(prob_mat[0][0].size()) + "]. " +
-            "Check if the number of provided parameters (e.g., 'd') exactly matches the number of condition levels."
+            "Check if the number of provided parameters (e.g., 'd') exactly "
+            "matches the number of condition levels."
         );
     }
 
@@ -42,12 +43,15 @@ std::vector<std::vector<std::vector<T>>> matrix_mult(
     // ==========================================================
     // 提取防止 log(0) 的极小容差 calc_tol
     double calc_tol = 1e-10;
-    if (std_params.count("calc_tol") > 0 && !std_params.at("calc_tol").empty()) {
+    if (std_params.count("calc_tol") > 0 && 
+        !std_params.at("calc_tol").empty()) {
         calc_tol = static_cast<double>(std_params.at("calc_tol")[0]);
     }
 
     std::vector<std::vector<std::vector<T>>> result(
-        n_diffs, std::vector<std::vector<T>>(n_rows, std::vector<T>(n_cols, 0.0))
+        n_diffs, std::vector<std::vector<T>>(
+            n_rows, std::vector<T>(n_cols, 0.0)
+        )
     );
 
     // ==========================================================

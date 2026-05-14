@@ -32,7 +32,7 @@ FetchContent_Declare(
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(NLOPT_SHARED OFF CACHE BOOL "" FORCE)
 set(NLOPT_TESTS OFF CACHE BOOL "" FORCE)
-set(NLOPT_CXX OFF CACHE BOOL "" FORCE)
+set(NLOPT_CXX ON CACHE BOOL "" FORCE)
 set(NLOPT_CXX11 OFF CACHE BOOL "" FORCE)
 set(NLOPT_FORTRAN OFF CACHE BOOL "" FORCE)
 set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
@@ -52,6 +52,8 @@ add_library(metaSDT_core STATIC
     Cpp/src/matrix_prob.cpp
     Cpp/src/matrix_mult.cpp
     Cpp/src/build_objective.cpp
+    Cpp/src/algorithm_nlopt.cpp
+    Cpp/src/info_nlopt.cpp
     Cpp/src/modify_outputs.cpp
     Cpp/src/modify_control.cpp
     Cpp/src/progress_bar.cpp

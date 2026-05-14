@@ -68,7 +68,9 @@ namespace {
             }
         }
         if (diff != nullptr && diff->size() != n_rows) {
-            throw std::invalid_argument("Error: 'diff' must have the same length.");
+            throw std::invalid_argument(
+                "Error: 'diff' must have the same length."
+            );
         }
 
         // 逐行组装数据：第 0 列为 stim，第 1 列为 resp，第 2 列为 conf，第 3 列为 diff
@@ -147,13 +149,18 @@ namespace {
         if (is_discrete) {
             int expected_c_conf = static_cast<int>(unique_conf.size()) - 1;
             throw std::invalid_argument(
-                "Error: Mismatch between model parameters and discrete confidence data.\n"
-                "Your 'conf' data contains " + std::to_string(unique_conf.size()) + " discrete levels "
-                "(from " + format_double(min_c) + " to " + format_double(max_c) + "), "
-                "but the model is configured to expect only " + std::to_string(num_bins) + " levels per response.\n"
-                "If you intend to fit " + std::to_string(unique_conf.size()) + " confidence levels, "
-                "you must provide exactly " + std::to_string(expected_c_conf) + " 'c_conf' boundaries.\n"
-                "(Note: If your raw data is a 1-N rating scale, ensure it is split into a binary 'resp' column and a magnitude 'conf' column first)."
+                "Error: Mismatch between model parameters and discrete "
+                "confidence data.\nYour 'conf' data contains " + 
+                std::to_string(unique_conf.size()) + " discrete levels (from " +
+                format_double(min_c) + " to " + format_double(max_c) + "), "
+                "but the model is configured to expect only " + 
+                std::to_string(num_bins) + " levels per response.\n"
+                "If you intend to fit " + std::to_string(unique_conf.size()) + 
+                " confidence levels, you must provide exactly " + 
+                std::to_string(expected_c_conf) + " 'c_conf' boundaries.\n"
+                "(Note: If your raw data is a 1-N rating scale, ensure it is "
+                "split into a binary 'resp' column and a magnitude 'conf' "
+                "column first)."
             );
         }
 
@@ -230,7 +237,8 @@ MatrixFreq matrix_freq(
     // to that schema so missing observed bins become zero-count columns instead
     // of shrinking freq_mat dimensions and causing downstream mismatch.
     int expected_conf_bins = -1;
-    if (std_params != nullptr && std_params->count("n_conf") && !std_params->at("n_conf").empty()) {
+    if (std_params != nullptr && std_params->count("n_conf") && 
+        !std_params->at("n_conf").empty()) {
         int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
         expected_conf_bins = (n_criteria + 1) / 2;
         if (expected_conf_bins > 1) {
@@ -288,7 +296,7 @@ MatrixFreq matrix_freq(
         );
         if (conf_idx < 0 && expected_conf_bins > 1) {
             double c = num_mat[i][2];
-            // Fallback for unusual coding: linearly project to 1..expected bins.
+            // Fallback for unusual coding: linearly project to expected bins.
             int mapped = static_cast<int>(std::round(c));
             if (mapped < 1) mapped = 1;
             if (mapped > expected_conf_bins) mapped = expected_conf_bins;

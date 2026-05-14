@@ -290,12 +290,18 @@ ModifiedParamsResult modify_params(
             double current_ub = ub_base;
             
             if (custom_lower.count(key)) {
-                if (custom_lower.at(key).size() > i) current_lb = custom_lower.at(key)[i];
-                else if (custom_lower.at(key).size() == 1) current_lb = custom_lower.at(key)[0];
+                if (custom_lower.at(key).size() > i) {
+                    current_lb = custom_lower.at(key)[i];
+                } else if (custom_lower.at(key).size() == 1) {
+                    current_lb = custom_lower.at(key)[0];
+                }
             }
             if (custom_upper.count(key)) {
-                if (custom_upper.at(key).size() > i) current_ub = custom_upper.at(key)[i];
-                else if (custom_upper.at(key).size() == 1) current_ub = custom_upper.at(key)[0];
+                if (custom_upper.at(key).size() > i) {
+                    current_ub = custom_upper.at(key)[i];
+                } else if (custom_upper.at(key).size() == 1) {
+                    current_ub = custom_upper.at(key)[0];
+                }
             }
 
             result.lower_bounds.push_back(current_lb);

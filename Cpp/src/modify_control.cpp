@@ -12,7 +12,9 @@ std::string to_lower(std::string s) {
 }
 }
 
-NLoptControl modify_control(const NLoptControl& input, const std::string& estimator) {
+NLoptControl modify_control(
+    const NLoptControl& input, const std::string& estimator
+) {
     NLoptControl out = input;
 
     if (out.algorithm.empty()) out.algorithm = "LN_BOBYQA";
@@ -30,8 +32,12 @@ NLoptControl modify_control(const NLoptControl& input, const std::string& estima
         out.progress = "auto";
     }
     if (out.progress_refresh_ms <= 0) out.progress_refresh_ms = 100;
-    if (out.progress_line_interval_sec <= 0.0) out.progress_line_interval_sec = 2.0;
-    if (out.progress_line_interval_pct <= 0.0) out.progress_line_interval_pct = 5.0;
+    if (out.progress_line_interval_sec <= 0.0) {
+        out.progress_line_interval_sec = 2.0;
+    }
+    if (out.progress_line_interval_pct <= 0.0) {
+        out.progress_line_interval_pct = 5.0;
+    }
 
     const std::string mode = to_lower(estimator);
     if (mode == "map") {

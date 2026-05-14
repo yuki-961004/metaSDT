@@ -24,7 +24,9 @@ namespace ui {
 namespace {
 
 std::string to_lower(std::string s) {
-    for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    for (char& c : s) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
     return s;
 }
 
@@ -35,7 +37,10 @@ bool env_true(const char* name) {
 
 class ProgressCore {
 public:
-    void start(std::size_t total, const std::string& title, int refresh_ms, const ProgressOptions& options) {
+    void start(
+        std::size_t total, const std::string& title, int refresh_ms, 
+        const ProgressOptions& options
+    ) {
         std::lock_guard<std::mutex> lock(mu_);
         total_ = total;
         current_ = 0;
@@ -90,10 +95,16 @@ public:
         s.total = total_;
         s.completed = current_;
         const auto now = std::chrono::steady_clock::now();
-        s.elapsed_sec = std::chrono::duration<double>(now - started_at_).count();
-        s.percent = (total_ > 0) ? (100.0 * static_cast<double>(current_) / static_cast<double>(total_)) : 0.0;
-        s.speed = (s.elapsed_sec > 1e-9) ? (static_cast<double>(current_) / s.elapsed_sec) : 0.0;
-        s.eta_sec = (s.speed > 1e-9 && total_ > current_) ? (static_cast<double>(total_ - current_) / s.speed) : 0.0;
+        s.elapsed_sec = std::chrono::duration<double>(
+            now - started_at_
+        ).count();
+        s.percent = (total_ > 0) ? 
+            (100.0 * static_cast<double>(current_) / 
+             static_cast<double>(total_)) : 0.0;
+        s.speed = (s.elapsed_sec > 1e-9) ? 
+            (static_cast<double>(current_) / s.elapsed_sec) : 0.0;
+        s.eta_sec = (s.speed > 1e-9 && total_ > current_) ? 
+            (static_cast<double>(total_ - current_) / s.speed) : 0.0;
         s.started = started_at_.time_since_epoch().count() != 0;
         s.running = running_;
         s.finished = finished_;
@@ -108,9 +119,13 @@ private:
         if (m == "dynamic" || m == "line" || m == "silent") return m;
 
         bool is_tty = UI_ISATTY(UI_FILENO(stdout)) != 0;
-        bool in_vscode_like = env_true("VSCODE_PID") || env_true("TERM_PROGRAM") || env_true("POSITRON_VERSION") || env_true("POSITRON_SESSION_ID");
-        bool in_jupyter = env_true("JPY_PARENT_PID") || env_true("IPYKERNEL_PARENT_PID") || env_true("JUPYTERHUB_USER");
-        bool in_quarto = env_true("QUARTO_PROJECT_ROOT") || env_true("QUARTO_PROFILE") || env_true("QUARTO_RENDER");
+        bool in_vscode_like = env_true("VSCODE_PID") || 
+            env_true("TERM_PROGRAM") || env_true("POSITRON_VERSION") || 
+            env_true("POSITRON_SESSION_ID");
+        bool in_jupyter = env_true("JPY_PARENT_PID") || 
+            env_true("IPYKERNEL_PARENT_PID") || env_true("JUPYTERHUB_USER");
+        bool in_quarto = env_true("QUARTO_PROJECT_ROOT") || 
+            env_true("QUARTO_PROFILE") || env_true("QUARTO_RENDER");
 
         if (in_jupyter || in_quarto || in_vscode_like || !is_tty) return "line";
         return "dynamic";
@@ -124,13 +139,20 @@ private:
         bool emit = force;
 
         if (!emit) {
-            const double sec_step = opts_.line_interval_sec > 0.0 ? opts_.line_interval_sec : 2.0;
-            const double pct_step = opts_.line_interval_pct > 0.0 ? opts_.line_interval_pct : 5.0;
-            const double elapsed_since_emit = std::chrono::duration<double>(now - last_emit_at_).count();
+            const double sec_step = opts_.line_interval_sec > 0.0 ? 
+                                    opts_.line_interval_sec : 2.0;
+            const double pct_step = opts_.line_interval_pct > 0.0 ? 
+                                    opts_.line_interval_pct : 5.0;
+            const double elapsed_since_emit = 
+                std::chrono::duration<double>(now - last_emit_at_).count();
             if (s.resolved_mode == "dynamic") {
-                emit = elapsed_since_emit >= (static_cast<double>(opts_.refresh_ms > 0 ? opts_.refresh_ms : 100) / 1000.0);
+                emit = elapsed_since_emit >= 
+                    (static_cast<double>(
+                        opts_.refresh_ms > 0 ? opts_.refresh_ms : 100
+                    ) / 1000.0);
             } else {
-                emit = (elapsed_since_emit >= sec_step) || (s.percent >= last_emit_pct_ + pct_step);
+                emit = (elapsed_since_emit >= sec_step) || 
+                       (s.percent >= last_emit_pct_ + pct_step);
             }
         }
 
@@ -140,7 +162,10 @@ private:
         if (s.resolved_mode == "dynamic") {
             const int bar_width = 24;
             const int filled = (s.total > 0)
-                ? static_cast<int>(std::round((static_cast<double>(s.completed) / static_cast<double>(s.total)) * bar_width))
+                ? static_cast<int>(std::round(
+                    (static_cast<double>(s.completed) / 
+                     static_cast<double>(s.total)) * bar_width
+                  ))
                 : 0;
             oss << "\r" << s.title << " [";
             for (int i = 0; i < bar_width; ++i) oss << (i < filled ? '=' : ' ');
@@ -194,7 +219,10 @@ ProgressCore& core() {
 
 } // namespace
 
-void progress_start(std::size_t total, const std::string& title, int refresh_ms, const ProgressOptions& options) {
+void progress_start(
+    std::size_t total, const std::string& title, int refresh_ms, 
+    const ProgressOptions& options
+) {
     core().start(total, title, refresh_ms, options);
 }
 
