@@ -89,7 +89,6 @@ std::vector<SubjectFitTask> build_fit_tasks(
 
             sub_stim.reserve(row_indices.size());
             sub_resp.reserve(row_indices.size());
-
             if (full_conf_ptr != nullptr) {
                 sub_conf.reserve(row_indices.size());
             }
@@ -182,7 +181,6 @@ std::vector<SubjectFitTask> build_fit_tasks(
 double nll(unsigned n, const double* x, double* grad, void* f_data) {
     try {
         SubjectFitTask* task = static_cast<SubjectFitTask*>(f_data);
-
         auto std_params = task->params.flat;
         size_t x_idx = 0;
         std::vector<double> free_params_vec;
@@ -255,4 +253,3 @@ double nll(unsigned n, const double* x, double* grad, void* f_data) {
         return 1e10;
     }
 }
-

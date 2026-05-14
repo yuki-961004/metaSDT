@@ -3,6 +3,10 @@
 #include <stdexcept>
 #include <string>
 
+/* ========================================================================== *
+ *                      NLopt Optimizer Construction Helpers                   *
+ * ========================================================================== */
+
 void sanitize_initial_point(
     std::vector<double>& x0,
     const std::vector<double>& lower_bounds,
@@ -36,6 +40,7 @@ nlopt::opt create_nlopt_optimizer(
         control.algorithm.find("AUGLAG") != std::string::npos) {
         nlopt::opt local_opt(control.local_algorithm.c_str(), n_params);
         local_opt.set_xtol_rel(control.xtol_rel);
+
         if (control.ftol_rel > 0) {
             local_opt.set_ftol_rel(control.ftol_rel);
         }
@@ -45,6 +50,7 @@ nlopt::opt create_nlopt_optimizer(
         if (control.xtol_abs > 0) {
             local_opt.set_xtol_abs(control.xtol_abs);
         }
+
         opt.set_local_optimizer(local_opt);
     }
 
@@ -82,13 +88,14 @@ nlopt::opt create_nlopt_optimizer(
         }
         opt.set_x_weights(control.x_weights);
     }
+
     if (control.vector_storage > 0) {
         opt.set_vector_storage(control.vector_storage);
     }
+
     for (const auto& kv : control.nlopt_params) {
         opt.set_param(kv.first.c_str(), kv.second);
     }
 
     return opt;
 }
-
