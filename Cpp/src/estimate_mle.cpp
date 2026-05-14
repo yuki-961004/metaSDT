@@ -32,7 +32,7 @@ std::vector<SubjectFitResult> estimate_mle(
     const NLoptControl control = modify_control(raw_control, "mle");
 
 #ifdef _OPENMP
-    // 如果有指定，动态定义全局核心利用率
+    // 如果有指定, 动态定义全局核心利用率
     if (control.threads > 0) {
         omp_set_num_threads(control.threads);
     }
@@ -55,7 +55,7 @@ std::vector<SubjectFitResult> estimate_mle(
     std::vector<SubjectFitResult> results(tasks.size());
     const int n_tasks = static_cast<int>(tasks.size());
 
-    // 如果启用了打印且存在任务，则初始化进度条
+    // 如果启用了打印且存在任务, 则初始化进度条
     if (control.print_level > 0 && n_tasks > 0) {
         ui::ProgressOptions popts;
         popts.mode = control.progress;
@@ -70,7 +70,7 @@ std::vector<SubjectFitResult> estimate_mle(
         );
     }
 
-    // 如果 OpenMP 可用，则跨被试并行化任务执行
+    // 如果 OpenMP 可用, 则跨被试并行化任务执行
     #pragma omp parallel for
     for (int i = 0; i < n_tasks; ++i) {
         auto& task = tasks[i];
@@ -150,7 +150,7 @@ std::vector<SubjectFitResult> estimate_mle(
 
             res.aic = 2.0 * task.params.numb_free - 2.0 * res.logL;
             
-            // 如果 N 为非正数，则处理 BIC 的边缘情况
+            // 如果 N 为非正数, 则处理 BIC 的边缘情况
             if (N > 0.0) {
                 res.bic = task.params.numb_free * std::log(N) - 2.0 * res.logL;
             } else {
@@ -167,7 +167,7 @@ std::vector<SubjectFitResult> estimate_mle(
                 std::sort(best_p["c_conf"].begin(), best_p["c_conf"].end());
             }
             
-            // 如果需要排序，则对标准差 'd' 进行排序
+            // 如果需要排序, 则对标准差 'd' 进行排序
             if (best_p.count("d") && best_p.count("sort_d") &&
                 !best_p["sort_d"].empty() && best_p["sort_d"][0] != 0.0) {
                 std::sort(best_p["d"].rbegin(), best_p["d"].rend());
@@ -183,17 +183,17 @@ std::vector<SubjectFitResult> estimate_mle(
                           << " fitting failed: " << e.what() << "\n";
             }
             
-            // 如果状态没有被设置为错误，则设置为 -1
+            // 如果状态没有被设置为错误, 则设置为 -1
             if (res.status == 0) {
                 res.status = -1;
             }
             
-            // 如果没有结果信息，则使用异常信息
+            // 如果没有结果信息, 则使用异常信息
             if (res.result_message.empty()) {
                 res.result_message = e.what();
             }
             
-            // 如果停止原因没有设置，则标记为异常
+            // 如果停止原因没有设置, 则标记为异常
             if (res.stop_reason.empty()) {
                 res.stop_reason = "exception";
             }

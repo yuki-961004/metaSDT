@@ -6,8 +6,8 @@
  *                    NLopt Status and Diagnostics Module                     *
  * ========================================================================== */
 
-// 将 NLopt 的结果码映射为面向用户的可读消息。
-// 该消息用于日志与结果表展示，强调“发生了什么”。
+// 将 NLopt 的结果码映射为面向用户的可读消息
+// 该消息用于日志与结果表展示, 强调"发生了什么"
 std::string nlopt_result_message(nlopt::result code) {
     switch (code) {
         case nlopt::SUCCESS:
@@ -37,8 +37,8 @@ std::string nlopt_result_message(nlopt::result code) {
     }
 }
 
-// 将 NLopt 结果码映射为项目内部统一的 stop_reason 标签。
-// 该标签用于跨模块统计（MLE/MAP）与下游程序化判断。
+// 将 NLopt 结果码映射为项目内部统一的 stop_reason 标签
+// 该标签用于跨模块统计(MLE/MAP)与下游程序化判断
 std::string nlopt_stop_reason(nlopt::result code) {
     switch (code) {
         case nlopt::STOPVAL_REACHED:
@@ -62,8 +62,8 @@ std::string nlopt_stop_reason(nlopt::result code) {
     }
 }
 
-// 将 NLopt 结果码映射为稳定的枚举名字符串。
-// 相比 message，此字段更适合机器检索与问题定位。
+// 将 NLopt 结果码映射为稳定的枚举名字符串
+// 相比 message, 此字段更适合机器检索与问题定位
 std::string nlopt_result_code_name(nlopt::result code) {
     switch (code) {
         case nlopt::SUCCESS:
@@ -93,13 +93,13 @@ std::string nlopt_result_code_name(nlopt::result code) {
     }
 }
 
-// NLopt 约定: 正值表示成功终止。
+// NLopt 约定: 正值表示成功终止
 bool nlopt_is_success(nlopt::result code) {
     return static_cast<int>(code) > 0;
 }
 
-// 判断是否属于“达到停止条件”的终止，
-// 包括容差收敛、预算耗尽和强制停止等非致命结束路径。
+// 判断是否属于"达到停止条件"的终止
+// 包括容差收敛, 预算耗尽和强制停止等非致命结束路径
 bool nlopt_is_stopping_condition(nlopt::result code) {
     switch (code) {
         case nlopt::STOPVAL_REACHED:
@@ -115,13 +115,13 @@ bool nlopt_is_stopping_condition(nlopt::result code) {
     }
 }
 
-// NLopt 约定: 负值表示错误。
+// NLopt 约定: 负值表示错误
 bool nlopt_is_error(nlopt::result code) {
     return static_cast<int>(code) < 0;
 }
 
-// 汇总所有诊断字段，构造结构化状态对象。
-// 该函数是外部模块获取 NLopt 状态信息的统一入口。
+// 汇总所有诊断字段, 构造结构化状态对象
+// 该函数是外部模块获取 NLopt 状态信息的统一入口
 NLoptStatusInfo nlopt_status_info(nlopt::result code) {
     NLoptStatusInfo out;
     out.code = static_cast<int>(code);
@@ -134,7 +134,7 @@ NLoptStatusInfo nlopt_status_info(nlopt::result code) {
     return out;
 }
 
-// 生成单行状态摘要，便于日志落盘与快速排障。
+// 生成单行状态摘要, 便于日志落盘与快速排障
 // 格式示例: code=4,name=MAXEVAL_REACHED,reason=maxeval,message=...
 std::string nlopt_status_summary(nlopt::result code) {
     const NLoptStatusInfo info = nlopt_status_info(code);

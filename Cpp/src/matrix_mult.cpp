@@ -45,7 +45,7 @@ std::vector<std::vector<std::vector<T>>> matrix_mult(
 /* ========================================================================== *
  *                    2. Numeric Stability Parameters                         *
  * ========================================================================== */
-    // calc_tol 用于避免出现 log(0)，默认使用较小正值。
+    // calc_tol 用于避免出现 log(0), 默认使用较小正值
     double calc_tol = 1e-10;
     if (std_params.count("calc_tol") > 0 &&
         !std_params.at("calc_tol").empty()) {
@@ -67,7 +67,7 @@ std::vector<std::vector<std::vector<T>>> matrix_mult(
                 T p = prob_mat[d][i][j];
                 double freq = freq_mat[d][i][j];
 
-                // 将概率压到安全区间，避免极端值造成数值错误。
+                // 将概率压到安全区间, 避免极端值造成数值错误
                 T p_adj =
                     (1.0 - calc_tol * static_cast<double>(n_cols)) * p +
                     calc_tol;

@@ -13,7 +13,7 @@ DataInfoResult info_data(
 /* ========================================================================== *
  *                          1. Column Role Matching                           *
  * ========================================================================== */
-    // 使用简写作为标准角色名.
+    // 使用简写作为标准角色名
     std::vector<std::pair<std::string, std::string>> targets = {
         {"subid", ".*(sub|id|participant).*"},
         {"trial", ".*trial.*"},
@@ -46,7 +46,7 @@ DataInfoResult info_data(
         const std::string& role = tgt.first;
         const std::string& pattern_str = tgt.second;
 
-        // 如果该角色还没有被用户显式指定，则尝试正则匹配.
+        // 如果该角色还没有被用户显式指定, 则尝试正则匹配
         if (!result.colnames.count(role)) {
             std::regex re(pattern_str, std::regex_constants::icase);
             for (const auto& kv : df) {
@@ -88,7 +88,7 @@ DataInfoResult info_data(
         );
     }
 
-    // 校验所有映射的列名是否在数据集中真实存在.
+    // 校验所有映射的列名是否在数据集中真实存在
     for (const auto& kv : result.colnames) {
         if (!df.count(kv.second)) {
             throw std::invalid_argument(
@@ -118,32 +118,32 @@ DataInfoResult info_data(
 
     std::unordered_map<double, std::unordered_set<int>> subject_blocks;
 
-    // 遍历原始数据的每一行.
+    // 遍历原始数据的每一行
     for (size_t i = 0; i < n_rows; ++i) {
         double subid = df.at(subid_col)[i];
         
-        // 提取该被试对应的引用，如果这是他/她的第一条数据，.
-        // 将自动在 map 中初始化.
+        // 提取该被试对应的引用, 如果这是他/她的第一条数据
+        // 将自动在 map 中初始化
         DataInfoSubject& subj = result.subjects[subid];
 
-        // 添加极其省内存的行号索引.
+        // 添加极其省内存的行号索引
         subj.raw.push_back(i);
         subj.info.n_trials++;
 
-        // 处理 block 统计信息.
+        // 处理 block 统计信息
         if (!block_col.empty() && df.count(block_col)) {
             int b = static_cast<int>(df.at(block_col)[i]);
             subject_blocks[subid].insert(b); // 记录出现过的 block 编号
         }
 
-        // 处理 condition 分组.
+        // 处理 condition 分组
         if (!cond_col.empty() && df.count(cond_col)) {
             std::ostringstream cond_key;
             cond_key << df.at(cond_col)[i];
             subj.condition[cond_key.str()].push_back(i);
         }
         
-        // 处理 difficulty 分组.
+        // 处理 difficulty 分组 (难度)
         if (!diff_col.empty() && df.count(diff_col)) {
             std::ostringstream diff_key;
             diff_key << df.at(diff_col)[i];

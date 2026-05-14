@@ -47,7 +47,7 @@ std::vector<SubjectFitResult> em_e_step(
     std::vector<SubjectFitResult> results(tasks.size());
     const int n_tasks = static_cast<int>(tasks.size());
 
-    // 如果启用了打印且存在任务，则初始化进度条
+    // 如果启用了打印且存在任务, 则初始化进度条
     if (control.print_level > 0 && n_tasks > 0 && !progress_title.empty()) {
         ui::ProgressOptions popts;
         popts.mode = control.progress;
@@ -62,7 +62,7 @@ std::vector<SubjectFitResult> em_e_step(
         );
     }
 
-    // 如果 OpenMP 可用，则跨被试并行化任务执行
+    // 如果 OpenMP 可用, 则跨被试并行化任务执行
     #pragma omp parallel for
     for (int i = 0; i < n_tasks; ++i) {
         auto& task = tasks[i];
@@ -123,7 +123,7 @@ std::vector<SubjectFitResult> em_e_step(
                 std::sort(best_p["c_conf"].begin(), best_p["c_conf"].end());
             }
             
-            // 如果需要排序，则对标准差 'd' 进行排序
+            // 如果需要排序, 则对标准差 'd' 进行排序
             if (best_p.count("d") && best_p.count("sort_d") &&
                 !best_p["sort_d"].empty() && best_p["sort_d"][0] != 0.0) {
                 std::sort(best_p["d"].rbegin(), best_p["d"].rend());
@@ -196,7 +196,7 @@ std::vector<SubjectFitResult> em_e_step(
             
             res.aic = 2.0 * task.params.numb_free - 2.0 * res.logL;
             
-            // 如果 N 为非正数，则处理 BIC 的边缘情况
+            // 如果 N 为非正数, 则处理 BIC 的边缘情况
             if (N > 0.0) {
                 res.bic = task.params.numb_free * std::log(N) - 2.0 * res.logL;
             } else {
@@ -246,13 +246,13 @@ CondRunResult em_m_step(
 ) {
     CondRunResult out;
     
-    // 如果没有提供任务，则提前返回
+    // 如果没有提供任务, 则提前返回
     if (tasks.empty()) {
         out.stop_reason = "empty";
         return out;
     }
 
-    // 如果需要，使用最大似然估计进行初始化
+    // 如果需要, 使用最大似然估计进行初始化
     if (control.em_init_mle) {
         std::vector<SubjectFitTask> mle_tasks = tasks;
         
@@ -287,7 +287,7 @@ CondRunResult em_m_step(
     out.results = best_results;
     out.stop_reason = "init_only";
 
-    // 如果需要，初始化 EM 循环的可视化进度跟踪
+    // 如果需要, 初始化 EM 循环的可视化进度跟踪
     if (control.print_level > 0 && control.em_max_iter > 0) {
         std::string title = "MAP";
         
@@ -364,7 +364,7 @@ CondRunResult em_m_step(
             return out;
         }
 
-        // 如果目标值增加则保留最佳结果，否则减少耐心值
+        // 如果目标值增加则保留最佳结果, 否则减少耐心值
         if (sum_logpost > best_sum_logpost) {
             best_sum_logpost = sum_logpost;
             best_results = current;
@@ -386,7 +386,7 @@ CondRunResult em_m_step(
 
         prev_sum_logpost = sum_logpost;
 
-        // 如果连续迭代没有产生改进，则终止
+        // 如果连续迭代没有产生改进, 则终止
         if (use_patience && patience_left <= 0) {
             out.stop_reason = "em_patience";
             if (control.print_level > 0 && control.em_max_iter > 0) {
@@ -426,7 +426,7 @@ std::vector<SubjectFitResult> estimate_map(
     const NLoptControl control = modify_control(raw_control, "map");
 
 #ifdef _OPENMP
-    // 如果有指定，动态定义全局核心利用率
+    // 如果有指定, 动态定义全局核心利用率
     if (control.threads > 0) {
         omp_set_num_threads(control.threads);
     }
@@ -448,7 +448,7 @@ std::vector<SubjectFitResult> estimate_map(
         user_priors
     );
 
-    // 如果没有找到有效目标，则跳过计算并返回空结果
+    // 如果没有找到有效目标, 则跳过计算并返回空结果
     if (tasks.empty()) {
         return {};
     }
@@ -461,7 +461,7 @@ std::vector<SubjectFitResult> estimate_map(
 
     std::string condition_col_name;
     const auto it_cond = colnames.find("condition");
-    // 如果命名映射中可用，则分配适当的列条件
+    // 如果命名映射中可用, 则分配适当的列条件
     if (it_cond != colnames.end()) {
         condition_col_name = it_cond->second;
     }
@@ -484,12 +484,12 @@ std::vector<SubjectFitResult> estimate_map(
             cond_res.results.end()
         );
         
-        // 如果绑定了追踪器，则记录各个条件的迭代次数
+        // 如果绑定了追踪器, 则记录各个条件的迭代次数
         if (em_iterations_by_cond != nullptr) {
             (*em_iterations_by_cond)[kv.first] = cond_res.iter_used;
         }
         
-        // 如果绑定了追踪器，则输出每个条件的详细退出状态
+        // 如果绑定了追踪器, 则输出每个条件的详细退出状态
         if (em_stop_reason_by_cond != nullptr) {
             (*em_stop_reason_by_cond)[kv.first] = cond_res.stop_reason;
         }
