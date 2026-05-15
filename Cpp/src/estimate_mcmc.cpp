@@ -1,7 +1,7 @@
 #include "../include/estimate_mcmc.hpp"
 
 #include "../include/algorithm_stan.hpp"
-#include "../include/build_objective.hpp"
+#include "../include/task_builder.hpp"
 #include "../include/modify_outputs.hpp"
 #include "../include/progress_bar.hpp"
 
@@ -34,25 +34,25 @@ SubjectMCMCResult run_subject_mcmc(
     std::vector<double> initial = task.params.extract_free_vector(
         task.params.flat
     );
-    stan_sanitize_initial_point(
+    StanAdapter::sanitize_initial_point(
         initial,
         task.params.lower_bounds,
         task.params.upper_bounds
     );
 
-    StanPosteriorAdapter adapter(task);
+    StanAdapter::Adapter adapter(task);
     const Eigen::VectorXd initial_unconstrained =
         adapter.unconstrain(initial);
 
     std::vector<HMCSamplerResult> chain_results;
     chain_results.reserve(static_cast<size_t>(control.chains));
 
-    // 每条链顺序运行, 外层被试并行负责利用多核资源
+    // 每条链顺序运行, 外层被试并行负责利用多核资源.
     for (int chain = 0; chain < control.chains; ++chain) {
-        // algorithm 在 modify_control 中已规范化为 nuts 或 static_hmc.
+        // algorithm 在 modify_control 中已经规范化为 nuts 或 static_hmc.
         if (control.algorithm == "nuts") {
             chain_results.push_back(
-                run_nuts_chain(
+                NUTS::run_chain(
                     adapter,
                     initial_unconstrained,
                     control,
@@ -63,7 +63,7 @@ SubjectMCMCResult run_subject_mcmc(
         }
 
         chain_results.push_back(
-            run_hmc_chain(
+            HMC::run_chain(
                 adapter,
                 initial_unconstrained,
                 control,
@@ -99,7 +99,7 @@ std::vector<SubjectMCMCResult> estimate_mcmc(
     const StanControl control = modify_control(raw_control, "mcmc");
 
 #ifdef _OPENMP
-    // 如果用户指定线程数, 则覆盖 OpenMP 默认线程设置
+    // 如果用户指定线程数, 则覆盖 OpenMP 默认线程设置.
     if (control.threads > 0) {
         omp_set_num_threads(control.threads);
     }

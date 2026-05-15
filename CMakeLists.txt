@@ -1,18 +1,18 @@
-cmake_minimum_required(VERSION 3.15...3.27)
+﻿cmake_minimum_required(VERSION 3.15...3.27)
 project(metaSDT_Core CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-# [关键设置] 关闭编译器特有扩展(如 gnu++17), 保证底层数学库在全平台的绝对兼容性
+# [鍏抽敭璁剧疆] 鍏抽棴缂栬瘧鍣ㄧ壒鏈夋墿灞?濡?gnu++17), 淇濊瘉搴曞眰鏁板搴撳湪鍏ㄥ钩鍙扮殑缁濆鍏煎鎬?
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# 1. 启用 OpenMP 支持多线程并行加速
+# 1. 鍚敤 OpenMP 鏀寔澶氱嚎绋嬪苟琛屽姞閫?
 find_package(OpenMP REQUIRED)
 if(MSVC)
-    add_compile_options(/utf-8 /wd4819 /wd4267 /wd4101) # 强制 UTF-8 编码并屏蔽 MSVC 警告
+    add_compile_options(/utf-8 /wd4819 /wd4267 /wd4101) # 寮哄埗 UTF-8 缂栫爜骞跺睆钄?MSVC 璀﹀憡
 endif()
 
-# 2. 现场拉取并极简编译 NLopt
+# 2. 鐜板満鎷夊彇骞舵瀬绠€缂栬瘧 NLopt
 include(FetchContent)
 FetchContent_Declare(
   eigen
@@ -28,7 +28,7 @@ FetchContent_Declare(
   GIT_TAG master
   GIT_SHALLOW TRUE
 )
-# 强制关闭不需要的组件，只编译纯净的静态优化库
+# 寮哄埗鍏抽棴涓嶉渶瑕佺殑缁勪欢锛屽彧缂栬瘧绾噣鐨勯潤鎬佷紭鍖栧簱
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(NLOPT_SHARED OFF CACHE BOOL "" FORCE)
 set(NLOPT_TESTS OFF CACHE BOOL "" FORCE)
@@ -77,7 +77,7 @@ foreach(stan_tbb_dir ${METASDT_STAN_TBB_DIRS})
     list(APPEND METASDT_STAN_MATH_INCLUDE_DIRS "${stan_tbb_dir}/include")
 endforeach()
 
-# 3. 编译核心 C++ 源码为单独的静态库 (注意现在的路径以项目根目录为基准)
+# 3. 缂栬瘧鏍稿績 C++ 婧愮爜涓哄崟鐙殑闈欐€佸簱 (娉ㄦ剰鐜板湪鐨勮矾寰勪互椤圭洰鏍圭洰褰曚负鍩哄噯)
 add_library(metaSDT_core STATIC
     Cpp/src/modify_params.cpp
     Cpp/src/modify_prior.cpp
@@ -95,7 +95,7 @@ add_library(metaSDT_core STATIC
 
     Cpp/src/algorithm_nlopt.cpp
     Cpp/src/algorithm_stan.cpp
-    Cpp/src/build_objective.cpp
+    Cpp/src/task_builder.cpp
     Cpp/src/estimate_mle.cpp
     Cpp/src/estimate_map.cpp
     Cpp/src/estimate_mcmc.cpp
@@ -103,12 +103,14 @@ add_library(metaSDT_core STATIC
     Cpp/src/progress_bar.cpp
 )
 
-# 开启 fPIC 确保能够链接入后续的 Python/R 动态库中
+# 寮€鍚?fPIC 纭繚鑳藉閾炬帴鍏ュ悗缁殑 Python/R 鍔ㄦ€佸簱涓?
 set_property(TARGET metaSDT_core PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(metaSDT_core PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Cpp/include>
     $<BUILD_INTERFACE:${eigen_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${nlopt_BINARY_DIR}>
+    $<BUILD_INTERFACE:${nlopt_SOURCE_DIR}/src/api>
     $<INSTALL_INTERFACE:include>
 )
 target_include_directories(
@@ -117,17 +119,16 @@ target_include_directories(
     ${METASDT_STAN_MATH_INCLUDE_DIRS}
 )
 
-# [解耦修复] Eigen 现在作为纯本地头文件存在, 不再作为 CMake Target 链接
-# Stan Math 仅供 estimate_mcmc 内部编译使用, 不暴露到公共头文件接口
-target_link_libraries(metaSDT_core PUBLIC nlopt OpenMP::OpenMP_CXX)
+# [瑙ｈ€︿慨澶峕 Eigen 鐜板湪浣滀负绾湰鍦板ご鏂囦欢瀛樺湪, 涓嶅啀浣滀负 CMake Target 閾炬帴
+# Stan Math 浠呬緵 estimate_mcmc 鍐呴儴缂栬瘧浣跨敤, 涓嶆毚闇插埌鍏叡澶存枃浠舵帴鍙?target_link_libraries(metaSDT_core PUBLIC nlopt OpenMP::OpenMP_CXX)
 
 # ==============================================================================
-# 4. 导出与安装系?(Export & Install) - 预编译解耦的核心
+# 4. 瀵煎嚭涓庡畨瑁呯郴?(Export & Install) - 棰勭紪璇戣В鑰︾殑鏍稿績
 # ==============================================================================
 include(GNUInstallDirs)
 
-# 4.1 安装前清理旧产物(仅清理 metaSDT 自己的安装内容)
-# 目的: 保留增量编译速度, 同时避免 install 前缀中残留过时文件
+# 4.1 瀹夎鍓嶆竻鐞嗘棫浜х墿(浠呮竻鐞?metaSDT 鑷繁鐨勫畨瑁呭唴瀹?
+# 鐩殑: 淇濈暀澧為噺缂栬瘧閫熷害, 鍚屾椂閬垮厤 install 鍓嶇紑涓畫鐣欒繃鏃舵枃浠?
 option(METASDT_PREINSTALL_CLEAN
        "Remove stale installed metaSDT artifacts before install"
        ON)
@@ -162,28 +163,31 @@ if(METASDT_PREINSTALL_CLEAN)
         execute_process(
             COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
                     \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/sampler_hmc.hpp\")
+        execute_process(
+            COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/build_objective.hpp\")
     ")
 endif()
 
-# 导出目标?(静态库本体)
+# 瀵煎嚭鐩爣?(闈欐€佸簱鏈綋)
 install(TARGETS metaSDT_core EXPORT metaSDT_Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# 导出头文?
+# 瀵煎嚭澶存枃?
 install(DIRECTORY Cpp/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# [核心修复] 连带 Eigen 的头文件一起导出, 防止 Python 包装器编译时报找不到 <Eigen/Dense>
+# [鏍稿績淇] 杩炲甫 Eigen 鐨勫ご鏂囦欢涓€璧峰鍑? 闃叉 Python 鍖呰鍣ㄧ紪璇戞椂鎶ユ壘涓嶅埌 <Eigen/Dense>
 install(DIRECTORY ${eigen_SOURCE_DIR}/Eigen DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# 导出��?find_package 使用��?Target 配置
+# 瀵煎嚭锟斤拷?find_package 浣跨敤锟斤拷?Target 閰嶇疆
 install(EXPORT metaSDT_Targets 
         FILE metaSDT_coreTargets.cmake 
         NAMESPACE metaSDT::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core)
 
-# 自动生成 Config.cmake (让外部项目能 find_package(metaSDT_core))
+# 鑷姩鐢熸垚 Config.cmake (璁╁閮ㄩ」鐩兘 find_package(metaSDT_core))
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/metaSDT_coreConfig.cmake"
      "include(CMakeFindDependencyMacro)\n"
      "find_dependency(OpenMP)\n"
@@ -192,7 +196,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/metaSDT_coreConfig.cmake"
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/metaSDT_coreConfig.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core)
 
-# 5. 根据构建环境挂载前端拓展 (保留后门兼容全量构建)
-if(SKBUILD) # SKBUILD ?scikit-build-core 启动时自动注入的标志
+# 5. 鏍规嵁鏋勫缓鐜鎸傝浇鍓嶇鎷撳睍 (淇濈暀鍚庨棬鍏煎鍏ㄩ噺鏋勫缓)
+if(SKBUILD) # SKBUILD ?scikit-build-core 鍚姩鏃惰嚜鍔ㄦ敞鍏ョ殑鏍囧織
     add_subdirectory(Python)
 endif()

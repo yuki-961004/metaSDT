@@ -1,8 +1,3 @@
-# %% [markdown]
-# ---
-# title: "Untitled"
-# format: html
-# ---
 
 # %%
 # 1. 编译并加载整个 R 包 (指定包根目录为 ./R)
@@ -16,7 +11,7 @@ sub1 <- data |> dplyr::filter(subj_id == 1)
 
 #Rcpp::sourceCpp("./R/src/wrapper_data_info.cpp")
 
-info <- data_info(data)
+info <- info_data(data)
 
 # 1. 从 data_info 的结果中，提取出被试 '29' 的行号索引
 sub29 <- info$subjects$`29`$raw

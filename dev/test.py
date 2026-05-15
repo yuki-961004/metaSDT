@@ -18,7 +18,7 @@ data = pandas.read_csv("data/exp1.csv")
 # ==============================================================================
 print("\n=== Test 9: Data Info Helper 测试 ===")
 # 使用整个完整原始数据集 data，自动匹配列名，并假定 'stim' 为我们要切分的 condition 条件
-std_data = metaSDT.data_info(df=data)
+std_data = metaSDT.info_data(df=data)
 
 # 直接通过字典键 '1' 提取被试 1 的信息
 sub1_info = std_data["subjects"]["1"]

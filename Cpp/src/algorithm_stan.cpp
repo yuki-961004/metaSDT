@@ -15,11 +15,11 @@ namespace {
  *                              Numeric Helpers                               *
  * ========================================================================== */
 
-double stan_logit(double probability) {
+double logit(double probability) {
     return std::log(probability) - std::log1p(-probability);
 }
 
-double stan_inv_logit(double value) {
+double inv_logit(double value) {
     if (value >= 0.0) {
         const double exp_neg = std::exp(-value);
         return 1.0 / (1.0 + exp_neg);
@@ -29,30 +29,35 @@ double stan_inv_logit(double value) {
     return exp_pos / (1.0 + exp_pos);
 }
 
-double stan_log_inv_logit(double value) {
+double log_inv_logit(double value) {
     if (value >= 0.0) {
         return -std::log1p(std::exp(-value));
     }
     return value - std::log1p(std::exp(value));
 }
 
-double stan_log1m_inv_logit(double value) {
+double log1m_inv_logit(double value) {
     if (value >= 0.0) {
         return -value - std::log1p(std::exp(-value));
     }
     return -std::log1p(std::exp(value));
 }
 
-double stan_clamp_probability(double value) {
+double clamp_probability(double value) {
     const double eps = 1e-12;
     return std::max(eps, std::min(value, 1.0 - eps));
 }
 
-bool stan_is_finite(double value) {
+bool is_finite(double value) {
     return std::isfinite(value);
 }
 
-bool hmc_is_finite_vector(const Eigen::VectorXd& values) {
+} // namespace
+
+namespace HMC {
+namespace {
+
+bool is_finite_vector(const Eigen::VectorXd& values) {
     for (Eigen::Index i = 0; i < values.size(); ++i) {
         if (!std::isfinite(values(i))) {
             return false;
@@ -61,7 +66,7 @@ bool hmc_is_finite_vector(const Eigen::VectorXd& values) {
     return true;
 }
 
-double hmc_safe_accept_probability(double log_accept_ratio) {
+double safe_accept_probability(double log_accept_ratio) {
     if (!std::isfinite(log_accept_ratio)) {
         return 0.0;
     }
@@ -71,14 +76,14 @@ double hmc_safe_accept_probability(double log_accept_ratio) {
     return std::exp(log_accept_ratio);
 }
 
-Eigen::VectorXd hmc_draw_momentum(
+Eigen::VectorXd draw_momentum(
     Eigen::Index n_dim,
     std::mt19937_64& rng
 ) {
     std::normal_distribution<double> normal(0.0, 1.0);
     Eigen::VectorXd momentum(n_dim);
 
-    // 每个维度独立抽取标准正态动量, 对应单位质量矩阵
+    // 每个维度独立抽取标准正态动量, 对应单位质量矩阵.
     for (Eigen::Index i = 0; i < n_dim; ++i) {
         momentum(i) = normal(rng);
     }
@@ -86,7 +91,7 @@ Eigen::VectorXd hmc_draw_momentum(
     return momentum;
 }
 
-void hmc_jitter_initial(
+void jitter_initial(
     Eigen::VectorXd& initial,
     double jitter,
     std::mt19937_64& rng
@@ -97,19 +102,20 @@ void hmc_jitter_initial(
 
     std::normal_distribution<double> normal(0.0, jitter);
 
-    // 多链从轻微不同的起点出发, 降低完全同轨迹的风险
+    // 多链从轻微不同的起点出发, 降低完全同轨迹的风险.
     for (Eigen::Index i = 0; i < initial.size(); ++i) {
         initial(i) += normal(rng);
     }
 }
 
 } // namespace
+} // namespace HMC
 
 /* ========================================================================== *
  *                        Stan Posterior Adapter                              *
  * ========================================================================== */
 
-StanPosteriorAdapter::StanPosteriorAdapter(const SubjectFitTask& task)
+StanAdapter::Adapter::Adapter(const SubjectFitTask& task)
     : posterior_(
           task.freq.freq_mat,
           task.params.name_free,
@@ -120,7 +126,7 @@ StanPosteriorAdapter::StanPosteriorAdapter(const SubjectFitTask& task)
       lower_bounds_(task.params.lower_bounds),
       upper_bounds_(task.params.upper_bounds) {}
 
-double StanPosteriorAdapter::operator()(
+double StanAdapter::Adapter::criterion(
     const Eigen::VectorXd& unconstrained
 ) const {
     ++n_evals_;
@@ -131,39 +137,42 @@ double StanPosteriorAdapter::operator()(
         log_jacobian
     );
 
-    // 如果参数转换已经失败, 则返回负无穷使 HMC 自动拒绝
-    if (!stan_is_finite(log_jacobian)) {
+    // 如果参数转换失败, 返回负无穷, 让 HMC 自动拒绝该点.
+    if (!is_finite(log_jacobian)) {
         return -std::numeric_limits<double>::infinity();
     }
 
     const double log_posterior = posterior_.operator()<double>(constrained);
 
-    // CriterionPosterior 的值必须有限, 否则该 proposal 无效
-    if (!stan_is_finite(log_posterior)) {
+    // CriterionPosterior 的值必须有限, 否则该 proposal 无效.
+    if (!is_finite(log_posterior)) {
         return -std::numeric_limits<double>::infinity();
     }
 
     return log_posterior + log_jacobian;
 }
 
-void StanPosteriorAdapter::value_and_gradient(
+void StanAdapter::Adapter::gradient(
     const Eigen::VectorXd& unconstrained,
     double& log_prob,
     Eigen::VectorXd& gradient
 ) const {
     gradient.resize(unconstrained.size());
 
-    // Stan Math 在这里负责高阶有限差分梯度, 目标函数仍复用项目后验
+    // Stan Math 在这里像坡度尺, 只负责量出 criterion 的局部坡度.
+    auto criterion_fn = [this](const Eigen::VectorXd& value) {
+        return this->criterion(value);
+    };
     Eigen::VectorXd work = unconstrained;
     stan::math::finite_diff_gradient_auto(
-        *this,
+        criterion_fn,
         work,
         log_prob,
         gradient
     );
 }
 
-Eigen::VectorXd StanPosteriorAdapter::constrain(
+Eigen::VectorXd StanAdapter::Adapter::constrain(
     const Eigen::VectorXd& unconstrained,
     double& log_jacobian
 ) const {
@@ -175,24 +184,24 @@ Eigen::VectorXd StanPosteriorAdapter::constrain(
         const double z = unconstrained(i);
         const double lower = lower_bounds_[static_cast<size_t>(i)];
         const double upper = upper_bounds_[static_cast<size_t>(i)];
-        const bool has_lower = stan_is_finite(lower);
-        const bool has_upper = stan_is_finite(upper);
+        const bool has_lower = is_finite(lower);
+        const bool has_upper = is_finite(upper);
 
         if (has_lower && has_upper) {
             const double width = upper - lower;
 
-            // 上下界必须形成有效区间, 否则该目标函数无定义
+            // 上下界必须形成有效区间, 否则目标函数没有定义.
             if (width <= 0.0) {
                 log_jacobian = -std::numeric_limits<double>::infinity();
                 constrained(i) = std::numeric_limits<double>::quiet_NaN();
                 continue;
             }
 
-            const double probability = stan_inv_logit(z);
+            const double probability = inv_logit(z);
             constrained(i) = lower + width * probability;
             log_jacobian += std::log(width);
-            log_jacobian += stan_log_inv_logit(z);
-            log_jacobian += stan_log1m_inv_logit(z);
+            log_jacobian += log_inv_logit(z);
+            log_jacobian += log1m_inv_logit(z);
         } else if (has_lower) {
             constrained(i) = lower + std::exp(z);
             log_jacobian += z;
@@ -207,7 +216,7 @@ Eigen::VectorXd StanPosteriorAdapter::constrain(
     return constrained;
 }
 
-Eigen::VectorXd StanPosteriorAdapter::unconstrain(
+Eigen::VectorXd StanAdapter::Adapter::unconstrain(
     const std::vector<double>& constrained
 ) const {
     Eigen::VectorXd unconstrained(
@@ -218,8 +227,8 @@ Eigen::VectorXd StanPosteriorAdapter::unconstrain(
         const double value = constrained[i];
         const double lower = lower_bounds_[i];
         const double upper = upper_bounds_[i];
-        const bool has_lower = stan_is_finite(lower);
-        const bool has_upper = stan_is_finite(upper);
+        const bool has_lower = is_finite(lower);
+        const bool has_upper = is_finite(upper);
 
         if (has_lower && has_upper) {
             const double width = upper - lower;
@@ -229,11 +238,11 @@ Eigen::VectorXd StanPosteriorAdapter::unconstrain(
                 );
             }
 
-            const double probability = stan_clamp_probability(
+            const double probability = clamp_probability(
                 (value - lower) / width
             );
             unconstrained(static_cast<Eigen::Index>(i)) =
-                stan_logit(probability);
+                logit(probability);
         } else if (has_lower) {
             unconstrained(static_cast<Eigen::Index>(i)) =
                 std::log(std::max(value - lower, 1e-12));
@@ -248,7 +257,7 @@ Eigen::VectorXd StanPosteriorAdapter::unconstrain(
     return unconstrained;
 }
 
-std::vector<double> StanPosteriorAdapter::constrain_to_vector(
+std::vector<double> StanAdapter::Adapter::constrain_to_vector(
     const Eigen::VectorXd& unconstrained
 ) const {
     double log_jacobian = 0.0;
@@ -265,7 +274,7 @@ std::vector<double> StanPosteriorAdapter::constrain_to_vector(
     return out;
 }
 
-int StanPosteriorAdapter::n_evals() const {
+int StanAdapter::Adapter::n_evals() const {
     return n_evals_;
 }
 
@@ -273,23 +282,23 @@ int StanPosteriorAdapter::n_evals() const {
  *                       Initial Value Bound Handling                         *
  * ========================================================================== */
 
-void stan_sanitize_initial_point(
+void StanAdapter::sanitize_initial_point(
     std::vector<double>& initial,
     const std::vector<double>& lower_bounds,
     const std::vector<double>& upper_bounds,
     double epsilon
 ) {
     for (size_t i = 0; i < initial.size(); ++i) {
-        const bool has_lower = stan_is_finite(lower_bounds[i]);
-        const bool has_upper = stan_is_finite(upper_bounds[i]);
+        const bool has_lower = is_finite(lower_bounds[i]);
+        const bool has_upper = is_finite(upper_bounds[i]);
 
         if (has_lower && initial[i] <= lower_bounds[i]) {
-            // 有下界时, 初始值必须推入可行域内部
+            // 有下界时, 初始值必须推入可行域内部.
             initial[i] = lower_bounds[i] + epsilon;
         }
 
         if (has_upper && initial[i] >= upper_bounds[i]) {
-            // 有上界时, 初始值必须推入可行域内部
+            // 有上界时, 初始值必须推入可行域内部.
             initial[i] = upper_bounds[i] - epsilon;
         }
 
@@ -297,7 +306,7 @@ void stan_sanitize_initial_point(
             const double midpoint =
                 0.5 * (lower_bounds[i] + upper_bounds[i]);
 
-            // 如果边界过窄导致修正仍不合法, 则回退到区间中点
+            // 如果边界太窄, 修正后仍不合法, 就回到区间中点.
             if (initial[i] <= lower_bounds[i] ||
                 initial[i] >= upper_bounds[i]) {
                 initial[i] = midpoint;
@@ -306,13 +315,65 @@ void stan_sanitize_initial_point(
     }
 }
 
+namespace NUTS {
 namespace {
 
 /* ========================================================================== *
  *                             NUTS Tree Logic                                *
  * ========================================================================== */
 
-struct NUTSState {
+bool is_finite_vector(const Eigen::VectorXd& values) {
+    for (Eigen::Index i = 0; i < values.size(); ++i) {
+        if (!std::isfinite(values(i))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+double safe_accept_probability(double log_accept_ratio) {
+    if (!std::isfinite(log_accept_ratio)) {
+        return 0.0;
+    }
+    if (log_accept_ratio >= 0.0) {
+        return 1.0;
+    }
+    return std::exp(log_accept_ratio);
+}
+
+Eigen::VectorXd draw_momentum(
+    Eigen::Index n_dim,
+    std::mt19937_64& rng
+) {
+    std::normal_distribution<double> normal(0.0, 1.0);
+    Eigen::VectorXd momentum(n_dim);
+
+    // 每个维度独立抽取标准正态动量, 对应单位质量矩阵.
+    for (Eigen::Index i = 0; i < n_dim; ++i) {
+        momentum(i) = normal(rng);
+    }
+
+    return momentum;
+}
+
+void jitter_initial(
+    Eigen::VectorXd& initial,
+    double jitter,
+    std::mt19937_64& rng
+) {
+    if (jitter <= 0.0) {
+        return;
+    }
+
+    std::normal_distribution<double> normal(0.0, jitter);
+
+    // 多链从轻微不同的起点出发, 降低完全同轨迹的风险.
+    for (Eigen::Index i = 0; i < initial.size(); ++i) {
+        initial(i) += normal(rng);
+    }
+}
+
+struct State {
     Eigen::VectorXd position;
     Eigen::VectorXd momentum;
     Eigen::VectorXd gradient;
@@ -320,10 +381,10 @@ struct NUTSState {
     bool valid = false;
 };
 
-struct NUTSTreeResult {
-    NUTSState left;
-    NUTSState right;
-    NUTSState candidate;
+struct TreeResult {
+    State left;
+    State right;
+    State candidate;
 
     int n_valid = 0;
     int accept_count = 0;
@@ -334,51 +395,51 @@ struct NUTSTreeResult {
     bool continue_tree = false;
 };
 
-bool nuts_no_u_turn(
-    const NUTSState& left,
-    const NUTSState& right
+bool no_u_turn(
+    const State& left,
+    const State& right
 ) {
     const Eigen::VectorXd delta = right.position - left.position;
     return delta.dot(left.momentum) >= 0.0 &&
         delta.dot(right.momentum) >= 0.0;
 }
 
-NUTSState nuts_leapfrog(
-    const StanPosteriorAdapter& adapter,
-    const NUTSState& start,
+State leapfrog(
+    const StanAdapter::Adapter& adapter,
+    const State& start,
     double step_size,
     int direction
 ) {
-    NUTSState next;
+    State next;
     const double signed_step =
         static_cast<double>(direction) * step_size;
 
-    // 半步更新动量, 再整步更新位置, 最后用新梯度补齐半步动量
+    // 先走半步动量, 再走整步位置, 最后用新梯度补齐半步.
     Eigen::VectorXd momentum =
         start.momentum + 0.5 * signed_step * start.gradient;
     next.position = start.position + signed_step * momentum;
 
-    adapter.value_and_gradient(
+    adapter.gradient(
         next.position,
         next.log_prob,
         next.gradient
     );
 
     if (!std::isfinite(next.log_prob) ||
-        !hmc_is_finite_vector(next.gradient)) {
+        !is_finite_vector(next.gradient)) {
         next.valid = false;
         return next;
     }
 
     next.momentum = momentum + 0.5 * signed_step * next.gradient;
-    next.valid = hmc_is_finite_vector(next.position) &&
-        hmc_is_finite_vector(next.momentum);
+    next.valid = is_finite_vector(next.position) &&
+        is_finite_vector(next.momentum);
     return next;
 }
 
-NUTSTreeResult nuts_build_tree(
-    const StanPosteriorAdapter& adapter,
-    const NUTSState& state,
+TreeResult build_tree(
+    const StanAdapter::Adapter& adapter,
+    const State& state,
     int direction,
     int depth,
     double log_slice,
@@ -388,8 +449,8 @@ NUTSTreeResult nuts_build_tree(
     std::mt19937_64& rng
 ) {
     if (depth == 0) {
-        NUTSTreeResult out;
-        const NUTSState next = nuts_leapfrog(
+        TreeResult out;
+        const State next = leapfrog(
             adapter,
             state,
             step_size,
@@ -410,13 +471,13 @@ NUTSTreeResult nuts_build_tree(
         out.n_valid = (log_slice <= joint) ? 1 : 0;
         out.valid_candidate = out.n_valid > 0;
         out.continue_tree = (log_slice - max_delta_energy) < joint;
-        out.accept_sum = hmc_safe_accept_probability(
+        out.accept_sum = safe_accept_probability(
             joint - initial_joint
         );
         return out;
     }
 
-    NUTSTreeResult first = nuts_build_tree(
+    TreeResult first = build_tree(
         adapter,
         state,
         direction,
@@ -432,8 +493,8 @@ NUTSTreeResult nuts_build_tree(
         return first;
     }
 
-    const NUTSState& edge = (direction == -1) ? first.left : first.right;
-    NUTSTreeResult second = nuts_build_tree(
+    const State& edge = (direction == -1) ? first.left : first.right;
+    TreeResult second = build_tree(
         adapter,
         edge,
         direction,
@@ -445,7 +506,7 @@ NUTSTreeResult nuts_build_tree(
         rng
     );
 
-    NUTSTreeResult out;
+    TreeResult out;
     if (direction == -1) {
         out.left = second.left;
         out.right = first.right;
@@ -464,7 +525,7 @@ NUTSTreeResult nuts_build_tree(
             static_cast<double>(second.n_valid) /
             static_cast<double>(combined_valid);
 
-        // 用子树有效点数量作为权重, 保持从切片集合中近似均匀选择
+        // 用子树有效点数量作为权重, 保持从切片集合中近似均匀选择.
         if (!out.valid_candidate || uniform(rng) < choose_second) {
             out.candidate = second.candidate;
             out.valid_candidate = true;
@@ -476,18 +537,19 @@ NUTSTreeResult nuts_build_tree(
     out.accept_sum = first.accept_sum + second.accept_sum;
     out.continue_tree = first.continue_tree &&
         second.continue_tree &&
-        nuts_no_u_turn(out.left, out.right);
+        no_u_turn(out.left, out.right);
     return out;
 }
 
 } // namespace
+} // namespace NUTS
 
 /* ========================================================================== *
  *                            HMC Sampler Entry                               *
  * ========================================================================== */
 
-HMCSamplerResult run_hmc_chain(
-    const StanPosteriorAdapter& adapter,
+HMCSamplerResult HMC::run_chain(
+    const StanAdapter::Adapter& adapter,
     const Eigen::VectorXd& initial_unconstrained,
     const StanControl& control,
     int chain_id
@@ -510,18 +572,18 @@ HMCSamplerResult run_hmc_chain(
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
     Eigen::VectorXd current = initial_unconstrained;
-    hmc_jitter_initial(current, control.initial_jitter, rng);
+    jitter_initial(current, control.initial_jitter, rng);
 
     double current_log_prob = 0.0;
     Eigen::VectorXd current_gradient(n_dim);
-    adapter.value_and_gradient(
+    adapter.gradient(
         current,
         current_log_prob,
         current_gradient
     );
 
     if (!std::isfinite(current_log_prob) ||
-        !hmc_is_finite_vector(current_gradient)) {
+        !is_finite_vector(current_gradient)) {
         out.status = -1;
         out.result_message = "Initial MCMC state has invalid log density.";
         out.stop_reason = "invalid_initial_state";
@@ -536,32 +598,32 @@ HMCSamplerResult run_hmc_chain(
 
     for (int iter = 0; iter < total_iterations; ++iter) {
         const Eigen::VectorXd initial_momentum =
-            hmc_draw_momentum(n_dim, rng);
+            draw_momentum(n_dim, rng);
         Eigen::VectorXd proposed = current;
         Eigen::VectorXd proposed_momentum = initial_momentum;
         Eigen::VectorXd proposed_gradient = current_gradient;
         double proposed_log_prob = current_log_prob;
         bool valid_proposal = true;
 
-        // leapfrog 使用 log posterior 梯度, 所以动量沿上升方向更新
+        // leapfrog 使用 log posterior 梯度, 所以动量沿上升方向更新.
         proposed_momentum += 0.5 * step_size * proposed_gradient;
 
         for (int leap = 0; leap < control.leapfrog_steps; ++leap) {
             proposed += step_size * proposed_momentum;
 
-            adapter.value_and_gradient(
+            adapter.gradient(
                 proposed,
                 proposed_log_prob,
                 proposed_gradient
             );
 
             if (!std::isfinite(proposed_log_prob) ||
-                !hmc_is_finite_vector(proposed_gradient)) {
+                !is_finite_vector(proposed_gradient)) {
                 valid_proposal = false;
                 break;
             }
 
-            // 最后一步只做半步动量更新, 保持 leapfrog 对称性
+            // 最后一步只做半步动量更新, 这样 leapfrog 保持对称.
             if (leap + 1 < control.leapfrog_steps) {
                 proposed_momentum += step_size * proposed_gradient;
             }
@@ -581,7 +643,7 @@ HMCSamplerResult run_hmc_chain(
             const double log_accept_ratio =
                 current_energy - proposed_energy;
             accept_probability =
-                hmc_safe_accept_probability(log_accept_ratio);
+                safe_accept_probability(log_accept_ratio);
 
             if (std::log(uniform(rng)) < log_accept_ratio) {
                 current = proposed;
@@ -609,7 +671,7 @@ HMCSamplerResult run_hmc_chain(
         if (iter >= control.warmup) {
             const int sampling_iter = iter - control.warmup;
 
-            // thin 控制保留间隔, 其余迭代只用于推进 Markov chain
+            // thin 鎺у埗淇濈暀闂撮殧, 鍏朵綑杩唬鍙敤浜庢帹杩?Markov chain
             if (sampling_iter % control.thin == 0) {
                 out.draws.push_back(adapter.constrain_to_vector(current));
                 out.log_prob.push_back(current_log_prob);
@@ -641,8 +703,8 @@ HMCSamplerResult run_hmc_chain(
  *                            NUTS Sampler Entry                              *
  * ========================================================================== */
 
-HMCSamplerResult run_nuts_chain(
-    const StanPosteriorAdapter& adapter,
+HMCSamplerResult NUTS::run_chain(
+    const StanAdapter::Adapter& adapter,
     const Eigen::VectorXd& initial_unconstrained,
     const StanControl& control,
     int chain_id
@@ -665,16 +727,16 @@ HMCSamplerResult run_nuts_chain(
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
     std::exponential_distribution<double> exponential(1.0);
 
-    NUTSState current;
+    State current;
     current.position = initial_unconstrained;
-    hmc_jitter_initial(current.position, control.initial_jitter, rng);
-    adapter.value_and_gradient(
+    jitter_initial(current.position, control.initial_jitter, rng);
+    adapter.gradient(
         current.position,
         current.log_prob,
         current.gradient
     );
     current.valid = std::isfinite(current.log_prob) &&
-        hmc_is_finite_vector(current.gradient);
+        is_finite_vector(current.gradient);
 
     if (!current.valid) {
         out.status = -1;
@@ -691,14 +753,14 @@ HMCSamplerResult run_nuts_chain(
     out.log_prob.reserve(static_cast<size_t>(control.samples));
 
     for (int iter = 0; iter < total_iterations; ++iter) {
-        current.momentum = hmc_draw_momentum(n_dim, rng);
+        current.momentum = draw_momentum(n_dim, rng);
         const double initial_joint =
             current.log_prob - 0.5 * current.momentum.squaredNorm();
         const double log_slice = initial_joint - exponential(rng);
 
-        NUTSState left = current;
-        NUTSState right = current;
-        NUTSState proposal = current;
+        State left = current;
+        State right = current;
+        State proposal = current;
 
         int n_valid = 1;
         int depth = 0;
@@ -708,10 +770,10 @@ HMCSamplerResult run_nuts_chain(
 
         while (keep_sampling && depth < control.max_tree_depth) {
             const int direction = (uniform(rng) < 0.5) ? -1 : 1;
-            NUTSTreeResult tree;
+            TreeResult tree;
 
             if (direction == -1) {
-                tree = nuts_build_tree(
+                tree = build_tree(
                     adapter,
                     left,
                     direction,
@@ -724,7 +786,7 @@ HMCSamplerResult run_nuts_chain(
                 );
                 left = tree.left;
             } else {
-                tree = nuts_build_tree(
+                tree = build_tree(
                     adapter,
                     right,
                     direction,
@@ -744,7 +806,7 @@ HMCSamplerResult run_nuts_chain(
                     static_cast<double>(tree.n_valid) /
                     static_cast<double>(combined_valid);
 
-                // 按有效候选数量合并旧树与新树, 避免偏向较早构造的节点
+                // 按有效候选数量合并旧树与新树, 避免偏向较早节点.
                 if (uniform(rng) < choose_tree) {
                     proposal = tree.candidate;
                 }
@@ -754,7 +816,7 @@ HMCSamplerResult run_nuts_chain(
             accept_sum += tree.accept_sum;
             accept_count += tree.accept_count;
             keep_sampling = tree.continue_tree &&
-                nuts_no_u_turn(left, right);
+                no_u_turn(left, right);
             ++depth;
         }
 
@@ -812,3 +874,5 @@ HMCSamplerResult run_nuts_chain(
 
     return out;
 }
+
+

@@ -9,7 +9,7 @@
 
 #define CORE_IMPL "../../Cpp/src/estimate_mle.cpp"
 #include CORE_IMPL
-#define OBJ_IMPL "../../Cpp/src/build_objective.cpp"
+#define OBJ_IMPL "../../Cpp/src/task_builder.cpp"
 #include OBJ_IMPL
 #define CTRL_IMPL "../../Cpp/src/modify_control.cpp"
 #include CTRL_IMPL

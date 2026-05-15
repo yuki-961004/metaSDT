@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "build_objective.hpp"
 #include "criterion_posterior.hpp"
 #include "modify_control.hpp"
+#include "task_builder.hpp"
 
 /* ========================================================================== *
  *                             HMC Chain Result                               *
@@ -29,36 +29,41 @@ struct HMCSamplerResult {
 };
 
 /* ========================================================================== *
- *                        Stan Posterior Adapter                              *
+ *                           Stan Math Adapter                                *
  * ========================================================================== */
 
-// 将项目内部的 CriterionPosterior 包装成 Stan Math 可求梯度的目标函数
-class StanPosteriorAdapter {
+namespace StanAdapter {
+
+// Adapter between project criteria and Stan Math gradient utilities.
+// 它像转换插头, 一边接项目自己的后验准则, 一边接梯度计算工具.
+class Adapter {
 public:
-    explicit StanPosteriorAdapter(const SubjectFitTask& task);
+    explicit Adapter(const SubjectFitTask& task);
 
-    // Stan Math finite_diff_gradient_auto 需要 double 向量目标函数
-    double operator()(const Eigen::VectorXd& unconstrained) const;
+    // Return log posterior in the unconstrained space.
+    // 名字和 NLoptAdapter::criterion 对齐, 但这里返回的是采样密度.
+    double criterion(const Eigen::VectorXd& unconstrained) const;
 
-    // 计算 unconstrained 空间中的 log posterior 和梯度
-    void value_and_gradient(
+    // Calculate criterion value and finite-difference gradient.
+    // 采样器每迈一步都要问这里, 当前山坡的高度和坡度是多少.
+    void gradient(
         const Eigen::VectorXd& unconstrained,
         double& log_prob,
         Eigen::VectorXd& gradient
     ) const;
 
-    // 从 unconstrained 空间映射到带边界的模型参数空间
+    // Map unconstrained sampler coordinates to bounded model parameters.
     Eigen::VectorXd constrain(
         const Eigen::VectorXd& unconstrained,
         double& log_jacobian
     ) const;
 
-    // 将 constrained 参数向量映射回 unconstrained 空间
+    // Map bounded model parameters back to unconstrained sampler coordinates.
     Eigen::VectorXd unconstrain(
         const std::vector<double>& constrained
     ) const;
 
-    // 用于采样输出, 直接返回 std::vector 格式的 constrained 参数
+    // Convert an unconstrained draw into a plain vector for output tables.
     std::vector<double> constrain_to_vector(
         const Eigen::VectorXd& unconstrained
     ) const;
@@ -72,34 +77,44 @@ private:
     mutable int n_evals_ = 0;
 };
 
-/* ========================================================================== *
- *                       Initial Value Bound Handling                         *
- * ========================================================================== */
-
-// 将初始值压回合法边界内部, 避免 unconstrain 时落在边界正上方
-void stan_sanitize_initial_point(
+// Keep initial values strictly inside legal model bounds.
+void sanitize_initial_point(
     std::vector<double>& initial,
     const std::vector<double>& lower_bounds,
     const std::vector<double>& upper_bounds,
     double epsilon = 1e-6
 );
 
+} // namespace StanAdapter
+
 /* ========================================================================== *
- *                            HMC Sampler Entry                               *
+ *                                HMC Runner                                  *
  * ========================================================================== */
 
-// 使用 StanPosteriorAdapter 提供的 log posterior 和梯度运行单条 HMC 链
-HMCSamplerResult run_hmc_chain(
-    const StanPosteriorAdapter& adapter,
+namespace HMC {
+
+// Run one static HMC chain using StanAdapter::Adapter as the log density.
+HMCSamplerResult run_chain(
+    const StanAdapter::Adapter& adapter,
     const Eigen::VectorXd& initial_unconstrained,
     const StanControl& control,
     int chain_id
 );
 
-// 使用 No-U-Turn 动态树深度规则运行单条 NUTS 链
-HMCSamplerResult run_nuts_chain(
-    const StanPosteriorAdapter& adapter,
+} // namespace HMC
+
+/* ========================================================================== *
+ *                                NUTS Runner                                 *
+ * ========================================================================== */
+
+namespace NUTS {
+
+// Run one NUTS chain using StanAdapter::Adapter as the log density.
+HMCSamplerResult run_chain(
+    const StanAdapter::Adapter& adapter,
     const Eigen::VectorXd& initial_unconstrained,
     const StanControl& control,
     int chain_id
 );
+
+} // namespace NUTS

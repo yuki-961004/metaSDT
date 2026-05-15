@@ -1,6 +1,6 @@
 ﻿#include "../include/estimate_map.hpp"
 #include "../include/algorithm_nlopt.hpp"
-#include "../include/build_objective.hpp"
+#include "../include/task_builder.hpp"
 #include "../include/criterion_likelihood.hpp"
 #include "../include/criterion_posterior.hpp"
 #include "../include/info_nlopt.hpp"
@@ -66,7 +66,7 @@ std::vector<SubjectFitResult> em_e_step(
         );
 
         // 确保初始点位于边界内
-        sanitize_initial_point(
+        NLoptAdapter::sanitize_initial_point(
             x0,
             task.params.lower_bounds,
             task.params.upper_bounds
@@ -74,12 +74,12 @@ std::vector<SubjectFitResult> em_e_step(
 
         try {
             // 使用控制设置和边界配置 NLopt 优化器
-            nlopt::opt opt = create_nlopt_optimizer(
+            nlopt::opt opt = NLoptAdapter::build_optimizer(
                 control,
                 task.params.lower_bounds,
                 task.params.upper_bounds
             );
-            opt.set_min_objective(nll, &task);
+            opt.set_min_objective(NLoptAdapter::criterion, &task);
 
             double minf = 0.0;
             nlopt::result nlopt_res = nlopt::FAILURE;
