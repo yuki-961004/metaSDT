@@ -4,12 +4,12 @@
     {
       "name": "cpp-core-msvc-release",
       "displayName": "Cpp core - MSVC Release",
-      "description": "Configure only the C++ core library and install it under Cpp/build/install.",
+      "description": "Configure only the C++ core library and install it under build/install.",
       "generator": "Visual Studio 18 2026",
       "architecture": "x64",
-      "binaryDir": "${sourceDir}/Cpp/build",
+      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Cpp/build/install"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install"
       }
     }
   ],

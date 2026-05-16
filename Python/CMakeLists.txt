@@ -14,7 +14,7 @@ get_filename_component(
 )
 set(
     METASDT_CORE_INSTALL_PREFIX
-    "${METASDT_REPO_ROOT}/Cpp/build/install"
+    "${METASDT_REPO_ROOT}/build/install"
     CACHE PATH
     "Install prefix that contains metaSDT_coreConfig.cmake"
 )
