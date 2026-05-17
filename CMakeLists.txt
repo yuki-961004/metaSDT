@@ -32,6 +32,17 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(eigen)
 
 FetchContent_Declare(
+  abcpp
+  GIT_REPOSITORY https://github.com/yuki-961004/abcpp.git
+  GIT_TAG master
+  GIT_SHALLOW TRUE
+)
+set(METASDT_PARENT_SKBUILD ${SKBUILD})
+set(SKBUILD OFF)
+FetchContent_MakeAvailable(abcpp)
+set(SKBUILD ${METASDT_PARENT_SKBUILD})
+
+FetchContent_Declare(
   nlopt
   GIT_REPOSITORY https://github.com/stevengj/nlopt.git
   GIT_TAG master
@@ -105,6 +116,7 @@ add_library(metaSDT_core STATIC
     Cpp/src/estimate_mle.cpp
     Cpp/src/estimate_map.cpp
     Cpp/src/estimate_mcmc.cpp
+    Cpp/src/estimate_abc.cpp
 
     Cpp/src/progress_bar.cpp
 )
@@ -127,8 +139,7 @@ target_include_directories(
 
 # [解耦修复] Eigen 现在作为纯本地头文件存在, 不再作为 CMake Target 链接
 # Stan Math 仅供 estimate_mcmc 内部编译使用, 不暴露到公共头文件接口
-target_link_libraries(metaSDT_core PUBLIC nlopt OpenMP::OpenMP_CXX)
-target_link_libraries(metaSDT_core PUBLIC nlopt OpenMP::OpenMP_CXX)
+target_link_libraries(metaSDT_core PUBLIC nlopt abcpp::abc OpenMP::OpenMP_CXX)
 
 # ==============================================================================
 # 4. 导出与安装系统 (Export & Install) - 预编译解耦的核心
@@ -200,6 +211,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/metaSDT_coreConfig.cmake"
      "include(CMakeFindDependencyMacro)\n"
      "find_dependency(OpenMP)\n"
      "find_dependency(NLopt)\n"
+     "find_dependency(abcpp)\n"
      "include(\"\${CMAKE_CURRENT_LIST_DIR}/metaSDT_coreTargets.cmake\")\n")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/metaSDT_coreConfig.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core)

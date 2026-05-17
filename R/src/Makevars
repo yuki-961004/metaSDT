@@ -10,7 +10,7 @@ STAN_LIBS = $(shell $(R_SCRIPT) -e "StanHeaders:::LdFlags()")
 STANHEADERS_SRC = $(shell $(R_SCRIPT) \
 	-e "cat(system.file('include','src',package='StanHeaders',mustWork=TRUE))")
 
-PKG_CPPFLAGS = -I"$(STANHEADERS_SRC)"
+PKG_CPPFLAGS = -I"$(STANHEADERS_SRC)" -I"../../Cpp/third_party/abcpp/include"
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) \
 	$(RCPP_PARALLEL_CXXFLAGS) \
 	$(STAN_CXXFLAGS) \

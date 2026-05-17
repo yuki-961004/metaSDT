@@ -19,6 +19,10 @@ criterion_prior <- function(user_priors, std_params = NULL) {
     .Call(`_metaSDT_r_criterion_prior`, user_priors, std_params)
 }
 
+estimate_abc <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, priors = NULL) {
+    .Call(`_metaSDT_r_estimate_abc`, df, colnames, params, model, control, priors)
+}
+
 estimate_map <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, priors = NULL) {
     .Call(`_metaSDT_r_estimate_map`, df, colnames, params, model, control, lower, upper, priors)
 }

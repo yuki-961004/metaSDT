@@ -274,3 +274,72 @@ fit_mcmc_3 = metaSDT.estimate_mcmc(
     control={"algorithm": "nuts", "samples": 100, "warmup": 50, "chains": 2}
 )
 print(fit_mcmc_3)
+
+# %%
+# ==============================================================================
+# 5. ABC estimation via abcpp
+# ==============================================================================
+print("\n=== Test 19: ABC via abcpp on exp1 ===")
+abc_control_exp1 = {
+    "method": "rejection",
+    "tol": 0.1,
+    "reduction": "none",
+    "samples": 500,
+    "seed": 1004,
+}
+abc_params_exp1 = {
+    "free": {"d": [1.5], "c_resp": [0.0], "c_conf": [0.5, 1.0, 1.5]},
+    "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+}
+abc_priors_exp1 = {
+    "d": {"type": "unif", "min": 0.2, "max": 4.0},
+    "c_resp": {"type": "norm", "mean": 0.0, "sd": 0.75},
+    "c_conf": {"type": "unif", "min": 0.2, "max": 2.5},
+}
+
+fit_abc_exp1 = metaSDT.estimate_abc(
+    df=pandas.read_csv("data/exp1.csv"),
+    params=abc_params_exp1,
+    model="sdt",
+    control=abc_control_exp1,
+    priors=abc_priors_exp1,
+)
+print(fit_abc_exp1["estimator"])
+print(fit_abc_exp1["fit"].head())
+
+# %%
+print("\n=== Test 20: ABC via abcpp on exp3 ===")
+abc_control_exp3 = {
+    "method": "rejection",
+    "tol": 0.1,
+    "reduction": "none",
+    "samples": 500,
+    "seed": 1004,
+}
+abc_params_exp3 = {
+    "free": {
+        "d": [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+        "c_resp": [0.0],
+        "c_conf": [0.5, 1.0, 1.5],
+    },
+    "fixed": {"sd_signal": [1.0], "sd_noise": [1.0]},
+}
+abc_priors_exp3 = {
+    "d": {"type": "unif", "min": 0.05, "max": 2.5},
+    "c_resp": {"type": "norm", "mean": 0.0, "sd": 0.75},
+    "c_conf": {"type": "unif", "min": 0.2, "max": 2.5},
+}
+
+fit_abc_exp3 = metaSDT.estimate_abc(
+    df=pandas.read_csv("data/exp3.csv"),
+    colnames={
+        "condition": "FlippedWheel",
+        "difficulty": "NoiseLevel_Deg",
+    },
+    params=abc_params_exp3,
+    model="sdt",
+    control=abc_control_exp3,
+    priors=abc_priors_exp3,
+)
+print(fit_abc_exp3["estimator"])
+print(fit_abc_exp3["fit"])

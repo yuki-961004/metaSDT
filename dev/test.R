@@ -176,3 +176,73 @@ fit_mcmc_3 <- estimate_mcmc(
 )
 
 print(head(fit_mcmc_3$fit))
+
+# %%
+cat("\n=== Test 14: ABC via abcpp on exp1 ===\n")
+set.seed(1004)
+abc_control_exp1 <- list(
+  method = "rejection",
+  tol = 0.1,
+  reduction = "none",
+  samples = 500,
+  seed = 1004
+)
+abc_params_exp1 <- list(
+  free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)),
+  fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+)
+abc_priors_exp1 <- list(
+  d = list(type = "unif", min = 0.2, max = 4.0),
+  c_resp = list(type = "norm", mean = 0.0, sd = 0.75),
+  c_conf = list(type = "unif", min = 0.2, max = 2.5)
+)
+
+fit_abc_1 <- estimate_abc(
+  df = read.csv("data/exp1.csv"),
+  params = abc_params_exp1,
+  model = "sdt",
+  control = abc_control_exp1,
+  priors = abc_priors_exp1
+)
+
+print(fit_abc_1$estimator)
+print(head(fit_abc_1$fit))
+
+# %%
+cat("\n=== Test 15: ABC via abcpp on exp3 ===\n")
+set.seed(1004)
+abc_control_exp3 <- list(
+  method = "rejection",
+  tol = 0.1,
+  reduction = "none",
+  samples = 500,
+  seed = 1004
+)
+abc_params_exp3 <- list(
+  free = list(
+    d = c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1),
+    c_resp = 0.0,
+    c_conf = c(0.5, 1.0, 1.5)
+  ),
+  fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+)
+abc_priors_exp3 <- list(
+  d = list(type = "unif", min = 0.05, max = 2.5),
+  c_resp = list(type = "norm", mean = 0.0, sd = 0.75),
+  c_conf = list(type = "unif", min = 0.2, max = 2.5)
+)
+
+fit_abc_3 <- estimate_abc(
+  df = read.csv("data/exp3.csv"),
+  colnames = list(
+    condition = "FlippedWheel",
+    difficulty = "NoiseLevel_Deg"
+  ),
+  params = abc_params_exp3,
+  model = "sdt",
+  control = abc_control_exp3,
+  priors = abc_priors_exp3
+)
+
+print(fit_abc_3$estimator)
+print(fit_abc_3$fit)

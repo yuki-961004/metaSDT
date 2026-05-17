@@ -49,6 +49,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// r_estimate_abc
+Rcpp::RObject r_estimate_abc(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames, Rcpp::Nullable<Rcpp::RObject> params, std::string model, Rcpp::Nullable<Rcpp::List> control, Rcpp::Nullable<Rcpp::List> priors);
+RcppExport SEXP _metaSDT_r_estimate_abc(SEXP dfSEXP, SEXP colnamesSEXP, SEXP paramsSEXP, SEXP modelSEXP, SEXP controlSEXP, SEXP priorsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type colnames(colnamesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::RObject> >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type priors(priorsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_estimate_abc(df, colnames, params, model, control, priors));
+    return rcpp_result_gen;
+END_RCPP
+}
 // r_estimate_map
 Rcpp::RObject r_estimate_map(Rcpp::DataFrame df, Rcpp::Nullable<Rcpp::List> colnames, Rcpp::Nullable<Rcpp::RObject> params, std::string model, Rcpp::Nullable<Rcpp::List> control, Rcpp::Nullable<Rcpp::List> lower, Rcpp::Nullable<Rcpp::List> upper, Rcpp::Nullable<Rcpp::List> priors);
 RcppExport SEXP _metaSDT_r_estimate_map(SEXP dfSEXP, SEXP colnamesSEXP, SEXP paramsSEXP, SEXP modelSEXP, SEXP controlSEXP, SEXP lowerSEXP, SEXP upperSEXP, SEXP priorsSEXP) {
@@ -247,6 +263,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_criterion_likelihood", (DL_FUNC) &_metaSDT_r_criterion_likelihood, 3},
     {"_metaSDT_r_criterion_posterior", (DL_FUNC) &_metaSDT_r_criterion_posterior, 3},
     {"_metaSDT_r_criterion_prior", (DL_FUNC) &_metaSDT_r_criterion_prior, 2},
+    {"_metaSDT_r_estimate_abc", (DL_FUNC) &_metaSDT_r_estimate_abc, 6},
     {"_metaSDT_r_estimate_map", (DL_FUNC) &_metaSDT_r_estimate_map, 8},
     {"_metaSDT_r_estimate_mcmc", (DL_FUNC) &_metaSDT_r_estimate_mcmc, 8},
     {"_metaSDT_r_estimate_mle", (DL_FUNC) &_metaSDT_r_estimate_mle, 7},
