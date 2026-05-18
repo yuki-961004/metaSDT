@@ -179,30 +179,26 @@ print(head(fit_mcmc_3$fit))
 
 # %%
 cat("\n=== Test 14: ABC via abcpp on exp1 ===\n")
-set.seed(1004)
-abc_control_exp1 <- list(
-  method = "rejection",
-  tol = 0.1,
-  reduction = "none",
-  samples = 500,
-  seed = 1004
-)
-abc_params_exp1 <- list(
-  free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)),
-  fixed = list(sd_signal = 1.0, sd_noise = 1.0)
-)
-abc_priors_exp1 <- list(
-  d = list(type = "unif", min = 0.2, max = 4.0),
-  c_resp = list(type = "norm", mean = 0.0, sd = 0.75),
-  c_conf = list(type = "unif", min = 0.2, max = 2.5)
-)
 
 fit_abc_1 <- estimate_abc(
   df = read.csv("data/exp1.csv"),
-  params = abc_params_exp1,
+  params = list(
+    free = list(d = 1.5, c_resp = 0.0, c_conf = c(0.5, 1.0, 1.5)),
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+  ),
+  priors = list(
+    d = list(type = "unif", min = 0.2, max = 4.0),
+    c_resp = list(type = "norm", mean = 0.0, sd = 0.75),
+    c_conf = list(type = "unif", min = 0.2, max = 2.5)
+  ),
   model = "sdt",
-  control = abc_control_exp1,
-  priors = abc_priors_exp1
+  control = list(
+    method = "rejection",
+    tol = 0.1,
+    reduction = "none",
+    samples = 500,
+    seed = 1004
+  )
 )
 
 print(fit_abc_1$estimator)
@@ -210,7 +206,6 @@ print(head(fit_abc_1$fit))
 
 # %%
 cat("\n=== Test 15: ABC via abcpp on exp3 ===\n")
-set.seed(1004)
 abc_control_exp3 <- list(
   method = "rejection",
   tol = 0.1,

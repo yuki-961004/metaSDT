@@ -305,10 +305,10 @@ py::dict py_estimate_abc(
     py::dict estimator;
     estimator["name"] = "ABC";
     estimator["backend"] = "abcpp";
-    estimator["global_algorithm"] = cpp_control.reduction;
-    estimator["local_algorithm"] = estimator_n_comp(cpp_control, cpp_res);
+    estimator["method"] = cpp_control.method;
+    estimator["reduction"] = cpp_control.reduction;
     py::dict control_used = control_to_dict(cpp_control);
-    control_used["n_comp"] = estimator["local_algorithm"];
+    control_used["n_comp"] = estimator_n_comp(cpp_control, cpp_res);
     estimator["control"] = control_used;
 
     py::dict diagnostics;

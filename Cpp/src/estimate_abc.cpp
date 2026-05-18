@@ -61,18 +61,6 @@ int infer_effective_ncomp(const MatrixFreq& freq) {
     return static_cast<int>(out);
 }
 
-std::vector<std::string> ordered_base_names(
-    const std::unordered_map<std::string, std::vector<double>>& params
-) {
-    std::vector<std::string> names;
-    names.reserve(params.size());
-    for (const auto& kv : params) {
-        names.push_back(kv.first);
-    }
-    std::sort(names.begin(), names.end());
-    return names;
-}
-
 std::vector<std::string> flatten_parameter_names(
     const ModifiedParamsResult& params
 ) {

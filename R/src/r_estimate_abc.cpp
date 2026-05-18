@@ -8,26 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Cpp/include/estimate_abc.hpp"
+#include <abcpp/abcpp_impl.hpp>
 
-// R package builds do not go through the top-level CMake FetchContent path.
-// Keep the abcpp backend compiled into this translation unit for load_all().
-#define ABCPP_MATRIX_IMPL "../../Cpp/third_party/abcpp/src/matrix.cpp"
-#include ABCPP_MATRIX_IMPL
-#define ABCPP_OPTIONS_IMPL "../../Cpp/third_party/abcpp/src/options.cpp"
-#include ABCPP_OPTIONS_IMPL
-#define ABCPP_LINEAR_ALGEBRA_IMPL "../../Cpp/third_party/abcpp/src/linear_algebra.cpp"
-#include ABCPP_LINEAR_ALGEBRA_IMPL
-#define ABCPP_STATISTICS_IMPL "../../Cpp/third_party/abcpp/src/statistics.cpp"
-#include ABCPP_STATISTICS_IMPL
-#define ABCPP_REDUCTION_IMPL "../../Cpp/third_party/abcpp/src/reduction.cpp"
-#include ABCPP_REDUCTION_IMPL
-#define ABCPP_RESULT_IMPL "../../Cpp/third_party/abcpp/src/result.cpp"
-#include ABCPP_RESULT_IMPL
-#define ABCPP_SUMMARY_IMPL "../../Cpp/third_party/abcpp/src/summary.cpp"
-#include ABCPP_SUMMARY_IMPL
-#define ABCPP_ABC_IMPL "../../Cpp/third_party/abcpp/src/abc.cpp"
-#include ABCPP_ABC_IMPL
+#include "../../Cpp/include/estimate_abc.hpp"
 
 #define CORE_IMPL_ABC "../../Cpp/src/estimate_abc.cpp"
 #include CORE_IMPL_ABC
@@ -153,107 +136,6 @@ void r_obj_to_user_priors(
         }
         cpp_priors[param_name] = prior;
     }
-}
-
-std::size_t infer_n_samples(Rcpp::List params) {
-    std::size_t n = 0;
-    for (int i = 0; i < params.size(); ++i) {
-        SEXP value = params[i];
-        std::size_t candidate = 1;
-        if (Rf_isNewList(value)) {
-            candidate = static_cast<std::size_t>(Rf_length(value));
-        } else if (Rf_isNumeric(value) || Rf_isLogical(value)) {
-            candidate = static_cast<std::size_t>(Rf_length(value));
-        }
-        if (candidate == 0) {
-            continue;
-        }
-        if (n == 0) {
-            n = candidate;
-        } else if (candidate != 1 && candidate != n) {
-            throw std::invalid_argument(
-                "ABC parameter columns must have equal length or length 1."
-            );
-        }
-    }
-    return n == 0 ? 1 : n;
-}
-
-std::vector<double> values_for_sample(
-    SEXP value,
-    std::size_t index,
-    std::size_t n_samples
-) {
-    if (Rf_isNewList(value)) {
-        Rcpp::List list_value(value);
-        if (list_value.size() == 0) {
-            return {};
-        }
-        const std::size_t row_index =
-            list_value.size() == 1 ? 0 : index;
-        if (static_cast<std::size_t>(list_value.size()) != 1 &&
-            static_cast<std::size_t>(list_value.size()) != n_samples) {
-            throw std::invalid_argument(
-                "List-valued ABC parameter columns must have n_samples rows."
-            );
-        }
-        return Rcpp::as<std::vector<double>>(list_value[row_index]);
-    }
-
-    if (Rf_isNumeric(value) || Rf_isLogical(value)) {
-        Rcpp::NumericVector vec(value);
-        if (vec.size() == 0) {
-            return {};
-        }
-        if (static_cast<std::size_t>(vec.size()) == n_samples) {
-            return {vec[static_cast<int>(index)]};
-        }
-        if (vec.size() == 1) {
-            return {vec[0]};
-        }
-        return Rcpp::as<std::vector<double>>(vec);
-    }
-
-    return {Rcpp::as<double>(value)};
-}
-
-std::vector<std::unordered_map<std::string, std::vector<double>>>
-parse_param_samples(Rcpp::Nullable<Rcpp::List> params) {
-    if (params.isNull()) {
-        throw std::invalid_argument("estimate_abc requires params.");
-    }
-
-    Rcpp::List param_list(params);
-    if (!param_list.hasAttribute("names")) {
-        throw std::invalid_argument("estimate_abc params must be a named list.");
-    }
-
-    const std::size_t n_samples = infer_n_samples(param_list);
-    std::vector<std::unordered_map<std::string, std::vector<double>>> out(
-        n_samples
-    );
-    Rcpp::CharacterVector names = param_list.names();
-    for (int i = 0; i < param_list.size(); ++i) {
-        const std::string key = Rcpp::as<std::string>(names[i]);
-        for (std::size_t j = 0; j < n_samples; ++j) {
-            out[j][key] = values_for_sample(
-                param_list[i],
-                j,
-                n_samples
-            );
-        }
-    }
-    return out;
-}
-
-ParamGroup first_sample_template(
-    const std::vector<std::unordered_map<std::string, std::vector<double>>>& samples
-) {
-    ParamGroup out;
-    if (!samples.empty()) {
-        out.fixed = samples.front();
-    }
-    return out;
 }
 
 ABCControl control_from_list(Rcpp::Nullable<Rcpp::List> control) {
@@ -496,8 +378,8 @@ Rcpp::RObject r_estimate_abc(
     Rcpp::List estimator = Rcpp::List::create(
         Rcpp::Named("name") = "ABC",
         Rcpp::Named("backend") = "abcpp",
-        Rcpp::Named("global_algorithm") = cpp_control.reduction,
-        Rcpp::Named("local_algorithm") = n_comp_used,
+        Rcpp::Named("method") = cpp_control.method,
+        Rcpp::Named("reduction") = cpp_control.reduction,
         Rcpp::Named("control") = control_used
     );
 

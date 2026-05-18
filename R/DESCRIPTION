@@ -18,7 +18,7 @@ LazyData: TRUE
 ByteCompile: TRUE
 RoxygenNote: 7.3.3
 Depends: R (>= 4.1.0)
-Imports: Rcpp, nloptr, RcppEigen, StanHeaders, RcppParallel
-LinkingTo: Rcpp, nloptr, RcppEigen, StanHeaders, BH, RcppParallel
+Imports: Rcpp, nloptr, RcppEigen, StanHeaders, RcppParallel, abcpp
+LinkingTo: Rcpp, nloptr, RcppEigen, StanHeaders, BH, RcppParallel, abcpp
 SystemRequirements: C++17, GNU make
 Suggests: 

@@ -385,6 +385,9 @@ pybind11::dict py_estimate_mcmc(
     estimator["name"] = estimator_slot.name;
     estimator["backend"] = estimator_slot.backend;
     estimator["algorithm"] = estimator_slot.algorithm;
+    estimator["method"] = estimator_slot.algorithm;
+    estimator["global_algorithm"] = estimator_slot.global_algorithm;
+    estimator["local_algorithm"] = estimator_slot.local_algorithm;
     estimator["control"] =
         py_wrapper_modify_control::control_to_dict(cpp_control);
 

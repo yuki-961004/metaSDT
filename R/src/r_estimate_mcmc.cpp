@@ -506,6 +506,9 @@ Rcpp::RObject r_estimate_mcmc(
         Rcpp::Named("name") = estimator_slot.name,
         Rcpp::Named("backend") = estimator_slot.backend,
         Rcpp::Named("algorithm") = estimator_slot.algorithm,
+        Rcpp::Named("method") = estimator_slot.algorithm,
+        Rcpp::Named("global_algorithm") = estimator_slot.global_algorithm,
+        Rcpp::Named("local_algorithm") = estimator_slot.local_algorithm,
         Rcpp::Named("control") =
             r_wrapper_modify_control::control_to_list(cpp_control)
     );
