@@ -157,9 +157,6 @@ ABCControl control_from_list(Rcpp::Nullable<Rcpp::List> control) {
     if (ctrl.containsElementNamed("n_comp")) {
         out.n_comp = Rcpp::as<int>(ctrl["n_comp"]);
     }
-    if (ctrl.containsElementNamed("ncomp")) {
-        out.n_comp = Rcpp::as<int>(ctrl["ncomp"]);
-    }
     if (ctrl.containsElementNamed("samples")) {
         out.samples = Rcpp::as<int>(ctrl["samples"]);
     }

@@ -13,27 +13,27 @@ get_filename_component(
     ABSOLUTE
 )
 set(
-    METASDT_CORE_INSTALL_PREFIX
+    METASDT_INSTALL_PREFIX
     "${METASDT_REPO_ROOT}/build/install"
     CACHE PATH
-    "Install prefix that contains metaSDT_coreConfig.cmake"
+    "Install prefix that contains metaSDTConfig.cmake"
 )
-if(EXISTS "${METASDT_CORE_INSTALL_PREFIX}")
-    list(PREPEND CMAKE_PREFIX_PATH "${METASDT_CORE_INSTALL_PREFIX}")
+if(EXISTS "${METASDT_INSTALL_PREFIX}")
+    list(PREPEND CMAKE_PREFIX_PATH "${METASDT_INSTALL_PREFIX}")
 endif()
 
 find_package(pybind11 CONFIG REQUIRED)
 
-if(NOT TARGET metaSDT_core)
-    find_package(metaSDT_core REQUIRED)
+if(NOT TARGET metaSDT)
+    find_package(metaSDT REQUIRED)
 endif()
 
 macro(add_meta_module module_name source_file)
     pybind11_add_module(${module_name} MODULE ${source_file})
-    if(TARGET metaSDT::metaSDT_core)
-        target_link_libraries(${module_name} PRIVATE metaSDT::metaSDT_core)
+    if(TARGET metaSDT::metaSDT)
+        target_link_libraries(${module_name} PRIVATE metaSDT::metaSDT)
     else()
-        target_link_libraries(${module_name} PRIVATE metaSDT_core)
+        target_link_libraries(${module_name} PRIVATE metaSDT)
     endif()
     install(TARGETS ${module_name} DESTINATION metaSDT)
 endmacro()

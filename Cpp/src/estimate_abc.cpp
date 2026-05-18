@@ -49,7 +49,7 @@ double sum_values(const std::vector<double>& values) {
     return out;
 }
 
-int infer_effective_ncomp(const MatrixFreq& freq) {
+int infer_effective_n_comp(const MatrixFreq& freq) {
     std::size_t out = 0;
     for (const auto& dim : freq.freq_mat) {
         for (const auto& row : dim) {
@@ -248,7 +248,7 @@ abcpp::AbcOptions make_options(const ABCControl& control, int n_comp) {
     options.hcorr = control.hcorr;
     options.seed = control.seed;
     options.reduction.method = abcpp::parse_reduction(control.reduction);
-    options.reduction.ncomp = static_cast<std::size_t>(
+    options.reduction.n_comp = static_cast<std::size_t>(
         std::max(n_comp, 0)
     );
     return options;
@@ -337,7 +337,7 @@ std::vector<SubjectABCResult> estimate_abc(
             }
             const int effective_n_comp = control.n_comp > 0
                 ? control.n_comp
-                : infer_effective_ncomp(task.freq);
+                : infer_effective_n_comp(task.freq);
             out.n_comp_used = effective_n_comp;
 
             abcpp::Matrix sumstat_matrix(param_samples.size(), target.size());

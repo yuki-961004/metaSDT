@@ -169,7 +169,6 @@ ABCControl parse_control(const py::dict& control) {
     if (control.contains("method")) out.method = control["method"].cast<std::string>();
     if (control.contains("reduction")) out.reduction = control["reduction"].cast<std::string>();
     if (control.contains("n_comp")) out.n_comp = control["n_comp"].cast<int>();
-    if (control.contains("ncomp")) out.n_comp = control["ncomp"].cast<int>();
     if (control.contains("samples")) out.samples = control["samples"].cast<int>();
     if (control.contains("kernel")) out.kernel = control["kernel"].cast<std::string>();
     if (control.contains("hcorr")) out.hcorr = control["hcorr"].cast<bool>();

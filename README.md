@@ -1,13 +1,28 @@
 # metaSDT
 
-`metaSDT` is an ongoing project aimed at building a general Signal Detection Theory (SDT) modeling framework across languages. The computational backend will be implemented in C++, with user interfaces provided for both R and Python.
+`metaSDT` is a general modeling toolkit for Signal Detection Theory (SDT) models.
+It uses C++ as the computational backend, with R and Python as frontends for data
+analysis workflows.
 
-The package is planned to include 14 commonly used SDT models summarized in Shekhar & Rahnev (2024) (<https://doi.org/10.1037/xge0001524>).
+The current implementation supports the basic SDT model. The package is designed
+around a decoupled architecture so that new SDT-family models can be added
+incrementally without rewriting the estimation stack. In general, adding a new
+model should only require introducing a corresponding `model_<name>.cpp` module
+that defines the model-specific probability structure.
 
-A major goal of this project is to identify the shared computational structure across these models and decouple their distinct components. This design will make it easier to extend the framework and incorporate new SDT models in the future.
+## Estimation Methods
 
-The development process will initially rely on R as an interpreted language for rapid software architecture design, and will later transition to C++ as a compiled backend to ensure computational efficiency and cross-language compatibility.
+| Estimator | Backend |
+| --- | --- |
+| MLE | [NLopt](https://github.com/stevengj/nlopt) |
+| MAP | [NLopt](https://github.com/stevengj/nlopt) |
+| MCMC | [Stan Math](https://github.com/stan-dev/math) |
+| ABC | [abcpp](https://github.com/yuki-961004/abcpp) |
 
-For me, this is a new journey.
+## Roadmap
 
-Good luck to me.
+The long-term goal is to provide a unified framework for commonly used SDT and
+meta-d' models, including the models summarized in Shekhar & Rahnev (2024)
+(<https://doi.org/10.1037/xge0001524>). As the model layer grows, the existing
+C++ backend and R/Python frontends will continue to share the same estimation
+interfaces.

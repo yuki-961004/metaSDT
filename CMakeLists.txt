@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15...3.27)
-project(metaSDT_Core CXX)
+project(metaSDT CXX)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     # 如果没有指定安装路径，默认安装到构建目录下的 install 文件夹中
@@ -34,7 +34,7 @@ FetchContent_MakeAvailable(eigen)
 FetchContent_Declare(
   abcpp
   GIT_REPOSITORY https://github.com/yuki-961004/abcpp.git
-  GIT_TAG master
+  GIT_TAG main
   GIT_SHALLOW TRUE
 )
 set(METASDT_PARENT_SKBUILD ${SKBUILD})
@@ -95,7 +95,7 @@ foreach(stan_tbb_dir ${METASDT_STAN_TBB_DIRS})
 endforeach()
 
 # 3. 编译核心 C++ 源码为单独的静态库 (注意现在的路径以项目根目录为基准)
-add_library(metaSDT_core STATIC
+add_library(metaSDT STATIC
     Cpp/src/modify_params.cpp
     Cpp/src/modify_prior.cpp
     Cpp/src/modify_control.cpp
@@ -122,9 +122,9 @@ add_library(metaSDT_core STATIC
 )
 
 # 开启 -fPIC 确保能够链接入后续的 Python/R 动态库中
-set_property(TARGET metaSDT_core PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET metaSDT PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-target_include_directories(metaSDT_core PUBLIC 
+target_include_directories(metaSDT PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Cpp/include>
     $<BUILD_INTERFACE:${eigen_SOURCE_DIR}>
     $<BUILD_INTERFACE:${nlopt_BINARY_DIR}>
@@ -132,14 +132,14 @@ target_include_directories(metaSDT_core PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 target_include_directories(
-    metaSDT_core
+    metaSDT
     PRIVATE
     ${METASDT_STAN_MATH_INCLUDE_DIRS}
 )
 
 # [解耦修复] Eigen 现在作为纯本地头文件存在, 不再作为 CMake Target 链接
 # Stan Math 仅供 estimate_mcmc 内部编译使用, 不暴露到公共头文件接口
-target_link_libraries(metaSDT_core PUBLIC nlopt abcpp::abc OpenMP::OpenMP_CXX)
+target_link_libraries(metaSDT PUBLIC nlopt abcpp::abc OpenMP::OpenMP_CXX)
 
 # ==============================================================================
 # 4. 导出与安装系统 (Export & Install) - 预编译解耦的核心
@@ -163,16 +163,16 @@ if(METASDT_PREINSTALL_CLEAN)
                     \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/metaSDT\")
         execute_process(
             COMMAND \"\${CMAKE_COMMAND}\" -E rm -rf
-                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core\")
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT\")
         execute_process(
             COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
-                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libmetaSDT_core.a\")
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libmetaSDT.a\")
         execute_process(
             COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
-                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/metaSDT_core.lib\")
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/metaSDT.lib\")
         execute_process(
             COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
-                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/metaSDT_core.dll\")
+                    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/metaSDT.dll\")
         execute_process(
             COMMAND \"\${CMAKE_COMMAND}\" -E rm -f
                     \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/mcmc_control.hpp\")
@@ -189,7 +189,7 @@ if(METASDT_PREINSTALL_CLEAN)
 endif()
 
 # 导出目标 (静态库本体)
-install(TARGETS metaSDT_core EXPORT metaSDT_Targets
+install(TARGETS metaSDT EXPORT metaSDT_Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -202,19 +202,19 @@ install(DIRECTORY ${eigen_SOURCE_DIR}/Eigen DESTINATION ${CMAKE_INSTALL_INCLUDED
 
 # 导出供 find_package 使用的 Target 配置
 install(EXPORT metaSDT_Targets 
-        FILE metaSDT_coreTargets.cmake 
+        FILE metaSDTTargets.cmake 
         NAMESPACE metaSDT::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core)
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT)
 
-# 自动生成 Config.cmake (让外部项目能 find_package(metaSDT_core))
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/metaSDT_coreConfig.cmake"
+# 自动生成 Config.cmake (让外部项目能 find_package(metaSDT))
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/metaSDTConfig.cmake"
      "include(CMakeFindDependencyMacro)\n"
      "find_dependency(OpenMP)\n"
      "find_dependency(NLopt)\n"
      "find_dependency(abcpp)\n"
-     "include(\"\${CMAKE_CURRENT_LIST_DIR}/metaSDT_coreTargets.cmake\")\n")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/metaSDT_coreConfig.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT_core)
+     "include(\"\${CMAKE_CURRENT_LIST_DIR}/metaSDTTargets.cmake\")\n")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/metaSDTConfig.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/metaSDT)
 
 # 5. 根据构建环境挂载前端拓展 (保留后门兼容全量构建)
 if(SKBUILD) # SKBUILD 是 scikit-build-core 启动时自动注入的标志
