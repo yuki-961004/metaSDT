@@ -1,4 +1,4 @@
-# metaSDT
+# metaSDT <a href="https://yuki-961004.github.io/metaSDT/"><img src="./fig/logo.png" alt="LOGO" align="right" width="120"/></a>
 
 `metaSDT` is a general modeling toolkit for Signal Detection Theory (SDT) models.
 It uses C++ as the computational backend, with R and Python as frontends for data
