@@ -179,7 +179,6 @@ fit_mcmc_exp1 <- estimate_mcmc(
   control = list(algorithm = "nuts", samples = 100, warmup = 50, chains = 2)
 )
 
-print(head(fit_mcmc_1$fit))
 
 # %%
 cat("\n=== Test 13: MCMC NUTS on exp3 ===\n")
@@ -201,7 +200,6 @@ fit_mcmc_exp3 <- estimate_mcmc(
   control = list(algorithm = "nuts", samples = 100, warmup = 50, chains = 2)
 )
 
-print(head(fit_mcmc_3$fit))
 
 # %%
 cat("\n=== Test 14: ABC via abcpp on exp1 ===\n")
