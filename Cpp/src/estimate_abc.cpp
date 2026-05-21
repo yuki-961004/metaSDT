@@ -1,6 +1,7 @@
 #include "../include/estimate_abc.hpp"
 #include "../include/matrix_prob.hpp"
 #include "../include/model_sdt.hpp"
+#include "../include/modify_control.hpp"
 
 #include <abcpp/abc.hpp>
 #include <abcpp/options.hpp>
@@ -240,13 +241,71 @@ std::vector<std::unordered_map<std::string, std::vector<double>>> draw_param_sam
     return out;
 }
 
+std::vector<abcpp::transform> parse_transformations(
+    const std::vector<std::string>& values
+) {
+    std::vector<abcpp::transform> out;
+    out.reserve(values.size());
+    for (const auto& value : values) {
+        out.push_back(abcpp::parse_transform(value));
+    }
+    return out;
+}
+
+abcpp::Matrix to_abcpp_matrix(
+    const std::vector<std::vector<double>>& values
+) {
+    if (values.empty()) {
+        return abcpp::Matrix();
+    }
+
+    const std::size_t n_cols = values.front().size();
+    abcpp::Matrix out(values.size(), n_cols);
+    for (std::size_t r = 0; r < values.size(); ++r) {
+        if (values[r].size() != n_cols) {
+            throw std::invalid_argument(
+                "ABC control logit_bounds must be a rectangular matrix."
+            );
+        }
+        for (std::size_t c = 0; c < n_cols; ++c) {
+            out(r, c) = values[r][c];
+        }
+    }
+    return out;
+}
+
+std::vector<double> matrix_first_column(const abcpp::Matrix& matrix) {
+    std::vector<double> out;
+    out.reserve(matrix.rows());
+    for (std::size_t row = 0; row < matrix.rows(); ++row) {
+        out.push_back(matrix.cols() == 0 ? 0.0 : matrix(row, 0));
+    }
+    return out;
+}
+
 abcpp::AbcOptions make_options(const ABCControl& control, int n_comp) {
     abcpp::AbcOptions options;
     options.tol = control.tol;
     options.method = abcpp::parse_method(control.method);
     options.kernel = abcpp::parse_kernel(control.kernel);
     options.hcorr = control.hcorr;
+    options.transformations = parse_transformations(control.transf);
+    if (!options.transformations.empty()) {
+        options.transf = options.transformations.front();
+    }
+    options.logit_bounds = to_abcpp_matrix(control.logit_bounds);
+    options.subset = control.subset;
+    options.prior_weights = control.prior_weights;
     options.seed = control.seed;
+    options.nnet.numnet = control.nnet.numnet;
+    options.nnet.sizenet = control.nnet.sizenet;
+    options.nnet.lambda = control.nnet.lambda;
+    options.nnet.maxit = control.nnet.maxit;
+    options.nnet.rang = control.nnet.rang;
+    options.nnet.abstol = control.nnet.abstol;
+    options.nnet.reltol = control.nnet.reltol;
+    options.nnet.verbose = control.nnet.verbose;
+    options.nnet.skip = control.nnet.skip;
     options.reduction.method = abcpp::parse_reduction(control.reduction);
     options.reduction.n_comp = static_cast<std::size_t>(
         std::max(n_comp, 0)
@@ -274,10 +333,11 @@ std::vector<SubjectABCResult> estimate_abc(
     const std::unordered_map<std::string, std::string>& colnames,
     const ParamGroup& user_params,
     const std::string& model_name,
-    const ABCControl& control,
+    const ABCControl& raw_control,
     const std::unordered_map<std::string, UserPrior>& user_priors
 ) {
-    const int n_samples = control.samples > 0 ? control.samples : 1000;
+    const ABCControl control = modify_control(raw_control, "abc");
+    const int n_samples = control.samples;
     const auto prior_map = merged_priors(user_priors);
 
     std::vector<SubjectFitTask> tasks = build_fit_tasks(
@@ -360,7 +420,7 @@ std::vector<SubjectABCResult> estimate_abc(
                 }
             }
 
-            abcpp::AbcResult abc_res = abcpp::abc(
+            abcpp::AbcResult abc_res = abcpp::fit(
                 target,
                 param_matrix,
                 sumstat_matrix,
@@ -375,6 +435,7 @@ std::vector<SubjectABCResult> estimate_abc(
             }
             out.accepted_distances = abc_res.distances;
             out.accepted_indices = abc_res.accepted_indices;
+            out.accepted_weights = matrix_first_column(abc_res.weights);
             out.status = abc_res.status == "ok" ? 0 : -1;
             out.message = abc_res.message;
         } catch (const std::exception& e) {

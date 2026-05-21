@@ -264,3 +264,83 @@ StanControl modify_control(
 
     return out;
 }
+
+/* ========================================================================== *
+ *                      Normalize ABC Control and Defaults                    *
+ * ========================================================================== */
+
+ABCControl modify_control(
+    const ABCControl& input,
+    const std::string& estimator
+) {
+    ABCControl out = input;
+
+    const std::string mode = to_lower(estimator);
+    if (mode != "abc") {
+        return out;
+    }
+
+    if (out.method.empty()) {
+        out.method = "rejection";
+    } else {
+        out.method = to_lower(out.method);
+    }
+
+    if (out.tol <= 0.0 || out.tol > 1.0) {
+        out.tol = 0.1;
+    }
+
+    if (out.samples <= 0) {
+        out.samples = 1000;
+    }
+
+    if (out.kernel.empty()) {
+        out.kernel = "epanechnikov";
+    } else {
+        out.kernel = to_lower(out.kernel);
+    }
+
+    if (out.reduction.empty()) {
+        out.reduction = "none";
+    } else {
+        out.reduction = to_lower(out.reduction);
+    }
+    if (out.n_comp < 0) {
+        out.n_comp = 0;
+    }
+
+    if (out.transf.empty()) {
+        out.transf.push_back("none");
+    }
+    for (auto& transform : out.transf) {
+        transform = transform.empty() ? "none" : to_lower(transform);
+    }
+
+    if (out.nnet.numnet <= 0) {
+        out.nnet.numnet = 10;
+    }
+    if (out.nnet.sizenet <= 0) {
+        out.nnet.sizenet = 5;
+    }
+    if (out.nnet.lambda.empty()) {
+        out.nnet.lambda = {0.0001, 0.001, 0.01};
+    }
+    if (out.nnet.maxit <= 0) {
+        out.nnet.maxit = 500;
+    }
+    if (out.nnet.rang <= 0.0) {
+        out.nnet.rang = 0.7;
+    }
+    if (out.nnet.abstol <= 0.0) {
+        out.nnet.abstol = 1e-4;
+    }
+    if (out.nnet.reltol <= 0.0) {
+        out.nnet.reltol = 1e-8;
+    }
+
+    if (out.print_level < 0) {
+        out.print_level = 0;
+    }
+
+    return out;
+}

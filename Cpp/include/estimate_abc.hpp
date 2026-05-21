@@ -7,15 +7,32 @@
 #include <unordered_map>
 #include <vector>
 
+struct ABCNnetControl {
+    int numnet = 0;
+    int sizenet = 0;
+    std::vector<double> lambda;
+    int maxit = 0;
+    double rang = 0.0;
+    double abstol = 0.0;
+    double reltol = 0.0;
+    bool verbose = false;
+    bool skip = false;
+};
+
 struct ABCControl {
-    double tol = 0.1;
-    std::string method = "rejection";
-    std::string reduction = "none";
+    double tol = 0.0;
+    std::string method;
+    std::string reduction;
     int n_comp = 0;
-    int samples = 1000;
-    std::string kernel = "epanechnikov";
+    int samples = 0;
+    std::string kernel;
     bool hcorr = true;
+    std::vector<std::string> transf;
+    std::vector<std::vector<double>> logit_bounds;
+    std::vector<bool> subset;
+    std::vector<double> prior_weights;
     unsigned int seed = 1004;
+    ABCNnetControl nnet;
     int print_level = 1;
 };
 
@@ -37,6 +54,7 @@ struct SubjectABCResult {
     std::vector<ABCSummaryStats> summary;
     std::vector<double> accepted_distances;
     std::vector<std::size_t> accepted_indices;
+    std::vector<double> accepted_weights;
     int n_comp_used = 0;
     int status = 0;
     std::string message;

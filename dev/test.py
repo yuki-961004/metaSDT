@@ -159,7 +159,7 @@ print(log_posterior_unif)
 
 # %%
 # 2. 运行多线程 MLE 拟合
-fit_res = metaSDT.estimate_mle(
+fit_mle_exp1 = metaSDT.estimate_mle(
     df=pandas.read_csv("data/exp1.csv"),
     colnames={},  # 传入空字典让底层 C++ 自动使用正则去匹配列名 (如 stim, resp, conf)
     params={
@@ -175,7 +175,7 @@ fit_res = metaSDT.estimate_mle(
 
 # %%
 # 2. 运行多线程 MLE 拟合
-fit_res = metaSDT.estimate_mle(
+fit_mle_exp3 = metaSDT.estimate_mle(
     df=pandas.read_csv("data/exp3.csv"),
     colnames={
         "condition": "FlippedWheel",
@@ -213,7 +213,7 @@ fit_map_exp1 = metaSDT.estimate_map(
     },
     model="sdt",
 )
-print(fit_map_exp1)
+
 
 # %%
 print("\n=== Test 16: MAP Estimation on exp3 ===")
@@ -256,7 +256,7 @@ fit_mcmc_exp1 = metaSDT.estimate_mcmc(
 
 # %%
 print("\n=== Test 18: MCMC NUTS on exp3 ===")
-fit_mcmc_3 = metaSDT.estimate_mcmc(
+fit_mcmc_exp3 = metaSDT.estimate_mcmc(
     df=pandas.read_csv("data/exp3.csv"),
     colnames={
         "condition": "FlippedWheel",

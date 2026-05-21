@@ -139,7 +139,7 @@ target_include_directories(
 
 # [解耦修复] Eigen 现在作为纯本地头文件存在, 不再作为 CMake Target 链接
 # Stan Math 仅供 estimate_mcmc 内部编译使用, 不暴露到公共头文件接口
-target_link_libraries(metaSDT PUBLIC nlopt abcpp::abc OpenMP::OpenMP_CXX)
+target_link_libraries(metaSDT PUBLIC nlopt abcpp::abcpp OpenMP::OpenMP_CXX)
 
 # ==============================================================================
 # 4. 导出与安装系统 (Export & Install) - 预编译解耦的核心

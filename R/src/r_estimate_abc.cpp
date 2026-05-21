@@ -138,6 +138,100 @@ void r_obj_to_user_priors(
     }
 }
 
+std::vector<std::string> r_character_to_strings(SEXP value) {
+    Rcpp::CharacterVector chars(value);
+    std::vector<std::string> out;
+    out.reserve(static_cast<std::size_t>(chars.size()));
+    for (R_xlen_t i = 0; i < chars.size(); ++i) {
+        out.push_back(Rcpp::as<std::string>(chars[i]));
+    }
+    return out;
+}
+
+std::vector<bool> r_logical_to_bools(SEXP value) {
+    Rcpp::LogicalVector flags(value);
+    std::vector<bool> out;
+    out.reserve(static_cast<std::size_t>(flags.size()));
+    for (R_xlen_t i = 0; i < flags.size(); ++i) {
+        out.push_back(flags[i] == TRUE);
+    }
+    return out;
+}
+
+std::vector<std::vector<double>> r_logit_bounds_to_cpp(SEXP value) {
+    std::vector<std::vector<double>> out;
+    if (Rf_isNull(value) || Rf_length(value) == 0) {
+        return out;
+    }
+
+    if (Rf_isMatrix(value)) {
+        Rcpp::NumericMatrix mat(value);
+        out.resize(static_cast<std::size_t>(mat.nrow()));
+        for (int r = 0; r < mat.nrow(); ++r) {
+            out[static_cast<std::size_t>(r)].reserve(
+                static_cast<std::size_t>(mat.ncol())
+            );
+            for (int c = 0; c < mat.ncol(); ++c) {
+                out[static_cast<std::size_t>(r)].push_back(mat(r, c));
+            }
+        }
+        return out;
+    }
+
+    Rcpp::NumericVector vec(value);
+    if (vec.size() % 2 != 0) {
+        throw std::invalid_argument(
+            "control$logit_bounds must contain lower/upper pairs."
+        );
+    }
+    const int n_rows = static_cast<int>(vec.size() / 2);
+    out.resize(static_cast<std::size_t>(n_rows), std::vector<double>(2));
+    for (int r = 0; r < n_rows; ++r) {
+        out[static_cast<std::size_t>(r)][0] = vec[r * 2];
+        out[static_cast<std::size_t>(r)][1] = vec[r * 2 + 1];
+    }
+    return out;
+}
+
+Rcpp::NumericMatrix cpp_rows_to_matrix(
+    const std::vector<std::vector<double>>& rows
+) {
+    if (rows.empty()) {
+        return Rcpp::NumericMatrix(0, 0);
+    }
+    const int n_rows = static_cast<int>(rows.size());
+    const int n_cols = static_cast<int>(rows.front().size());
+    Rcpp::NumericMatrix out(n_rows, n_cols);
+    for (int r = 0; r < n_rows; ++r) {
+        for (int c = 0; c < n_cols; ++c) {
+            out(r, c) = rows[static_cast<std::size_t>(r)][static_cast<std::size_t>(c)];
+        }
+    }
+    return out;
+}
+
+Rcpp::LogicalVector cpp_bools_to_logical(const std::vector<bool>& values) {
+    Rcpp::LogicalVector out(static_cast<R_xlen_t>(values.size()));
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        out[static_cast<R_xlen_t>(i)] = values[i];
+    }
+    return out;
+}
+
+Rcpp::List nnet_to_list(const ABCNnetControl& nnet) {
+    return Rcpp::List::create(
+        Rcpp::Named("numnet") = nnet.numnet,
+        Rcpp::Named("sizenet") = nnet.sizenet,
+        Rcpp::Named("lambda") = nnet.lambda,
+        Rcpp::Named("maxit") = nnet.maxit,
+        Rcpp::Named("rang") = nnet.rang,
+        Rcpp::Named("abstol") = nnet.abstol,
+        Rcpp::Named("reltol") = nnet.reltol,
+        Rcpp::Named("verbose") = nnet.verbose,
+        Rcpp::Named("skip") = nnet.skip
+    );
+}
+
 ABCControl control_from_list(Rcpp::Nullable<Rcpp::List> control) {
     ABCControl out;
     if (control.isNull()) {
@@ -166,8 +260,61 @@ ABCControl control_from_list(Rcpp::Nullable<Rcpp::List> control) {
     if (ctrl.containsElementNamed("hcorr")) {
         out.hcorr = Rcpp::as<bool>(ctrl["hcorr"]);
     }
+    if (ctrl.containsElementNamed("transf")) {
+        out.transf = r_character_to_strings(ctrl["transf"]);
+    }
+    if (ctrl.containsElementNamed("transformations")) {
+        out.transf = r_character_to_strings(ctrl["transformations"]);
+    }
+    if (ctrl.containsElementNamed("logit_bounds")) {
+        out.logit_bounds = r_logit_bounds_to_cpp(ctrl["logit_bounds"]);
+    }
+    if (ctrl.containsElementNamed("logit.bounds")) {
+        out.logit_bounds = r_logit_bounds_to_cpp(ctrl["logit.bounds"]);
+    }
+    if (ctrl.containsElementNamed("subset")) {
+        out.subset = r_logical_to_bools(ctrl["subset"]);
+    }
+    if (ctrl.containsElementNamed("prior_weights")) {
+        out.prior_weights =
+            Rcpp::as<std::vector<double>>(ctrl["prior_weights"]);
+    }
+    if (ctrl.containsElementNamed("prior.weights")) {
+        out.prior_weights =
+            Rcpp::as<std::vector<double>>(ctrl["prior.weights"]);
+    }
     if (ctrl.containsElementNamed("seed")) {
         out.seed = Rcpp::as<unsigned int>(ctrl["seed"]);
+    }
+    if (ctrl.containsElementNamed("nnet")) {
+        Rcpp::List nnet(ctrl["nnet"]);
+        if (nnet.containsElementNamed("numnet")) {
+            out.nnet.numnet = Rcpp::as<int>(nnet["numnet"]);
+        }
+        if (nnet.containsElementNamed("sizenet")) {
+            out.nnet.sizenet = Rcpp::as<int>(nnet["sizenet"]);
+        }
+        if (nnet.containsElementNamed("lambda")) {
+            out.nnet.lambda = Rcpp::as<std::vector<double>>(nnet["lambda"]);
+        }
+        if (nnet.containsElementNamed("maxit")) {
+            out.nnet.maxit = Rcpp::as<int>(nnet["maxit"]);
+        }
+        if (nnet.containsElementNamed("rang")) {
+            out.nnet.rang = Rcpp::as<double>(nnet["rang"]);
+        }
+        if (nnet.containsElementNamed("abstol")) {
+            out.nnet.abstol = Rcpp::as<double>(nnet["abstol"]);
+        }
+        if (nnet.containsElementNamed("reltol")) {
+            out.nnet.reltol = Rcpp::as<double>(nnet["reltol"]);
+        }
+        if (nnet.containsElementNamed("verbose")) {
+            out.nnet.verbose = Rcpp::as<bool>(nnet["verbose"]);
+        }
+        if (nnet.containsElementNamed("skip")) {
+            out.nnet.skip = Rcpp::as<bool>(nnet["skip"]);
+        }
     }
     if (ctrl.containsElementNamed("print_level")) {
         out.print_level = Rcpp::as<int>(ctrl["print_level"]);
@@ -184,7 +331,12 @@ Rcpp::List control_to_list(const ABCControl& control) {
         Rcpp::Named("samples") = control.samples,
         Rcpp::Named("kernel") = control.kernel,
         Rcpp::Named("hcorr") = control.hcorr,
+        Rcpp::Named("transf") = control.transf,
+        Rcpp::Named("logit_bounds") = cpp_rows_to_matrix(control.logit_bounds),
+        Rcpp::Named("subset") = cpp_bools_to_logical(control.subset),
+        Rcpp::Named("prior_weights") = control.prior_weights,
         Rcpp::Named("seed") = control.seed,
+        Rcpp::Named("nnet") = nnet_to_list(control.nnet),
         Rcpp::Named("print_level") = control.print_level
     );
 }
@@ -295,6 +447,9 @@ Rcpp::List create_subject_abc_df(
     Rcpp::CharacterVector condition(n_rows), message(n_rows);
     Rcpp::IntegerVector status(n_rows), n_accepted(n_rows);
     Rcpp::IntegerVector n_comp(n_rows);
+    Rcpp::List accepted_indices(n_rows);
+    Rcpp::List accepted_distances(n_rows);
+    Rcpp::List accepted_weights(n_rows);
 
     for (int i = 0; i < n_rows; ++i) {
         const SubjectABCResult& row = rows[static_cast<std::size_t>(i)];
@@ -304,6 +459,17 @@ Rcpp::List create_subject_abc_df(
         message[i] = row.message;
         n_comp[i] = row.n_comp_used;
         n_accepted[i] = static_cast<int>(row.accepted_indices.size());
+
+        Rcpp::IntegerVector idx(
+            static_cast<R_xlen_t>(row.accepted_indices.size())
+        );
+        for (std::size_t j = 0; j < row.accepted_indices.size(); ++j) {
+            idx[static_cast<R_xlen_t>(j)] =
+                static_cast<int>(row.accepted_indices[j] + 1);
+        }
+        accepted_indices[i] = idx;
+        accepted_distances[i] = row.accepted_distances;
+        accepted_weights[i] = row.accepted_weights;
     }
 
     Rcpp::List out = Rcpp::List::create(
@@ -312,7 +478,10 @@ Rcpp::List create_subject_abc_df(
         Rcpp::Named("status") = status,
         Rcpp::Named("message") = message,
         Rcpp::Named("n_comp") = n_comp,
-        Rcpp::Named("n_accepted") = n_accepted
+        Rcpp::Named("n_accepted") = n_accepted,
+        Rcpp::Named("accepted_indices") = accepted_indices,
+        Rcpp::Named("accepted_distances") = accepted_distances,
+        Rcpp::Named("accepted_weights") = accepted_weights
     );
     set_data_frame_attrs(out, n_rows);
     return out;
@@ -332,7 +501,10 @@ Rcpp::RObject r_estimate_abc(
     const auto cpp_df = dataframe_to_cpp(df);
     const auto cpp_colnames = colnames_to_cpp(colnames);
     const ParamGroup user_params = params_to_cpp(params);
-    const ABCControl cpp_control = control_from_list(control);
+    const ABCControl cpp_control = modify_control(
+        control_from_list(control),
+        "abc"
+    );
     std::unordered_map<std::string, UserPrior> cpp_priors;
     if (priors.isNotNull()) {
         r_obj_to_user_priors(priors, cpp_priors);

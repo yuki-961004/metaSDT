@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "../../Cpp/include/estimate_abc.hpp"
+#include "../../Cpp/include/modify_control.hpp"
 
 namespace py = pybind11;
 
@@ -134,6 +135,63 @@ std::vector<std::unordered_map<std::string, std::vector<double>>> parse_param_sa
     return out;
 }
 
+std::vector<std::string> parse_string_vector(const py::handle& value) {
+    if (py::isinstance<py::str>(value)) {
+        return {value.cast<std::string>()};
+    }
+    return value.cast<std::vector<std::string>>();
+}
+
+std::vector<std::vector<double>> parse_double_matrix(const py::handle& value) {
+    if (!is_sequence_like(value)) {
+        return {};
+    }
+
+    py::sequence seq = value.cast<py::sequence>();
+    if (seq.empty()) {
+        return {};
+    }
+
+    if (is_sequence_like(seq[0])) {
+        return value.cast<std::vector<std::vector<double>>>();
+    }
+
+    const std::vector<double> flat = value.cast<std::vector<double>>();
+    if (flat.size() % 2 != 0) {
+        throw std::invalid_argument(
+            "control['logit_bounds'] must contain lower/upper pairs."
+        );
+    }
+    std::vector<std::vector<double>> out(flat.size() / 2, std::vector<double>(2));
+    for (std::size_t i = 0; i < out.size(); ++i) {
+        out[i][0] = flat[i * 2];
+        out[i][1] = flat[i * 2 + 1];
+    }
+    return out;
+}
+
+py::list rows_to_list(const std::vector<std::vector<double>>& rows) {
+    py::list out;
+    for (const auto& row : rows) {
+        out.append(row);
+    }
+    return out;
+}
+
+py::dict nnet_to_dict(const ABCNnetControl& nnet) {
+    py::dict out;
+    out["numnet"] = nnet.numnet;
+    out["sizenet"] = nnet.sizenet;
+    out["lambda"] = nnet.lambda;
+    out["maxit"] = nnet.maxit;
+    out["rang"] = nnet.rang;
+    out["abstol"] = nnet.abstol;
+    out["reltol"] = nnet.reltol;
+    out["verbose"] = nnet.verbose;
+    out["skip"] = nnet.skip;
+    return out;
+}
+
 py::dict control_to_dict(const ABCControl& control) {
     py::dict out;
     out["tol"] = control.tol;
@@ -143,7 +201,12 @@ py::dict control_to_dict(const ABCControl& control) {
     out["samples"] = control.samples;
     out["kernel"] = control.kernel;
     out["hcorr"] = control.hcorr;
+    out["transf"] = control.transf;
+    out["logit_bounds"] = rows_to_list(control.logit_bounds);
+    out["subset"] = control.subset;
+    out["prior_weights"] = control.prior_weights;
     out["seed"] = control.seed;
+    out["nnet"] = nnet_to_dict(control.nnet);
     out["print_level"] = control.print_level;
     return out;
 }
@@ -172,7 +235,40 @@ ABCControl parse_control(const py::dict& control) {
     if (control.contains("samples")) out.samples = control["samples"].cast<int>();
     if (control.contains("kernel")) out.kernel = control["kernel"].cast<std::string>();
     if (control.contains("hcorr")) out.hcorr = control["hcorr"].cast<bool>();
+    if (control.contains("transf")) out.transf = parse_string_vector(control["transf"]);
+    if (control.contains("transformations")) {
+        out.transf = parse_string_vector(control["transformations"]);
+    }
+    if (control.contains("logit_bounds")) {
+        out.logit_bounds = parse_double_matrix(control["logit_bounds"]);
+    }
+    if (control.contains("logit.bounds")) {
+        out.logit_bounds = parse_double_matrix(control["logit.bounds"]);
+    }
+    if (control.contains("subset")) {
+        out.subset = control["subset"].cast<std::vector<bool>>();
+    }
+    if (control.contains("prior_weights")) {
+        out.prior_weights = control["prior_weights"].cast<std::vector<double>>();
+    }
+    if (control.contains("prior.weights")) {
+        out.prior_weights = control["prior.weights"].cast<std::vector<double>>();
+    }
     if (control.contains("seed")) out.seed = control["seed"].cast<unsigned int>();
+    if (control.contains("nnet")) {
+        py::dict nnet = control["nnet"].cast<py::dict>();
+        if (nnet.contains("numnet")) out.nnet.numnet = nnet["numnet"].cast<int>();
+        if (nnet.contains("sizenet")) out.nnet.sizenet = nnet["sizenet"].cast<int>();
+        if (nnet.contains("lambda")) {
+            out.nnet.lambda = nnet["lambda"].cast<std::vector<double>>();
+        }
+        if (nnet.contains("maxit")) out.nnet.maxit = nnet["maxit"].cast<int>();
+        if (nnet.contains("rang")) out.nnet.rang = nnet["rang"].cast<double>();
+        if (nnet.contains("abstol")) out.nnet.abstol = nnet["abstol"].cast<double>();
+        if (nnet.contains("reltol")) out.nnet.reltol = nnet["reltol"].cast<double>();
+        if (nnet.contains("verbose")) out.nnet.verbose = nnet["verbose"].cast<bool>();
+        if (nnet.contains("skip")) out.nnet.skip = nnet["skip"].cast<bool>();
+    }
     if (control.contains("print_level")) out.print_level = control["print_level"].cast<int>();
     return out;
 }
@@ -256,7 +352,7 @@ py::dict py_estimate_abc(
         py_dict_to_user_priors(priors, cpp_priors);
     }
 
-    const ABCControl cpp_control = parse_control(control);
+    const ABCControl cpp_control = modify_control(parse_control(control), "abc");
 
     std::vector<SubjectABCResult> cpp_res;
     {
@@ -298,6 +394,7 @@ py::dict py_estimate_abc(
         row["n_accepted"] = py::int_(r.accepted_indices.size());
         row["accepted_indices"] = r.accepted_indices;
         row["accepted_distances"] = r.accepted_distances;
+        row["accepted_weights"] = r.accepted_weights;
         subject_abc.append(row);
     }
 

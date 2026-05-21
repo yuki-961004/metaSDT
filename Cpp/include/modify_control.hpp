@@ -2,6 +2,7 @@
 
 #include <string>
 #include "estimate_mle.hpp"
+#include "estimate_abc.hpp"
 
 /* ========================================================================== *
  *                            Stan Control Settings                           *
@@ -43,5 +44,10 @@ NLoptControl modify_control(
 
 StanControl modify_control(
     const StanControl& input,
+    const std::string& estimator
+);
+
+ABCControl modify_control(
+    const ABCControl& input,
     const std::string& estimator
 );
