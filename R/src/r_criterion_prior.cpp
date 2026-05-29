@@ -27,8 +27,7 @@ namespace {
 }
 
 //' Evaluate Log-Prior
-//' @export
-// [[Rcpp::export(name = "criterion_prior")]]
+// [[Rcpp::export(name = ".core_criterion_prior")]]
 double r_criterion_prior(Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
     ModifiedParamsResult param_info;
     if (!std_params.isNULL() && Rf_length(std_params) > 0) {

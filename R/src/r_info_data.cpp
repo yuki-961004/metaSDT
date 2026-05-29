@@ -4,7 +4,7 @@
 #define CORE_IMPL "../../Cpp/src/info_data.cpp"
 #include CORE_IMPL
 //' Intelligently scan the dataset and extract subject-level information.
-// [[Rcpp::export(name = "info_data")]]
+// [[Rcpp::export(name = ".help_info_data")]]
 Rcpp::List r_info_data(
     Rcpp::DataFrame df, 
     Rcpp::Nullable<Rcpp::List> colnames = R_NilValue

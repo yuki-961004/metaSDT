@@ -36,7 +36,7 @@ void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<do
 
 }
 
-// [[Rcpp::export(name = "estimate_mle")]]
+// [[Rcpp::export(name = ".estimate_mle")]]
 Rcpp::RObject r_estimate_mle(
     Rcpp::DataFrame df,
     Rcpp::Nullable<Rcpp::List> colnames = R_NilValue,

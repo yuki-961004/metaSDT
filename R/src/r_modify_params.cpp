@@ -47,8 +47,7 @@ void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<do
 //'
 //' @return A Rcpp::Named Rcpp::List containing the final, flattened parameters.
 //' @import Rcpp
-//' @export
-// [[Rcpp::export(name = "modify_params")]]
+// [[Rcpp::export(name = ".help_modify_params")]]
 Rcpp::List r_modify_params(Rcpp::RObject user_params = R_NilValue) {
     ParamGroup cpp_user_params;
 

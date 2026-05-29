@@ -26,8 +26,7 @@ namespace {
 }
 
 //' Modify and align prior distributions
-//' @export
-// [[Rcpp::export(name = "modify_priors")]]
+// [[Rcpp::export(name = ".help_modify_priors")]]
 Rcpp::List r_modify_priors(Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
     ModifiedParamsResult param_info;
     if (!std_params.isNULL() && Rf_length(std_params) > 0) {

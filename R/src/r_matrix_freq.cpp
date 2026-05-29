@@ -10,8 +10,7 @@
 //' @param conf The numeric vector indicating the confidence level (optional).
 //' @param diff The numeric vector indicating the difficulty level (optional).
 //' @import Rcpp
-//' @export
-// [[Rcpp::export(name = "matrix_freq")]]
+// [[Rcpp::export(name = ".core_matrix_freq")]]
 Rcpp::List r_matrix_freq(
   Rcpp::NumericVector stim, Rcpp::NumericVector resp, 
   Rcpp::Nullable<Rcpp::NumericVector> conf = R_NilValue,

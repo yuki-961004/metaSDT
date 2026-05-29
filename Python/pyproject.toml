@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "metaSDT"
 version = "0.0.9"
 description = "High-performance Meta-Cognitive SDT modeling via C++"
-dependencies = ["pandas"]
+dependencies = ["pandas", "plotnine"]
 
 [tool.scikit-build]
 wheel.packages = ["metaSDT"]

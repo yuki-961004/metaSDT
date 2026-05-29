@@ -3,7 +3,7 @@
 
 #define CORE_IMPL "../../Cpp/src/model_sdt.cpp"
 #include CORE_IMPL
-// [[Rcpp::export(name = "model_sdt")]]
+// [[Rcpp::export(name = ".core_model_sdt")]]
 Rcpp::List r_model_sdt(Rcpp::List params) {
     std::unordered_map<std::string, std::vector<double>> cpp_params;
     if (params.size() > 0 && params.hasAttribute("names")) {

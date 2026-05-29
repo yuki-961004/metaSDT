@@ -492,7 +492,7 @@ Rcpp::List create_subject_abc_df(
 
 } // namespace
 
-// [[Rcpp::export(name = "estimate_abc")]]
+// [[Rcpp::export(name = ".estimate_abc")]]
 Rcpp::RObject r_estimate_abc(
     Rcpp::DataFrame df,
     Rcpp::Nullable<Rcpp::List> colnames = R_NilValue,

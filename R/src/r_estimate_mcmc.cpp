@@ -376,7 +376,7 @@ Rcpp::List create_diagnostics_slot(const OutputDiagnosticsSlot& slot) {
 
 } // namespace
 
-// [[Rcpp::export(name = "estimate_mcmc")]]
+// [[Rcpp::export(name = ".estimate_mcmc")]]
 Rcpp::RObject r_estimate_mcmc(
     Rcpp::DataFrame df,
     Rcpp::Nullable<Rcpp::List> colnames = R_NilValue,

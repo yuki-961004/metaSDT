@@ -27,8 +27,7 @@ namespace {
 }
 
 //' Evaluate Log-Posterior
-//' @export
-// [[Rcpp::export(name = "criterion_posterior")]]
+// [[Rcpp::export(name = ".core_criterion_posterior")]]
 double r_criterion_posterior(Rcpp::List freq_mat, Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
     int n_dims = freq_mat.size();
     Rcpp::NumericMatrix first = Rcpp::as<Rcpp::NumericMatrix>(freq_mat[0]);

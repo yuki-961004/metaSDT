@@ -4,7 +4,7 @@
 #define CORE_IMPL "../../Cpp/src/matrix_prob.cpp"
 #include CORE_IMPL
 //' Calculate Probability Matrix
-// [[Rcpp::export(name = "matrix_prob")]]
+// [[Rcpp::export(name = ".core_matrix_prob")]]
 Rcpp::List r_matrix_prob(Rcpp::List cdf_noise, Rcpp::List cdf_signal, Rcpp::List params) {
     int n_dims = cdf_noise.size();
     std::vector<std::vector<double>> cpp_noise(n_dims);

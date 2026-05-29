@@ -4,8 +4,7 @@
 #define CORE_IMPL "../../Cpp/src/matrix_mult.cpp"
 #include CORE_IMPL
 //' Calculate the Log-Likelihood product matrix
-//' @export
-// [[Rcpp::export(name = "matrix_mult")]]
+// [[Rcpp::export(name = ".core_matrix_mult")]]
 Rcpp::List r_matrix_mult(Rcpp::List freq_mat, Rcpp::List prob_mat, Rcpp::List std_params) {
     int n_dims = freq_mat.size();
     Rcpp::NumericMatrix first = Rcpp::as<Rcpp::NumericMatrix>(freq_mat[0]);

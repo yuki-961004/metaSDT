@@ -2,41 +2,38 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' Calculate Model Likelihood indicators (NLL, AIC, BIC)
-#' @export
-criterion_likelihood <- function(freq_mat, prob_mat, std_params) {
+.core_criterion_likelihood <- function(freq_mat, prob_mat, std_params) {
     .Call(`_metaSDT_r_criterion_likelihood`, freq_mat, prob_mat, std_params)
 }
 
 #' Evaluate Log-Posterior
-#' @export
-criterion_posterior <- function(freq_mat, user_priors, std_params = NULL) {
+.core_criterion_posterior <- function(freq_mat, user_priors, std_params = NULL) {
     .Call(`_metaSDT_r_criterion_posterior`, freq_mat, user_priors, std_params)
 }
 
 #' Evaluate Log-Prior
-#' @export
-criterion_prior <- function(user_priors, std_params = NULL) {
+.core_criterion_prior <- function(user_priors, std_params = NULL) {
     .Call(`_metaSDT_r_criterion_prior`, user_priors, std_params)
 }
 
-estimate_abc <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, priors = NULL) {
+.estimate_abc <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, priors = NULL) {
     .Call(`_metaSDT_r_estimate_abc`, df, colnames, params, model, control, priors)
 }
 
-estimate_map <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, priors = NULL) {
+.estimate_map <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, priors = NULL) {
     .Call(`_metaSDT_r_estimate_map`, df, colnames, params, model, control, lower, upper, priors)
 }
 
-estimate_mcmc <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, priors = NULL) {
+.estimate_mcmc <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL, priors = NULL) {
     .Call(`_metaSDT_r_estimate_mcmc`, df, colnames, params, model, control, lower, upper, priors)
 }
 
-estimate_mle <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL) {
+.estimate_mle <- function(df, colnames = NULL, params = NULL, model = "sdt", control = NULL, lower = NULL, upper = NULL) {
     .Call(`_metaSDT_r_estimate_mle`, df, colnames, params, model, control, lower, upper)
 }
 
 #' Intelligently scan the dataset and extract subject-level information.
-info_data <- function(df, colnames = NULL) {
+.help_info_data <- function(df, colnames = NULL) {
     .Call(`_metaSDT_r_info_data`, df, colnames)
 }
 
@@ -47,23 +44,21 @@ info_data <- function(df, colnames = NULL) {
 #' @param conf The numeric vector indicating the confidence level (optional).
 #' @param diff The numeric vector indicating the difficulty level (optional).
 #' @import Rcpp
-#' @export
-matrix_freq <- function(stim, resp, conf = NULL, diff = NULL) {
+.core_matrix_freq <- function(stim, resp, conf = NULL, diff = NULL) {
     .Call(`_metaSDT_r_matrix_freq`, stim, resp, conf, diff)
 }
 
 #' Calculate the Log-Likelihood product matrix
-#' @export
-matrix_mult <- function(freq_mat, prob_mat, std_params) {
+.core_matrix_mult <- function(freq_mat, prob_mat, std_params) {
     .Call(`_metaSDT_r_matrix_mult`, freq_mat, prob_mat, std_params)
 }
 
 #' Calculate Probability Matrix
-matrix_prob <- function(cdf_noise, cdf_signal, params) {
+.core_matrix_prob <- function(cdf_noise, cdf_signal, params) {
     .Call(`_metaSDT_r_matrix_prob`, cdf_noise, cdf_signal, params)
 }
 
-model_sdt <- function(params) {
+.core_model_sdt <- function(params) {
     .Call(`_metaSDT_r_model_sdt`, params)
 }
 
@@ -83,38 +78,36 @@ model_sdt <- function(params) {
 #'
 #' @return A Rcpp::Named Rcpp::List containing the final, flattened parameters.
 #' @import Rcpp
-#' @export
-modify_params <- function(user_params = NULL) {
+.help_modify_params <- function(user_params = NULL) {
     .Call(`_metaSDT_r_modify_params`, user_params)
 }
 
 #' Modify and align prior distributions
-#' @export
-modify_priors <- function(user_priors, std_params = NULL) {
+.help_modify_priors <- function(user_priors, std_params = NULL) {
     .Call(`_metaSDT_r_modify_priors`, user_priors, std_params)
 }
 
-progress_start <- function(total, title = "Progress", refresh_ms = 100L, mode = "auto", line_interval_sec = 2.0, line_interval_pct = 5.0) {
+.ui_progress_start <- function(total, title = "Progress", refresh_ms = 100L, mode = "auto", line_interval_sec = 2.0, line_interval_pct = 5.0) {
     invisible(.Call(`_metaSDT_r_progress_start`, total, title, refresh_ms, mode, line_interval_sec, line_interval_pct))
 }
 
-progress_set <- function(current) {
+.ui_progress_set <- function(current) {
     invisible(.Call(`_metaSDT_r_progress_set`, current))
 }
 
-progress_advance <- function(step = 1.0) {
+.ui_progress_advance <- function(step = 1.0) {
     invisible(.Call(`_metaSDT_r_progress_advance`, step))
 }
 
-progress_finish <- function() {
+.ui_progress_finish <- function() {
     invisible(.Call(`_metaSDT_r_progress_finish`))
 }
 
-progress_snapshot <- function() {
+.ui_progress_snapshot <- function() {
     .Call(`_metaSDT_r_progress_snapshot`)
 }
 
-.shell_run_m_cpp <- function(params, model = "sdt", option = NULL) {
+.shell_run_m <- function(params, model = "sdt", option = NULL) {
     .Call(`_metaSDT_r_shell_run_m`, params, model, option)
 }
 

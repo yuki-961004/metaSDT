@@ -248,7 +248,7 @@ Rcpp::List build_condition_diagnostics(
 }
 }
 
-// [[Rcpp::export(name = "estimate_map")]]
+// [[Rcpp::export(name = ".estimate_map")]]
 Rcpp::RObject r_estimate_map(
     Rcpp::DataFrame df,
     Rcpp::Nullable<Rcpp::List> colnames = R_NilValue,

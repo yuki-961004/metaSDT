@@ -5,7 +5,7 @@
 #define UI_PROGRESS_IMPL "../../Cpp/src/progress_bar.cpp"
 #include UI_PROGRESS_IMPL
 
-// [[Rcpp::export(name = "progress_start")]]
+// [[Rcpp::export(name = ".ui_progress_start")]]
 void r_progress_start(
     double total,
     std::string title = "Progress",
@@ -27,22 +27,22 @@ void r_progress_start(
     );
 }
 
-// [[Rcpp::export(name = "progress_set")]]
+// [[Rcpp::export(name = ".ui_progress_set")]]
 void r_progress_set(double current) {
     ui::progress_set(static_cast<std::size_t>(std::max(0.0, current)));
 }
 
-// [[Rcpp::export(name = "progress_advance")]]
+// [[Rcpp::export(name = ".ui_progress_advance")]]
 void r_progress_advance(double step = 1.0) {
     ui::progress_advance(static_cast<std::size_t>(std::max(0.0, step)));
 }
 
-// [[Rcpp::export(name = "progress_finish")]]
+// [[Rcpp::export(name = ".ui_progress_finish")]]
 void r_progress_finish() {
     ui::progress_finish();
 }
 
-// [[Rcpp::export(name = "progress_snapshot")]]
+// [[Rcpp::export(name = ".ui_progress_snapshot")]]
 Rcpp::List r_progress_snapshot() {
     ui::ProgressSnapshot snapshot = ui::progress_last_snapshot();
     return Rcpp::List::create(

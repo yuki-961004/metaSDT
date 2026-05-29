@@ -122,7 +122,7 @@ Rcpp::DataFrame density_to_frame(const ShellRunMDensity& density) {
  *                              R Entry Point                                 *
  * ========================================================================== */
 
-// [[Rcpp::export(name = ".shell_run_m_cpp")]]
+// [[Rcpp::export(name = ".shell_run_m")]]
 Rcpp::List r_shell_run_m(
     Rcpp::RObject params,
     std::string model = "sdt",
