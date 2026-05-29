@@ -75,8 +75,8 @@ std::vector<SubjectFitTask> build_fit_tasks(
     }
 
     // 保存完整列的引用, 避免循环中重复 map 查找
-    const auto& full_stim = df.at(col_stim);
-    const auto& full_resp = df.at(col_resp);
+    const std::vector<double>& full_stim = df.at(col_stim);
+    const std::vector<double>& full_resp = df.at(col_resp);
     const std::vector<double>* full_conf_ptr = nullptr;
     const std::vector<double>* full_diff_ptr = nullptr;
 
@@ -102,8 +102,8 @@ std::vector<SubjectFitTask> build_fit_tasks(
 
     // 遍历 info_data 产出的每个被试分组
     for (const auto& kv : info.subjects) {
-        double subid = kv.first;
-        const auto& subj = kv.second;
+        const double subid = kv.first;
+        const DataInfoSubject& subj = kv.second;
 
         // 该辅助函数为给定行索引集合创建一个任务
         // 单条件数据时 cond_name 为空字符串
@@ -173,7 +173,7 @@ std::vector<SubjectFitTask> build_fit_tasks(
                     return;
                 }
                 std::vector<double> new_vec(n_diffs, m[key][0]);
-                size_t bound = std::min(m[key].size(), n_diffs);
+                const size_t bound = std::min(m[key].size(), n_diffs);
                 for (size_t k = 0; k < bound; ++k) {
                     new_vec[k] = m[key][k];
                 }

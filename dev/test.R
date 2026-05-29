@@ -1,7 +1,7 @@
 
 # %%
 # 1. 编译并加载整个 R 包 (指定包根目录为 ./R)
-#devtools::clean_dll("./R")
+devtools::clean_dll("./R")
 devtools::load_all("./R")
 
 # %%

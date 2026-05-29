@@ -275,12 +275,13 @@ MCMCFitStats evaluate_mcmc_stats(
         cdf_s,
         params
     );
-    const auto mult = matrix_mult<double>(
-        task.freq.freq_mat,
-        prob.prob_mat,
-        params
-    );
-    const auto loss = criterion_likelihood<double>(
+    const std::vector<std::vector<std::vector<double>>> mult =
+        matrix_mult<double>(
+            task.freq.freq_mat,
+            prob.prob_mat,
+            params
+        );
+    const LikelihoodResult<double> loss = criterion_likelihood<double>(
         mult,
         task.freq.freq_mat,
         task.params.numb_free,

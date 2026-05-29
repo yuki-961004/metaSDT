@@ -40,7 +40,9 @@ std::vector<double> flatten_prob_counts(
     for (const auto& dim : prob.prob_mat) {
         for (const auto& row : dim) {
             for (const T value : row) {
-                out.push_back(std::llround(static_cast<double>(value) * total_trials));
+                out.push_back(
+                    std::llround(static_cast<double>(value) * total_trials)
+                );
             }
         }
     }
@@ -75,7 +77,8 @@ std::vector<std::string> flatten_parameter_names(
 ) {
     std::vector<std::string> out;
     for (const auto& name : params.name_free) {
-        const auto& values = params.structured.free.at(name);
+        const std::vector<double>& values =
+            params.structured.free.at(name);
         if (values.size() <= 1) {
             out.push_back(name);
         } else {
@@ -146,7 +149,11 @@ double sample_from_prior(
     const std::string type = lower_string(prior.type);
 
     if (type == "normal" || type == "norm") {
-        const double mean = prior_arg(prior, {"mean", "mu", "location", "param1"}, initial);
+        const double mean = prior_arg(
+            prior,
+            {"mean", "mu", "location", "param1"},
+            initial
+        );
         const double sd = std::max(
             prior_arg(prior, {"sd", "sigma", "scale", "param2"}, 1.0),
             1e-12
@@ -155,8 +162,16 @@ double sample_from_prior(
         return dist(rng);
     }
     if (type == "uniform" || type == "unif") {
-        const double lower = prior_arg(prior, {"min", "lower", "param1"}, initial - 1.0);
-        const double upper = prior_arg(prior, {"max", "upper", "param2"}, initial + 1.0);
+        const double lower = prior_arg(
+            prior,
+            {"min", "lower", "param1"},
+            initial - 1.0
+        );
+        const double upper = prior_arg(
+            prior,
+            {"max", "upper", "param2"},
+            initial + 1.0
+        );
         std::uniform_real_distribution<double> dist(
             std::min(lower, upper),
             std::max(lower, upper)
@@ -164,7 +179,11 @@ double sample_from_prior(
         return dist(rng);
     }
     if (type == "lognormal" || type == "lnorm") {
-        const double meanlog = prior_arg(prior, {"mean", "meanlog", "mu", "param1"}, 0.0);
+        const double meanlog = prior_arg(
+            prior,
+            {"mean", "meanlog", "mu", "param1"},
+            0.0
+        );
         const double sdlog = std::max(
             prior_arg(prior, {"sd", "sdlog", "sigma", "param2"}, 1.0),
             1e-12
@@ -173,8 +192,15 @@ double sample_from_prior(
         return dist(rng);
     }
     if (type == "cauchy") {
-        const double location = prior_arg(prior, {"mean", "location", "param1"}, initial);
-        const double scale = std::max(prior_arg(prior, {"sd", "scale", "param2"}, 1.0), 1e-12);
+        const double location = prior_arg(
+            prior,
+            {"mean", "location", "param1"},
+            initial
+        );
+        const double scale = std::max(
+            prior_arg(prior, {"sd", "scale", "param2"}, 1.0),
+            1e-12
+        );
         std::cauchy_distribution<double> dist(location, scale);
         double value = dist(rng);
         if (!std::isfinite(value)) {
@@ -183,8 +209,14 @@ double sample_from_prior(
         return value;
     }
     if (type == "beta") {
-        const double a = std::max(prior_arg(prior, {"shape1", "alpha", "param1"}, 1.0), 1e-12);
-        const double b = std::max(prior_arg(prior, {"shape2", "beta", "param2"}, 1.0), 1e-12);
+        const double a = std::max(
+            prior_arg(prior, {"shape1", "alpha", "param1"}, 1.0),
+            1e-12
+        );
+        const double b = std::max(
+            prior_arg(prior, {"shape2", "beta", "param2"}, 1.0),
+            1e-12
+        );
         std::gamma_distribution<double> ga(a, 1.0);
         std::gamma_distribution<double> gb(b, 1.0);
         const double x = ga(rng);
@@ -192,7 +224,10 @@ double sample_from_prior(
         return (x + y > 0.0) ? x / (x + y) : 0.5;
     }
     if (type == "exponential" || type == "exp") {
-        const double rate = std::max(prior_arg(prior, {"rate", "lambda", "param1"}, 1.0), 1e-12);
+        const double rate = std::max(
+            prior_arg(prior, {"rate", "lambda", "param1"}, 1.0),
+            1e-12
+        );
         std::exponential_distribution<double> dist(rate);
         return dist(rng);
     }
@@ -203,7 +238,8 @@ double sample_from_prior(
 }
 
 // 为给定的拟合任务批量生成基于先验分布的候选参数样本
-std::vector<std::unordered_map<std::string, std::vector<double>>> draw_param_samples(
+std::vector<std::unordered_map<std::string, std::vector<double>>>
+draw_param_samples(
     const SubjectFitTask& task,
     int n_samples,
     const std::unordered_map<std::string, UserPrior>& priors,
@@ -213,13 +249,17 @@ std::vector<std::unordered_map<std::string, std::vector<double>>> draw_param_sam
     out.reserve(static_cast<std::size_t>(n_samples));
 
     for (int s = 0; s < n_samples; ++s) {
-        auto sample = task.params.flat;
+        std::unordered_map<std::string, std::vector<double>> sample =
+            task.params.flat;
         for (const auto& name : task.params.name_free) {
-            const auto& initial_values = task.params.structured.free.at(name);
+            const std::vector<double>& initial_values =
+                task.params.structured.free.at(name);
             std::vector<double> values;
             values.reserve(initial_values.size());
             for (const double initial : initial_values) {
-                values.push_back(sample_from_prior(name, initial, priors, rng));
+                values.push_back(
+                    sample_from_prior(name, initial, priors, rng)
+                );
             }
             // 确保置信度相关的标准点严格排序
             if (name == "c_conf") {
@@ -330,7 +370,7 @@ namespace abcppAdapter {
 std::unordered_map<std::string, UserPrior> merged_priors(
     const std::unordered_map<std::string, UserPrior>& user_priors
 ) {
-    auto out = default_priors();
+    std::unordered_map<std::string, UserPrior> out = default_priors();
     for (const auto& kv : user_priors) {
         out[kv.first] = kv.second;
     }
@@ -348,18 +388,34 @@ SubjectABCResult run_subject_abc(
     out.cond = task.cond;
     
     const std::vector<std::string> base_param_names = task.params.name_free;
-    const std::vector<std::string> flat_param_names = flatten_parameter_names(task.params);
+    const std::vector<std::string> flat_param_names =
+        flatten_parameter_names(task.params);
     if (flat_param_names.empty()) {
-        throw std::invalid_argument("estimate_abc requires at least one free parameter in params.");
+        throw std::invalid_argument(
+            "estimate_abc requires at least one free parameter in params."
+        );
     }
     out.parameter_names = flat_param_names;
 
-    std::mt19937 rng(static_cast<unsigned int>(control.seed + static_cast<unsigned int>(task_index)));
-    const auto param_samples = draw_param_samples(task, control.samples, prior_map, rng);
+    std::mt19937 rng(
+        static_cast<unsigned int>(
+            control.seed + static_cast<unsigned int>(task_index)
+        )
+    );
+    const std::vector<std::unordered_map<std::string, std::vector<double>>>
+        param_samples = draw_param_samples(
+            task,
+            control.samples,
+            prior_map,
+            rng
+        );
 
     abcpp::Matrix param_matrix(param_samples.size(), flat_param_names.size());
     for (std::size_t r = 0; r < param_samples.size(); ++r) {
-        const std::vector<double> values = flatten_parameter_values(param_samples[r], base_param_names);
+        const std::vector<double> values = flatten_parameter_values(
+            param_samples[r],
+            base_param_names
+        );
         for (std::size_t c = 0; c < values.size(); ++c) {
             param_matrix(r, c) = values[c];
         }
@@ -371,16 +427,27 @@ SubjectABCResult run_subject_abc(
         throw std::invalid_argument("ABC target frequency matrix is empty.");
     }
 
-    const int effective_n_comp = control.n_comp > 0 ? control.n_comp : infer_effective_n_comp(task.freq);
+    const int effective_n_comp = control.n_comp > 0
+        ? control.n_comp
+        : infer_effective_n_comp(task.freq);
     out.n_comp_used = effective_n_comp;
 
     abcpp::Matrix sumstat_matrix(param_samples.size(), target.size());
     for (std::size_t i = 0; i < param_samples.size(); ++i) {
         ModelSDT<double> sdt(param_samples[i]);
-        MatrixProb<double> prob = matrix_prob<double>(sdt.cdf_noise(), sdt.cdf_signal(), param_samples[i]);
-        const std::vector<double> sim_counts = flatten_prob_counts(prob, total_trials);
+        const MatrixProb<double> prob = matrix_prob<double>(
+            sdt.cdf_noise(),
+            sdt.cdf_signal(),
+            param_samples[i]
+        );
+        const std::vector<double> sim_counts = flatten_prob_counts(
+            prob,
+            total_trials
+        );
         if (sim_counts.size() != target.size()) {
-            throw std::invalid_argument("Simulated ABC summary width does not match target width.");
+            throw std::invalid_argument(
+                "Simulated ABC summary width does not match target width."
+            );
         }
         for (std::size_t j = 0; j < sim_counts.size(); ++j) {
             sumstat_matrix(i, j) = sim_counts[j];
@@ -388,7 +455,10 @@ SubjectABCResult run_subject_abc(
     }
 
     abcpp::AbcResult abc_res = abcpp::fit(
-        target, param_matrix, sumstat_matrix, make_options(control, effective_n_comp)
+        target,
+        param_matrix,
+        sumstat_matrix,
+        make_options(control, effective_n_comp)
     );
     abc_res.parameter_names = flat_param_names;
 

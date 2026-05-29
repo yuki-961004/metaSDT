@@ -1,8 +1,9 @@
 ﻿#include "../include/matrix_freq.hpp"
+
 #include <algorithm>
+#include <cmath>
 #include <set>
 #include <stdexcept>
-#include <cmath>
 
 namespace {
 
@@ -12,7 +13,8 @@ namespace {
 
 // 在向量中查找目标值的索引, 若未找到则返回 -1
 int find_index(const std::vector<double>& vec, double target) {
-    auto it = std::find(vec.begin(), vec.end(), target);
+    std::vector<double>::const_iterator it =
+        std::find(vec.begin(), vec.end(), target);
     if (it != vec.end()) {
         return static_cast<int>(std::distance(vec.begin(), it));
     }
@@ -48,7 +50,7 @@ std::vector<std::vector<double>> prep_num_mat(
     const std::vector<double>* diff
 ) {
     // 获取总行数, 并校验 stim 与 resp 长度是否一致
-    size_t n_rows = stim.size();
+    const size_t n_rows = stim.size();
     if (resp.size() != n_rows) {
         throw std::invalid_argument(
             "Error: 'stim' and 'resp' must have the same length."
@@ -103,21 +105,21 @@ void process_confidence_ratings(
     }
 
     // 计算期望的响应类别总数与每种响应的置信度箱数
-    int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
-    int num_bins = (n_criteria + 1) / 2;
+    const int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
+    const int num_bins = (n_criteria + 1) / 2;
     if (num_bins <= 1) {
         return;
     }
 
     // 获取当前数据中唯一的置信度值
-    auto unique_conf = get_unique_sorted(*conf);
+    std::vector<double> unique_conf = get_unique_sorted(*conf);
     if (unique_conf.size() <= static_cast<size_t>(num_bins)) {
         return;
     }
 
     // 检查数据是否为离散的整数评分, 且跨度在合理范围内 (<= 25)
-    double min_c = unique_conf.front();
-    double max_c = unique_conf.back();
+    const double min_c = unique_conf.front();
+    const double max_c = unique_conf.back();
     bool is_integer = true;
     for (double v : unique_conf) {
         if (std::abs(v - std::round(v)) > 1e-6) {
@@ -125,12 +127,13 @@ void process_confidence_ratings(
             break;
         }
     }
-    double span = max_c - min_c + 1.0;
-    bool is_discrete = is_integer && (span <= 25.0);
+    const double span = max_c - min_c + 1.0;
+    const bool is_discrete = is_integer && (span <= 25.0);
 
     // 如果数据是典型的离散评分, 但与模型配置的箱数不符, 抛出错误提示
     if (is_discrete) {
-        int expected_c_conf = static_cast<int>(unique_conf.size()) - 1;
+        const int expected_c_conf =
+            static_cast<int>(unique_conf.size()) - 1;
         throw std::invalid_argument(
             "Error: Mismatch between model parameters and discrete "
             "confidence data.\nYour 'conf' data contains " +
@@ -188,8 +191,13 @@ MatrixFreq matrix_freq(
     );
 
     // 构建行对齐的内部数据矩阵
-    auto num_mat = prep_num_mat(stim, resp, final_conf_ptr, diff);
-    size_t n_rows = num_mat.size();
+    const std::vector<std::vector<double>> num_mat = prep_num_mat(
+        stim,
+        resp,
+        final_conf_ptr,
+        diff
+    );
+    const size_t n_rows = num_mat.size();
 
     // 拆解各列以便于独立提取唯一值
     std::vector<double> stim_col;
@@ -204,17 +212,17 @@ MatrixFreq matrix_freq(
     }
 
     // 获取各维度的唯一取值集合
-    auto unique_stim = get_unique_sorted(stim_col);
-    auto unique_resp = get_unique_sorted(resp_col);
-    auto unique_conf = get_unique_sorted(conf_col);
-    auto unique_diff = get_unique_sorted(diff_col);
+    const std::vector<double> unique_stim = get_unique_sorted(stim_col);
+    const std::vector<double> unique_resp = get_unique_sorted(resp_col);
+    std::vector<double> unique_conf = get_unique_sorted(conf_col);
+    const std::vector<double> unique_diff = get_unique_sorted(diff_col);
 
     // 根据参数配置, 覆盖并严格设定期望的置信度箱数
     int expected_conf_bins = -1;
     if (std_params != nullptr &&
         std_params->count("n_conf") &&
         !std_params->at("n_conf").empty()) {
-        int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
+        const int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
         expected_conf_bins = (n_criteria + 1) / 2;
         if (expected_conf_bins > 1) {
             unique_conf.clear();
@@ -226,11 +234,11 @@ MatrixFreq matrix_freq(
     }
 
     // 计算各维度的大小, 以及展平后的响应-置信度列数
-    size_t n_stim = unique_stim.size();
-    size_t n_resp = unique_resp.size();
-    size_t n_conf = unique_conf.size();
-    size_t n_diffs = unique_diff.size();
-    size_t n_cols_out = n_resp * n_conf;
+    const size_t n_stim = unique_stim.size();
+    const size_t n_resp = unique_resp.size();
+    const size_t n_conf = unique_conf.size();
+    const size_t n_diffs = unique_diff.size();
+    const size_t n_cols_out = n_resp * n_conf;
 
     // 初始化全零的三维频数矩阵
     MatrixFreq result;
@@ -260,7 +268,7 @@ MatrixFreq matrix_freq(
             }
             conf_idx = mapped - 1;
         }
-        int diff_idx = find_index(unique_diff, num_mat[i][3]);
+        const int diff_idx = find_index(unique_diff, num_mat[i][3]);
 
         // 根据响应类型决定列索引排布, resp=0 时置信度逆序, resp=1 时正序
         int col_idx;
@@ -281,12 +289,12 @@ MatrixFreq matrix_freq(
     }
     for (size_t r = 0; r < n_resp; ++r) {
         for (size_t c_loop = 0; c_loop < n_conf; ++c_loop) {
-            size_t c = (r == 0) ? (n_conf - 1 - c_loop) : c_loop;
-            std::string r_str = format_double(unique_resp[r]);
+            const size_t c = (r == 0) ? (n_conf - 1 - c_loop) : c_loop;
+            const std::string r_str = format_double(unique_resp[r]);
             if (conf == nullptr) {
                 result.col_names.push_back("resp_" + r_str);
             } else {
-                std::string c_str = format_double(unique_conf[c]);
+                const std::string c_str = format_double(unique_conf[c]);
                 result.col_names.push_back(
                     "resp_" + r_str + "_conf_" + c_str
                 );

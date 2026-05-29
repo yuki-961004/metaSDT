@@ -10,6 +10,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 /* ========================================================================== *
  *                              NLopt Adapter                                 *
@@ -23,15 +25,17 @@ double criterion(unsigned n, const double* x, double* grad, void* f_data) {
         SubjectFitTask* task = static_cast<SubjectFitTask*>(f_data);
 
         // 从模板参数图出发, 用 x 覆盖自由参数位置.
-        auto std_params = task->params.flat;
+        std::unordered_map<std::string, std::vector<double>> std_params =
+            task->params.flat;
         size_t x_idx = 0;
         std::vector<double> free_params_vec;
 
         // 循环顺序必须和 name_free 一致, 这样 x 和边界才一一对应.
         for (const auto& name : task->params.name_free) {
-            size_t param_len = task->params.structured.free.at(name).size();
+            const size_t param_len =
+                task->params.structured.free.at(name).size();
             for (size_t i = 0; i < param_len; ++i) {
-                double val = x[x_idx++];
+                const double val = x[x_idx++];
                 std_params[name][i] = val;
                 free_params_vec.push_back(val);
             }
@@ -57,19 +61,20 @@ double criterion(unsigned n, const double* x, double* grad, void* f_data) {
             );
         }
 
-        MatrixProb<double> prob = matrix_prob<double>(
+        const MatrixProb<double> prob = matrix_prob<double>(
             /*cdf_noise=*/cdf_n,
             /*cdf_signal=*/cdf_s,
             /*std_params=*/std_params
         );
 
-        const auto mult = matrix_mult<double>(
+        const std::vector<std::vector<std::vector<double>>> mult =
+            matrix_mult<double>(
             /*freq_mat=*/task->freq.freq_mat,
             /*prob_mat=*/prob.prob_mat,
             /*std_params=*/std_params
         );
 
-        const auto loss = criterion_likelihood<double>(
+        const LikelihoodResult<double> loss = criterion_likelihood<double>(
             /*mult_mat=*/mult,
             /*freq_mat=*/task->freq.freq_mat,
             /*k=*/task->params.numb_free,

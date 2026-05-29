@@ -1,12 +1,16 @@
 #include "../include/estimate_mcmc.hpp"
 
 #include "../include/algorithm_stan.hpp"
-#include "../include/task_builder.hpp"
 #include "../include/modify_outputs.hpp"
 #include "../include/progress_bar.hpp"
+#include "../include/task_builder.hpp"
+
+#include <Eigen/Dense>
 
 #include <iostream>
 #include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -45,7 +49,7 @@ SubjectMCMCResult run_subject_mcmc(
         adapter.unconstrain(initial);
 
     std::vector<HMCSamplerResult> chain_results;
-    chain_results.reserve(static_cast<size_t>(control.chains));
+    chain_results.reserve(static_cast<std::size_t>(control.chains));
 
     // 每条链顺序运行, 外层被试并行负责利用多核资源.
     for (int chain = 0; chain < control.chains; ++chain) {
@@ -139,10 +143,10 @@ std::vector<SubjectMCMCResult> estimate_mcmc(
 
     #pragma omp parallel for
     for (int i = 0; i < n_tasks; ++i) {
-        const SubjectFitTask& task = tasks[static_cast<size_t>(i)];
+        const SubjectFitTask& task = tasks[static_cast<std::size_t>(i)];
 
         try {
-            results[static_cast<size_t>(i)] = run_subject_mcmc(
+            results[static_cast<std::size_t>(i)] = run_subject_mcmc(
                 task,
                 control
             );
@@ -152,7 +156,7 @@ std::vector<SubjectMCMCResult> estimate_mcmc(
                 std::cerr << "\n[MCMC Error] Subject " << task.subid
                           << " fitting failed: " << e.what() << "\n";
             }
-            results[static_cast<size_t>(i)] =
+            results[static_cast<std::size_t>(i)] =
                 modify_outputs::failed_mcmc_result(
                     task,
                     control,

@@ -25,7 +25,7 @@ DataInfoResult info_data(
     };
 
     // 支持用户传入更为口语化的键名 (aliases)
-    auto user_colnames = colnames;
+    std::unordered_map<std::string, std::string> user_colnames = colnames;
 
     if (user_colnames.count("subject") && !user_colnames.count("subid")) {
         user_colnames["subid"] = user_colnames.at("subject");

@@ -170,7 +170,8 @@ ShellRunMResult shell_run_m(
     }
 
     const ModifiedParamsResult modified = modify_params(params);
-    const auto& flat = modified.flat;
+    const std::unordered_map<std::string, std::vector<double>>& flat =
+        modified.flat;
 
     const std::vector<double> d = vector_param(flat, "d");
     const double c_resp = scalar_param(flat, "c_resp");

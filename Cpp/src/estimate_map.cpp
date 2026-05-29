@@ -10,11 +10,14 @@
 #include "../include/modify_control.hpp"
 #include "../include/progress_bar.hpp"
 
+#include <Eigen/Dense>
 #include <nlopt.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 
 #ifdef _OPENMP
@@ -54,7 +57,7 @@ std::vector<SubjectFitResult> em_e_step(
     // 如果 OpenMP 可用, 则跨被试并行化任务执行
     #pragma omp parallel for
     for (int i = 0; i < n_tasks; ++i) {
-        auto& task = tasks[i];
+        SubjectFitTask& task = tasks[static_cast<std::size_t>(i)];
         SubjectFitResult res;
         res.subid = task.subid;
         res.cond = task.cond;
@@ -102,24 +105,32 @@ std::vector<SubjectFitResult> em_e_step(
             res.result_message = nlopt_info.message;
             res.stop_reason = nlopt_info.stop_reason;
 
-            auto best_p = task.params.flat;
+            std::unordered_map<std::string, std::vector<double>> best_params =
+                task.params.flat;
             
             // 将优化后的扁平向量映射回参数结构
-            task.params.update_map_from_free_vector(best_p, x0);
+            task.params.update_map_from_free_vector(best_params, x0);
             
             // 确保置信度标准严格排序
-            if (best_p.count("c_conf")) {
-                std::sort(best_p["c_conf"].begin(), best_p["c_conf"].end());
+            if (best_params.count("c_conf")) {
+                std::sort(
+                    best_params["c_conf"].begin(),
+                    best_params["c_conf"].end()
+                );
             }
             
             // 如果需要排序, 则对标准差 'd' 进行排序
-            if (best_p.count("d") && best_p.count("sort_d") &&
-                !best_p["sort_d"].empty() && best_p["sort_d"][0] != 0.0) {
-                std::sort(best_p["d"].rbegin(), best_p["d"].rend());
+            if (best_params.count("d") && best_params.count("sort_d") &&
+                !best_params["sort_d"].empty() &&
+                best_params["sort_d"][0] != 0.0) {
+                std::sort(
+                    best_params["d"].rbegin(),
+                    best_params["d"].rend()
+                );
             }
 
             const std::vector<double> free_params_vec =
-                task.params.extract_free_vector(best_p);
+                task.params.extract_free_vector(best_params);
             Eigen::VectorXd free_params(
                 static_cast<Eigen::Index>(free_params_vec.size())
             );
@@ -144,7 +155,7 @@ std::vector<SubjectFitResult> em_e_step(
             
             // 根据模型生成累积分布函数
             if (task.model == "sdt") {
-                ModelSDT<double> model_obj(best_p);
+                ModelSDT<double> model_obj(best_params);
                 cdf_n = model_obj.cdf_noise();
                 cdf_s = model_obj.cdf_signal();
             } else {
@@ -153,18 +164,23 @@ std::vector<SubjectFitResult> em_e_step(
                 );
             }
 
-            MatrixProb<double> prob = matrix_prob<double>(cdf_n, cdf_s, best_p);
-            const auto mult = matrix_mult<double>(
+            const MatrixProb<double> prob = matrix_prob<double>(
+                cdf_n,
+                cdf_s,
+                best_params
+            );
+            const std::vector<std::vector<std::vector<double>>> mult =
+                matrix_mult<double>(
                 task.freq.freq_mat,
                 prob.prob_mat,
-                best_p
+                best_params
             );
-            const auto loss = criterion_likelihood<double>(
+            const LikelihoodResult<double> loss = criterion_likelihood<double>(
                 mult,
                 task.freq.freq_mat,
                 task.params.numb_free,
                 free_params_vec,
-                best_p
+                best_params
             );
 
             res.logL = loss.logL;
@@ -192,7 +208,7 @@ std::vector<SubjectFitResult> em_e_step(
                 res.bic = 0.0;
             }
             
-            res.best_params = best_p;
+            res.best_params = best_params;
             
         } catch (const std::exception& e) {
             // 针对失败优化的线程安全错误打印
@@ -207,7 +223,7 @@ std::vector<SubjectFitResult> em_e_step(
             res.stop_reason = "exception";
         }
 
-        results[i] = res;
+        results[static_cast<std::size_t>(i)] = res;
         
         // 安全地更新进度条
         if (control.print_level > 0 && !progress_title.empty()) {

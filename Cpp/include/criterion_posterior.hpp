@@ -1,16 +1,18 @@
 ﻿#ifndef CRITERION_POSTERIOR_HPP
 #define CRITERION_POSTERIOR_HPP
 
-#include <algorithm>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "criterion_likelihood.hpp"
 #include "criterion_prior.hpp"
 #include "matrix_mult.hpp"
 #include "matrix_prob.hpp"
 #include "model_sdt.hpp"
+
+#include <Eigen/Dense>
+
+#include <algorithm>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 /* ========================================================================== *
  *                       Criterion Posterior Engine                           *
@@ -42,7 +44,7 @@ public:
     template <typename T>
     T operator()(const Eigen::Matrix<T, Eigen::Dynamic, 1>& free_params) const {
         // 先计算当前自由参数向量对应的对数先验.
-        T log_prior = prior_handler_.evaluate<T>(free_params);
+        const T log_prior = prior_handler_.evaluate<T>(free_params);
 
         std::unordered_map<std::string, std::vector<T>> std_params;
 
@@ -60,7 +62,8 @@ public:
             std::vector<T> values(static_cast<std::size_t>(param_size));
 
             for (int inner = 0; inner < param_size; ++inner) {
-                values[static_cast<std::size_t>(inner)] = free_params(flat_index);
+                values[static_cast<std::size_t>(inner)] =
+                    free_params(flat_index);
                 free_params_vec.push_back(free_params(flat_index));
                 ++flat_index;
             }
@@ -86,13 +89,18 @@ public:
 
         // 由当前参数生成模型概率, 再与频数矩阵组合成似然项.
         ModelSDT<T> model(std_params);
-        auto cdf_n = model.cdf_noise();
-        auto cdf_s = model.cdf_signal();
-        MatrixProb<T> prob = matrix_prob<T>(cdf_n, cdf_s, std_params);
-        auto mult = matrix_mult<T>(freq_mat_, prob.prob_mat, std_params);
+        const std::vector<std::vector<T>> cdf_n = model.cdf_noise();
+        const std::vector<std::vector<T>> cdf_s = model.cdf_signal();
+        const MatrixProb<T> prob = matrix_prob<T>(
+            cdf_n,
+            cdf_s,
+            std_params
+        );
+        const std::vector<std::vector<std::vector<T>>> mult =
+            matrix_mult<T>(freq_mat_, prob.prob_mat, std_params);
 
         const int n_free = static_cast<int>(free_params.size());
-        auto loss = criterion_likelihood<T>(
+        const LikelihoodResult<T> loss = criterion_likelihood<T>(
             mult,
             freq_mat_,
             n_free,

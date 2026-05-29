@@ -1,12 +1,13 @@
 #include "../include/estimate_abc.hpp"
 #include "../include/algorithm_abcpp.hpp"
 #include "../include/modify_control.hpp"
-#include "../include/task_builder.hpp"
 #include "../include/progress_bar.hpp"
+#include "../include/task_builder.hpp"
 
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <unordered_map>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -27,7 +28,8 @@ std::vector<SubjectABCResult> estimate_abc(
 ) {
     // 规范化控制参数配置并获取基础参数
     const ABCControl control = modify_control(raw_control, "abc");
-    const auto prior_map = abcppAdapter::merged_priors(user_priors);
+    const std::unordered_map<std::string, UserPrior> prior_map =
+        abcppAdapter::merged_priors(user_priors);
 
     // 解析数据并构建受试者层级的拟合任务
     std::vector<SubjectFitTask> tasks = build_fit_tasks(
@@ -64,7 +66,7 @@ std::vector<SubjectABCResult> estimate_abc(
     // 顺序处理每个拟合任务
     #pragma omp parallel for
     for (int i = 0; i < n_tasks; ++i) {
-        const auto& task = tasks[static_cast<std::size_t>(i)];
+        const SubjectFitTask& task = tasks[static_cast<std::size_t>(i)];
         SubjectABCResult out;
 
         try {

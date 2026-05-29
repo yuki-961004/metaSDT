@@ -1,7 +1,8 @@
 #include "../include/modify_params.hpp"
-#include <iostream>
-#include <cmath>
+
 #include <algorithm>
+#include <cmath>
+#include <iostream>
 
 /* ========================================================================== *
  *                           Default Parameter Values                         *
@@ -170,27 +171,27 @@ ModifiedParamsResult modify_params(
     auto it_n_conf = flat_params.find("n_conf");
     auto it_c_conf = flat_params.find("c_conf");
 
-    bool has_n_conf = (it_n_conf != flat_params.end() &&
-                       !it_n_conf->second.empty());
-    bool has_c_conf = (it_c_conf != flat_params.end() &&
-                       !it_c_conf->second.empty());
+    const bool has_n_conf = (it_n_conf != flat_params.end() &&
+                             !it_n_conf->second.empty());
+    const bool has_c_conf = (it_c_conf != flat_params.end() &&
+                             !it_c_conf->second.empty());
 
     if (!has_n_conf) {
         if (has_c_conf) {
             // 对称规则: n_conf = 2 * len(c_conf) + 1
-            double calc_n_conf = 2.0 * it_c_conf->second.size() + 1.0;
+            const double calc_n_conf = 2.0 * it_c_conf->second.size() + 1.0;
             flat_params["n_conf"] = {calc_n_conf};
             params.fixed["n_conf"] = {calc_n_conf};
         }
     } else {
         // 如果给定了 n_conf, 则 c_conf 将被视为完整的准则向量
-        int n_conf_val = static_cast<int>(it_n_conf->second[0]);
+        const int n_conf_val = static_cast<int>(it_n_conf->second[0]);
         if (has_c_conf) {
             // 对于奇数的 n_conf, 强制将 c_conf 的中位数作为 c_resp
             if (n_conf_val % 2 != 0) {
-                int mid_idx = n_conf_val / 2;
+                const int mid_idx = n_conf_val / 2;
                 if (mid_idx < static_cast<int>(it_c_conf->second.size())) {
-                    double mid_val = it_c_conf->second[mid_idx];
+                    const double mid_val = it_c_conf->second[mid_idx];
                     auto it_c_resp = flat_params.find("c_resp");
                     if (it_c_resp != flat_params.end() &&
                         !it_c_resp->second.empty()) {
@@ -227,7 +228,7 @@ ModifiedParamsResult modify_params(
     // 检测 c_conf 是否为完整的绝对准则向量
     bool is_full_vector = false;
     if (has_n_conf && has_c_conf) {
-        int n_conf_val = static_cast<int>(it_n_conf->second[0]);
+        const int n_conf_val = static_cast<int>(it_n_conf->second[0]);
         if (n_conf_val == static_cast<int>(it_c_conf->second.size())) {
             is_full_vector = true;
         }
@@ -238,7 +239,8 @@ ModifiedParamsResult modify_params(
  * ========================================================================== */
 
     result.numb_free = 0;
-    auto bounds_dict = default_bounds();
+    const std::unordered_map<std::string, std::vector<double>> bounds_dict =
+        default_bounds();
 
     // 按字母顺序对键进行排序, 以确保确定性的迭代顺序
     auto sort_keys = [](std::vector<std::string>& keys) {
@@ -254,15 +256,16 @@ ModifiedParamsResult modify_params(
 
     for (const auto& key : keys_free) {
         result.name_free.push_back(key);
-        const auto& val_vec = params.free.at(key);
-        size_t p_size = val_vec.size();
+        const std::vector<double>& val_vec = params.free.at(key);
+        const size_t p_size = val_vec.size();
         result.numb_free += p_size;
 
         double lb_base = -1e5;
         double ub_base = 1e5;
-        if (bounds_dict.count(key)) {
-            lb_base = bounds_dict[key][0];
-            ub_base = bounds_dict[key][1];
+        const auto it_bounds = bounds_dict.find(key);
+        if (it_bounds != bounds_dict.end()) {
+            lb_base = it_bounds->second[0];
+            ub_base = it_bounds->second[1];
         }
 
         // 完整向量形式的 c_conf 可以跨越零, 因此使用对称的宽边界

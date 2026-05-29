@@ -1,4 +1,5 @@
 ﻿#include "../include/model_sdt.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -57,25 +58,28 @@ ModelSDT<T>::ModelSDT(
 
     // 默认响应准则中心点为 0; 若有 c_resp 则使用用户值
     T c_resp_val = 0.0;
-    auto it_c_resp = std_params.find("c_resp");
+    typename std::unordered_map<std::string, std::vector<T>>::const_iterator
+        it_c_resp = std_params.find("c_resp");
     if (it_c_resp != std_params.end() && !it_c_resp->second.empty()) {
         c_resp_val = it_c_resp->second[0];
     }
 
     // c_conf 用于构造置信度相关的多阈值准则点
-    auto it_c_conf = std_params.find("c_conf");
+    typename std::unordered_map<std::string, std::vector<T>>::const_iterator
+        it_c_conf = std_params.find("c_conf");
     if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
         // 复制并排序, 确保阈值从小到大有序
         std::vector<T> c_conf = it_c_conf->second;
         std::sort(c_conf.begin(), c_conf.end());
 
         // n_conf 可用于声明 c_conf 是否已是完整阈值向量
-        auto it_n_conf = std_params.find("n_conf");
-        bool has_n_conf = (it_n_conf != std_params.end() &&
-                           !it_n_conf->second.empty());
+        typename std::unordered_map<std::string, std::vector<T>>::
+            const_iterator it_n_conf = std_params.find("n_conf");
+        const bool has_n_conf = (it_n_conf != std_params.end() &&
+                                 !it_n_conf->second.empty());
 
         // 当 n_conf 与 c_conf 长度一致时, 直接把 c_conf 作为准则点
-        bool is_full_vector = (
+        const bool is_full_vector = (
             has_n_conf &&
             static_cast<int>(it_n_conf->second[0]) ==
             static_cast<int>(c_conf.size())

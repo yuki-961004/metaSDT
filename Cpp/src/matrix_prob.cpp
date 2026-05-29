@@ -1,4 +1,5 @@
 ﻿#include "../include/matrix_prob.hpp"
+
 #include <stdexcept>
 
 /* ========================================================================== *
@@ -23,19 +24,19 @@ MatrixProb<T> matrix_prob(
         );
     }
 
-    size_t n_diffs = cdf_noise.size();
+    const size_t n_diffs = cdf_noise.size();
     if (cdf_noise[0].empty() || cdf_signal[0].empty()) {
         throw std::invalid_argument("Error: CDF vectors must not be empty.");
     }
-    size_t n_criteria = cdf_noise[0].size();
-    size_t n_cols = n_criteria + 1;
+    const size_t n_criteria = cdf_noise[0].size();
+    const size_t n_cols = n_criteria + 1;
 
 /* ========================================================================== *
  *                      2. Parameter Consistency Check                        *
  * ========================================================================== */
     auto it_c_conf = std_params.find("c_conf");
     if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
-        size_t n_c_conf = it_c_conf->second.size();
+        const size_t n_c_conf = it_c_conf->second.size();
         size_t expected_criteria;
 
         auto it_n_conf = std_params.find("n_conf");
@@ -73,7 +74,7 @@ MatrixProb<T> matrix_prob(
             "Error: Number of resulting intervals must be even (symmetric)."
         );
     }
-    size_t n_conf = n_cols / 2;
+    const size_t n_conf = n_cols / 2;
 
 /* ========================================================================== *
  *                  3. Interval Probabilities via CDF Diff                    *
