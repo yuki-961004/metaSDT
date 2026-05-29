@@ -3,6 +3,12 @@ project(metaSDT_Python_Wrapper CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+option(
+    METASDT_ENABLE_MCMC
+    "Build MCMC estimator with Stan Math support"
+    ON
+)
+
 if(MSVC)
     add_compile_options(/utf-8 /wd4819 /wd4267)
 endif()
@@ -50,6 +56,8 @@ add_meta_module(_help_info_data src/py_info_data.cpp)
 add_meta_module(_model_sdt src/py_model_sdt.cpp)
 add_meta_module(_estimate_mle src/py_estimate_mle.cpp)
 add_meta_module(_estimate_map src/py_estimate_map.cpp)
-add_meta_module(_estimate_mcmc src/py_estimate_mcmc.cpp)
+if(METASDT_ENABLE_MCMC)
+    add_meta_module(_estimate_mcmc src/py_estimate_mcmc.cpp)
+endif()
 add_meta_module(_estimate_abc src/py_estimate_abc.cpp)
 add_meta_module(_progress_bar src/py_progress_bar.cpp)

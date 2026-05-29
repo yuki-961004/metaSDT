@@ -51,7 +51,7 @@ rsconnect/
 .positai
 
 # Python Build files
-build/
+*build*/
 Python/build/
 __pycache__/
 *.egg-info/

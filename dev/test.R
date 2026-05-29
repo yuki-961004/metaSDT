@@ -225,9 +225,6 @@ fit_abc_exp1 <- estimate_abc(
   )
 )
 
-print(fit_abc_1$estimator)
-print(head(fit_abc_1$fit))
-
 # %%
 cat("\n=== Test 15: ABC via abcpp on exp3 ===\n")
 

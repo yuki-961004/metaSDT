@@ -301,8 +301,6 @@ fit_abc_exp1 = metaSDT.estimate_abc(
         "c_conf": {"type": "unif", "min": 0.2, "max": 2.5},
     },
 )
-print(fit_abc_exp1["estimator"])
-print(fit_abc_exp1["fit"].head())
 
 # %%
 print("\n=== Test 20: ABC via abcpp on exp3 ===")
