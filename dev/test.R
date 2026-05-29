@@ -1,7 +1,7 @@
 
 # %%
 # 1. 编译并加载整个 R 包 (指定包根目录为 ./R)
-devtools::clean_dll("./R")
+#devtools::clean_dll("./R")
 devtools::load_all("./R")
 
 # %%
@@ -256,4 +256,25 @@ fit_abc_3 <- estimate_abc(
     c_conf = list(type = "unif", min = 0.2, max = 2.5)
   )
 )
+
+
+# %%
+cat("\n=== Test 16: shell_run_m simulation shell ===\n")
+
+sim_shell <- shell_run_m(
+  params = list(
+    free = list(
+      d = 1.5,
+      c_resp = 0.0,
+      c_conf = c(0.5, 1.0, 1.5)
+    ),
+    fixed = list(sd_signal = 1.0, sd_noise = 1.0)
+  ),
+  model = "sdt",
+  option = list(n = 200, seed = 42, plot = TRUE)
+)
+
+print(head(sim_shell$data))
+print(head(sim_shell$density))
+print(sim_shell$criteria)
 

@@ -206,6 +206,7 @@ set(
     Cpp/src/matrix_prob.cpp
     Cpp/src/matrix_mult.cpp
     Cpp/src/model_sdt.cpp
+    Cpp/src/shell_run_m.cpp
     Cpp/src/algorithm_nlopt.cpp
     Cpp/src/algorithm_abcpp.cpp
     Cpp/src/task_builder.cpp

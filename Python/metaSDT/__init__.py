@@ -1,10 +1,13 @@
 import pandas
+import warnings
 from . import _core_matrix_freq, _core_matrix_prob, _core_matrix_mult
 from . import _core_criterion_likelihood, _core_criterion_prior, _core_criterion_posterior
 from . import _help_info_data
 from . import _help_modify_params, _help_modify_priors
 from . import _estimate_mle, _estimate_map, _estimate_mcmc, _estimate_abc, _progress_bar
 from . import _model_sdt
+from . import _shell_run_m
+from ._plot import plot_shell_run_m
 
 
 class _UI:
@@ -174,6 +177,37 @@ def info_data(df, colnames=None):
         colnames=colnames,
     )
 
+
+
+def shell_run_m(params, model="sdt", option=None):
+    """Simulate trial-level SDT data without fitting."""
+    if option is None:
+        option = {}
+
+    merged_option = {
+        "n": option.get("n", 1000),
+        "seed": option.get("seed", None),
+        "plot": option.get("plot", True),
+        "density_points": option.get("density_points", 512),
+        "xlim": option.get("xlim", None),
+    }
+
+    res = _shell_run_m.shell_run_m(
+        params=params,
+        model=model,
+        option=merged_option,
+    )
+    res["std_params"] = res["params"]
+    res["params"] = params
+    res["data"] = pandas.DataFrame(res["data"])
+    res["density"] = pandas.DataFrame(res["density"])
+
+    if merged_option["plot"]:
+        plot_shell_run_m(res, model)
+
+    return res
+
+
 def estimate_mle(
     df,
     colnames=None,
@@ -309,8 +343,6 @@ __all__ = [
     "matrix_freq", "matrix_prob", "matrix_mult",
     "criterion_likelihood", "criterion_prior", "criterion_posterior",
     "modify_params", "modify_priors", "info_data",
-    "model_sdt", "estimate_mle", "estimate_map", "estimate_mcmc", "estimate_abc", "ui",
+    "model_sdt", "shell_run_m", "estimate_mle", "estimate_map",
+    "estimate_mcmc", "estimate_abc", "ui",
 ]
-
-
-

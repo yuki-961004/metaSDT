@@ -114,3 +114,7 @@ progress_snapshot <- function() {
     .Call(`_metaSDT_r_progress_snapshot`)
 }
 
+.shell_run_m_cpp <- function(params, model = "sdt", option = NULL) {
+    .Call(`_metaSDT_r_shell_run_m`, params, model, option)
+}
+

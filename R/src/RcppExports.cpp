@@ -258,6 +258,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// r_shell_run_m
+Rcpp::List r_shell_run_m(Rcpp::RObject params, std::string model, Rcpp::Nullable<Rcpp::List> option);
+RcppExport SEXP _metaSDT_r_shell_run_m(SEXP paramsSEXP, SEXP modelSEXP, SEXP optionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::RObject >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type option(optionSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_shell_run_m(params, model, option));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_criterion_likelihood", (DL_FUNC) &_metaSDT_r_criterion_likelihood, 3},
@@ -279,6 +292,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_progress_advance", (DL_FUNC) &_metaSDT_r_progress_advance, 1},
     {"_metaSDT_r_progress_finish", (DL_FUNC) &_metaSDT_r_progress_finish, 0},
     {"_metaSDT_r_progress_snapshot", (DL_FUNC) &_metaSDT_r_progress_snapshot, 0},
+    {"_metaSDT_r_shell_run_m", (DL_FUNC) &_metaSDT_r_shell_run_m, 3},
     {NULL, NULL, 0}
 };
 
