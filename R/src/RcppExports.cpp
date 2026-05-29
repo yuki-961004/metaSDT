@@ -192,15 +192,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// r_modify_prior
-Rcpp::List r_modify_prior(Rcpp::List user_priors, Rcpp::RObject std_params);
-RcppExport SEXP _metaSDT_r_modify_prior(SEXP user_priorsSEXP, SEXP std_paramsSEXP) {
+// r_modify_priors
+Rcpp::List r_modify_priors(Rcpp::List user_priors, Rcpp::RObject std_params);
+RcppExport SEXP _metaSDT_r_modify_priors(SEXP user_priorsSEXP, SEXP std_paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::List >::type user_priors(user_priorsSEXP);
     Rcpp::traits::input_parameter< Rcpp::RObject >::type std_params(std_paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(r_modify_prior(user_priors, std_params));
+    rcpp_result_gen = Rcpp::wrap(r_modify_priors(user_priors, std_params));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -273,7 +273,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_matrix_prob", (DL_FUNC) &_metaSDT_r_matrix_prob, 3},
     {"_metaSDT_r_model_sdt", (DL_FUNC) &_metaSDT_r_model_sdt, 1},
     {"_metaSDT_r_modify_params", (DL_FUNC) &_metaSDT_r_modify_params, 1},
-    {"_metaSDT_r_modify_prior", (DL_FUNC) &_metaSDT_r_modify_prior, 2},
+    {"_metaSDT_r_modify_priors", (DL_FUNC) &_metaSDT_r_modify_priors, 2},
     {"_metaSDT_r_progress_start", (DL_FUNC) &_metaSDT_r_progress_start, 6},
     {"_metaSDT_r_progress_set", (DL_FUNC) &_metaSDT_r_progress_set, 1},
     {"_metaSDT_r_progress_advance", (DL_FUNC) &_metaSDT_r_progress_advance, 1},

@@ -9,7 +9,7 @@
 #include "../../Cpp/include/estimate_mcmc.hpp"
 #include "../../Cpp/include/modify_control.hpp"
 #include "../../Cpp/include/modify_outputs.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 #include "../../Cpp/include/progress_bar.hpp"
 
 #define R_MODIFY_OUT_IMPL "r_modify_outputs.cpp"

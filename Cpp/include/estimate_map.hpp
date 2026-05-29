@@ -1,19 +1,18 @@
-#pragma once
+﻿#pragma once
 
-#include <vector>
 #include <string>
 #include <unordered_map>
-#include "estimate_mle.hpp" // 引入 SubjectFitResult 和 NLoptControl
-#include "modify_prior.hpp" // 引入 UserPrior
+#include <vector>
 
-// 保存单个条件运行结果的轻量级内部结构体
+#include "estimate_mle.hpp"
+#include "modify_priors.hpp"
+
 struct CondRunResult {
     std::vector<SubjectFitResult> results;
     int iter_used = 0;
     std::string stop_reason = "not_started";
 };
 
-// 暴露给外层的最大后验估计 (MAP) 主函数
 std::vector<SubjectFitResult> estimate_map(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,

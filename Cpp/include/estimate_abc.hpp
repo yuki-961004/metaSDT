@@ -1,7 +1,7 @@
 #pragma once
 
 #include "task_builder.hpp"
-#include "modify_prior.hpp"
+#include "modify_priors.hpp"
 
 #include <string>
 #include <unordered_map>

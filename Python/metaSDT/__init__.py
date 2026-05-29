@@ -2,7 +2,7 @@ import pandas
 from . import _core_matrix_freq, _core_matrix_prob, _core_matrix_mult
 from . import _core_criterion_likelihood, _core_criterion_prior, _core_criterion_posterior
 from . import _help_info_data
-from . import _help_modify_params, _help_modify_prior
+from . import _help_modify_params, _help_modify_priors
 from . import _estimate_mle, _estimate_map, _estimate_mcmc, _estimate_abc, _progress_bar
 from . import _model_sdt
 
@@ -158,8 +158,8 @@ def modify_params(user_params=None):
     return _help_modify_params.modify_params(user_params)
 
 
-def modify_prior(user_priors, std_params=None):
-    return _help_modify_prior.modify_prior(user_priors, std_params)
+def modify_priors(user_priors, std_params=None):
+    return _help_modify_priors.modify_priors(user_priors, std_params)
 
 
 def model_sdt(std_params):
@@ -308,7 +308,7 @@ def estimate_abc(
 __all__ = [
     "matrix_freq", "matrix_prob", "matrix_mult",
     "criterion_likelihood", "criterion_prior", "criterion_posterior",
-    "modify_params", "modify_prior", "info_data",
+    "modify_params", "modify_priors", "info_data",
     "model_sdt", "estimate_mle", "estimate_map", "estimate_mcmc", "estimate_abc", "ui",
 ]
 

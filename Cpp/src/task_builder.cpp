@@ -227,7 +227,7 @@ std::vector<SubjectFitTask> build_fit_tasks(
             task.model = model_name;
             task.freq = freq_obj;
             task.params = subj_params;
-            task.prior = modify_prior(user_priors, subj_params, apply_priors);
+            task.prior = modify_priors(user_priors, subj_params, apply_priors);
             tasks.push_back(task);
         };
 

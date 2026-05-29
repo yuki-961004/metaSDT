@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -7,13 +7,8 @@
 #include "modify_control.hpp"
 #include "modify_outputs.hpp"
 #include "modify_params.hpp"
-#include "modify_prior.hpp"
+#include "modify_priors.hpp"
 
-/* ========================================================================== *
- *                              Main Public API                               *
- * ========================================================================== */
-
-// 执行基于 Stan Math 后验梯度的 HMC-MCMC 估计入口点
 std::vector<SubjectMCMCResult> estimate_mcmc(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,

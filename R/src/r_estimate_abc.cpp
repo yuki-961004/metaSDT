@@ -12,6 +12,9 @@
 
 #include "../../Cpp/include/estimate_abc.hpp"
 
+#define ALGO_ABCPP_IMPL "../../Cpp/src/algorithm_abcpp.cpp"
+#include ALGO_ABCPP_IMPL
+
 #define CORE_IMPL_ABC "../../Cpp/src/estimate_abc.cpp"
 #include CORE_IMPL_ABC
 

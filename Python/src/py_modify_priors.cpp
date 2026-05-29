@@ -2,7 +2,7 @@
 #include <pybind11/stl.h>
 
 #include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 
 namespace {
     std::vector<double> extract_to_vector(pybind11::object val) {
@@ -32,7 +32,7 @@ namespace {
     }
 }
 
-pybind11::dict py_modify_prior(
+pybind11::dict py_modify_priors(
     pybind11::dict user_priors, 
     pybind11::object std_params = pybind11::none()
 ) {
@@ -82,7 +82,7 @@ pybind11::dict py_modify_prior(
     }
 
     // 3. 构建核心优先引擎
-    CriterionPrior cp = modify_prior(cpp_user_priors, param_info);
+    CriterionPrior cp = modify_priors(cpp_user_priors, param_info);
 
     // 4. 返回打包结构
     pybind11::dict out;
@@ -106,8 +106,8 @@ pybind11::dict py_modify_prior(
     return out;
 }
 
-PYBIND11_MODULE(_help_modify_prior, m) {
-    m.def("modify_prior", &py_modify_prior,
+PYBIND11_MODULE(_help_modify_priors, m) {
+    m.def("modify_priors", &py_modify_priors,
           "Modify and align prior distributions to flattened parameters", 
           pybind11::arg("user_priors"), 
           pybind11::arg("std_params") = pybind11::none());

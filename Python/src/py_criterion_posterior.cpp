@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 
 #include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 #include "../../Cpp/include/criterion_posterior.hpp"
 
 namespace {
@@ -82,7 +82,7 @@ double py_criterion_posterior(
         }
         cpp_user_priors[p_name] = up;
     }
-    CriterionPrior cp = modify_prior(cpp_user_priors, param_info);
+    CriterionPrior cp = modify_priors(cpp_user_priors, param_info);
 
     std::vector<int> param_sizes;
     for (const auto& name : param_info.name_free) {
@@ -95,7 +95,7 @@ double py_criterion_posterior(
 
     CriterionPosterior posterior(freq_mat, param_info.name_free, param_sizes, static_params, cp);
     
-    // 自动在 Wrapper 层组装用于底层计算的扁平探索数组
+    // 自动�?Wrapper 层组装用于底层计算的扁平探索数组
     std::vector<double> cpp_free_params;
     for (const auto& name : param_info.name_free) {
         const auto& vals = param_info.structured.free.at(name);

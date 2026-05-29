@@ -1,8 +1,8 @@
-﻿#include <Rcpp.h>
+#include <Rcpp.h>
 #include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 
-#define CORE_IMPL2 "../../Cpp/src/modify_prior.cpp"
+#define CORE_IMPL2 "../../Cpp/src/modify_priors.cpp"
 #include CORE_IMPL2
 namespace {
     void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
@@ -27,8 +27,8 @@ namespace {
 
 //' Modify and align prior distributions
 //' @export
-// [[Rcpp::export(name = "modify_prior")]]
-Rcpp::List r_modify_prior(Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
+// [[Rcpp::export(name = "modify_priors")]]
+Rcpp::List r_modify_priors(Rcpp::List user_priors, Rcpp::RObject std_params = R_NilValue) {
     ModifiedParamsResult param_info;
     if (!std_params.isNULL() && Rf_length(std_params) > 0) {
         if (Rcpp::is<Rcpp::List>(std_params)) {
@@ -79,7 +79,7 @@ Rcpp::List r_modify_prior(Rcpp::List user_priors, Rcpp::RObject std_params = R_N
         }
     }
 
-    CriterionPrior cp = ::modify_prior(cpp_user_priors, param_info);
+    CriterionPrior cp = ::modify_priors(cpp_user_priors, param_info);
 
     Rcpp::List out;
     for (const auto& kv : cp.prior_specs_) {

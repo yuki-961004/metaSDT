@@ -7,7 +7,7 @@
 #include "criterion_prior.hpp"
 #include "matrix_freq.hpp"
 #include "modify_params.hpp"
-#include "modify_prior.hpp"
+#include "modify_priors.hpp"
 
 /* ========================================================================== *
  *                            Subject Fit Task                                *
@@ -28,7 +28,7 @@ struct SubjectFitTask {
  * ========================================================================== */
 
 // Build independent per-subject fitting tasks.
-// 这里只准备数据和参数, 不关心之后由 NLopt 还是 MCMC 来求解.
+// 这里只准备数据和参数, 不关心之后由 NLopt 还是 MCMC 来求解
 std::vector<SubjectFitTask> build_fit_tasks(
     const std::unordered_map<std::string, std::vector<double>>& df,
     const std::unordered_map<std::string, std::string>& colnames,

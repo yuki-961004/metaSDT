@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 
 #include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 #include "../../Cpp/include/criterion_prior.hpp"
 
 namespace {
@@ -76,9 +76,9 @@ double py_criterion_prior(
         cpp_user_priors[p_name] = up;
     }
 
-    CriterionPrior prior_handler = modify_prior(cpp_user_priors, param_info);
+    CriterionPrior prior_handler = modify_priors(cpp_user_priors, param_info);
 
-    // 3. 计算求值
+    // 3. 计算求�?
     std::vector<double> cpp_free_params;
     for (const auto& name : param_info.name_free) {
         const auto& vals = param_info.structured.free.at(name);

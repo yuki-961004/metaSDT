@@ -1,4 +1,4 @@
-#ifndef CRITERION_POSTERIOR_HPP
+﻿#ifndef CRITERION_POSTERIOR_HPP
 #define CRITERION_POSTERIOR_HPP
 
 #include <algorithm>
@@ -16,9 +16,6 @@
  *                       Criterion Posterior Engine                           *
  * ========================================================================== */
 
-// 专为 MCMC 采样和 EM-MAP 算法设计的后验概率计算引擎
-// 给定数据和参数, 能够自动结合先验与似然计算总对数后验
-// 当前在 estimate_map 模块中被调用以评估优化路径
 class CriterionPosterior {
 private:
     std::vector<std::vector<std::vector<double>>> freq_mat_;
@@ -28,10 +25,6 @@ private:
     CriterionPrior prior_handler_;
 
 public:
-/* ========================================================================== *
- *                      Initialization & Data Binding                         *
- * ========================================================================== */
-
     CriterionPosterior(
         const std::vector<std::vector<std::vector<double>>>& freq_mat,
         const std::vector<std::string>& param_names,
@@ -46,42 +39,42 @@ public:
           static_params_(static_params),
           prior_handler_(priors) {}
 
-/* ========================================================================== *
- *                  Core Functor: Log-Posterior Evaluation                    *
- * ========================================================================== */
-
     template <typename T>
     T operator()(const Eigen::Matrix<T, Eigen::Dynamic, 1>& free_params) const {
-        // 计算当前自由参数的对数先验概率 (Log-Prior)
+        // 先计算当前自由参数向量对应的对数先验.
         T log_prior = prior_handler_.evaluate<T>(free_params);
 
         std::unordered_map<std::string, std::vector<T>> std_params;
 
-        // 载入不参与求导与采样的静态参数 (fixed / constant)
+        // 固定参数和常数参数直接复制到运行时参数表里.
         for (const auto& kv : static_params_) {
-            std::vector<T> vec_t(kv.second.begin(), kv.second.end());
-            std_params[kv.first] = vec_t;
+            std::vector<T> values(kv.second.begin(), kv.second.end());
+            std_params[kv.first] = values;
         }
 
-        // 将传入的扁平化一维自由参数向量映射回结构化参数字典
-        int idx = 0;
+        // 按构建任务时记录的顺序, 把扁平自由参数还原成命名向量.
+        int flat_index = 0;
         std::vector<T> free_params_vec;
-        for (size_t i = 0; i < param_names_.size(); ++i) {
-            int size = param_sizes_[i];
-            std::vector<T> vec_t(size);
-            for (int j = 0; j < size; ++j) {
-                vec_t[j] = free_params(idx++);
-                free_params_vec.push_back(vec_t[j]);
+        for (std::size_t index = 0; index < param_names_.size(); ++index) {
+            const int param_size = param_sizes_[index];
+            std::vector<T> values(static_cast<std::size_t>(param_size));
+
+            for (int inner = 0; inner < param_size; ++inner) {
+                values[static_cast<std::size_t>(inner)] = free_params(flat_index);
+                free_params_vec.push_back(free_params(flat_index));
+                ++flat_index;
             }
-            std_params[param_names_[i]] = vec_t;
+
+            std_params[param_names_[index]] = values;
         }
 
-        // 强制确立参数的单调性约束, 保证置信阈值有序
+        // 置信标准必须保持单调递增, 避免模型概率矩阵顺序错乱.
         auto it_c_conf = std_params.find("c_conf");
         if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
             std::sort(it_c_conf->second.begin(), it_c_conf->second.end());
         }
 
+        // 当 sort_d 打开时, 难度敏感度按降序排列以保持模型约束.
         auto it_d = std_params.find("d");
         auto it_sort_d = std_params.find("sort_d");
         if (it_d != std_params.end() &&
@@ -91,28 +84,25 @@ public:
             std::sort(it_d->second.rbegin(), it_d->second.rend());
         }
 
-        // 构建底层 SDT 模型并推导累积分布矩阵
+        // 由当前参数生成模型概率, 再与频数矩阵组合成似然项.
         ModelSDT<T> model(std_params);
         auto cdf_n = model.cdf_noise();
         auto cdf_s = model.cdf_signal();
-
-        // 生成理论概率矩阵并结合观测频数构造似然输入
         MatrixProb<T> prob = matrix_prob<T>(cdf_n, cdf_s, std_params);
         auto mult = matrix_mult<T>(freq_mat_, prob.prob_mat, std_params);
 
-        int k = static_cast<int>(free_params.size());
-        // 评估负对数似然 (NLL) 等统计评价指标
+        const int n_free = static_cast<int>(free_params.size());
         auto loss = criterion_likelihood<T>(
             mult,
             freq_mat_,
-            k,
+            n_free,
             free_params_vec,
             std_params
         );
 
-        // 返回最终的目标计算值: LogPosterior = LogPrior - NLL
+        // 后验目标为 log prior - negative log likelihood.
         return log_prior - loss.nll;
     }
 };
 
-#endif
+#endif // CRITERION_POSTERIOR_HPP

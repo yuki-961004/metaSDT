@@ -90,8 +90,8 @@ modify_params <- function(user_params = NULL) {
 
 #' Modify and align prior distributions
 #' @export
-modify_prior <- function(user_priors, std_params = NULL) {
-    .Call(`_metaSDT_r_modify_prior`, user_priors, std_params)
+modify_priors <- function(user_priors, std_params = NULL) {
+    .Call(`_metaSDT_r_modify_priors`, user_priors, std_params)
 }
 
 progress_start <- function(total, title = "Progress", refresh_ms = 100L, mode = "auto", line_interval_sec = 2.0, line_interval_pct = 5.0) {

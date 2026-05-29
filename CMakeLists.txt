@@ -197,7 +197,7 @@ endif()
 set(
     METASDT_SOURCES
     Cpp/src/modify_params.cpp
-    Cpp/src/modify_prior.cpp
+    Cpp/src/modify_priors.cpp
     Cpp/src/modify_control.cpp
     Cpp/src/modify_outputs.cpp
     Cpp/src/info_data.cpp
@@ -207,6 +207,7 @@ set(
     Cpp/src/matrix_mult.cpp
     Cpp/src/model_sdt.cpp
     Cpp/src/algorithm_nlopt.cpp
+    Cpp/src/algorithm_abcpp.cpp
     Cpp/src/task_builder.cpp
     Cpp/src/estimate_mle.cpp
     Cpp/src/estimate_map.cpp

@@ -1,9 +1,9 @@
-﻿// [[Rcpp::depends(RcppEigen)]]
+// [[Rcpp::depends(RcppEigen)]]
 
 #include <Rcpp.h>
 #include <Eigen/Dense>
 #include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 #include "../../Cpp/include/criterion_prior.hpp"
 namespace {
     void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
@@ -79,7 +79,7 @@ double r_criterion_prior(Rcpp::List user_priors, Rcpp::RObject std_params = R_Ni
             cpp_user_priors[p_name] = up;
         }
     }
-    CriterionPrior cp = ::modify_prior(cpp_user_priors, param_info);
+    CriterionPrior cp = ::modify_priors(cpp_user_priors, param_info);
     
     std::vector<double> cpp_free_params;
     for (const auto& name : param_info.name_free) {

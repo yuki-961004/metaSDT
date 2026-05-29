@@ -1,11 +1,11 @@
-﻿#include <Rcpp.h>
+#include <Rcpp.h>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <unordered_map>
 #include "../../Cpp/include/estimate_map.hpp"
 #include "../../Cpp/include/modify_control.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 #define R_MODIFY_OUT_IMPL "r_modify_outputs.cpp"
 #include R_MODIFY_OUT_IMPL
 #define R_CTRL_WRAP_IMPL "r_modify_control.cpp"

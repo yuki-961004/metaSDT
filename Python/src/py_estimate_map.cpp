@@ -11,7 +11,7 @@
 
 #include "../../Cpp/include/estimate_map.hpp"
 #include "../../Cpp/include/modify_control.hpp"
-#include "../../Cpp/include/modify_prior.hpp"
+#include "../../Cpp/include/modify_priors.hpp"
 #include "../../Cpp/include/progress_bar.hpp"
 #define PY_MODIFY_OUT_IMPL "py_modify_outputs.cpp"
 #include PY_MODIFY_OUT_IMPL
