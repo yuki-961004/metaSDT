@@ -1,5 +1,5 @@
 #include <pybind11/pybind11.h>
-#include "../../Cpp/include/progress_bar.hpp"
+#include <metaSDT/progress_bar.hpp>
 
 PYBIND11_MODULE(_progress_bar, m) {
     m.doc() = "metaSDT progress helpers";

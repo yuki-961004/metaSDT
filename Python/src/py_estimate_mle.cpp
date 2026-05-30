@@ -8,9 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Cpp/include/estimate_mle.hpp"
-#include "../../Cpp/include/modify_control.hpp"
-#include "../../Cpp/include/progress_bar.hpp"
+#include <metaSDT/estimate_mle.hpp>
+#include <metaSDT/modify_control.hpp>
+#include <metaSDT/progress_bar.hpp>
 #define PY_MODIFY_OUT_IMPL "py_modify_outputs.cpp"
 #include PY_MODIFY_OUT_IMPL
 #define PY_CTRL_WRAP_IMPL "py_modify_control.cpp"

@@ -2,9 +2,9 @@
 #include <pybind11/stl.h>
 #include <Eigen/Dense>
 
-#include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
-#include "../../Cpp/include/criterion_posterior.hpp"
+#include <metaSDT/modify_params.hpp>
+#include <metaSDT/modify_priors.hpp>
+#include <metaSDT/criterion_posterior.hpp>
 
 namespace {
     std::vector<double> extract_to_vector(pybind11::object val) {
@@ -95,7 +95,7 @@ double py_criterion_posterior(
 
     CriterionPosterior posterior(freq_mat, param_info.name_free, param_sizes, static_params, cp);
     
-    // 自动�?Wrapper 层组装用于底层计算的扁平探索数组
+    // 自动�?Wrapper 层组装用于底层计算的扁平探索数组
     std::vector<double> cpp_free_params;
     for (const auto& name : param_info.name_free) {
         const auto& vals = param_info.structured.free.at(name);

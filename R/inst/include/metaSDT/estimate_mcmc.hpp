@@ -1,0 +1,21 @@
+#pragma once
+
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <metaSDT/modify_control.hpp>
+#include <metaSDT/modify_outputs.hpp>
+#include <metaSDT/modify_params.hpp>
+#include <metaSDT/modify_priors.hpp>
+
+std::vector<SubjectMCMCResult> estimate_mcmc(
+    const std::unordered_map<std::string, std::vector<double>>& df,
+    const std::unordered_map<std::string, std::string>& colnames,
+    const ParamGroup& user_params,
+    const std::string& model_name,
+    const StanControl& control,
+    const std::unordered_map<std::string, std::vector<double>>& custom_lower,
+    const std::unordered_map<std::string, std::vector<double>>& custom_upper,
+    const std::unordered_map<std::string, UserPrior>& user_priors
+);

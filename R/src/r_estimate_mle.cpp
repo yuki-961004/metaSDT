@@ -1,17 +1,17 @@
-﻿#include <Rcpp.h>
+#include <Rcpp.h>
 #include <algorithm>
-#include "../../Cpp/include/estimate_mle.hpp"
-#include "../../Cpp/include/modify_control.hpp"
+#include <metaSDT/estimate_mle.hpp>
+#include <metaSDT/modify_control.hpp>
 #define R_MODIFY_OUT_IMPL "r_modify_outputs.cpp"
 #include R_MODIFY_OUT_IMPL
 #define R_CTRL_WRAP_IMPL "r_modify_control.cpp"
 #include R_CTRL_WRAP_IMPL
 
-#define CORE_IMPL "../../Cpp/src/estimate_mle.cpp"
+#define CORE_IMPL "cpp/estimate_mle.cpp"
 #include CORE_IMPL
-#define OBJ_IMPL "../../Cpp/src/task_builder.cpp"
+#define OBJ_IMPL "cpp/task_builder.cpp"
 #include OBJ_IMPL
-#define CTRL_IMPL "../../Cpp/src/modify_control.cpp"
+#define CTRL_IMPL "cpp/modify_control.cpp"
 #include CTRL_IMPL
 namespace {
 void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {

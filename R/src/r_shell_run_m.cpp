@@ -4,9 +4,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Cpp/include/shell_run_m.hpp"
+#include <metaSDT/shell_run_m.hpp>
 
-#define CORE_IMPL_SHELL_RUN_M "../../Cpp/src/shell_run_m.cpp"
+#define CORE_IMPL_SHELL_RUN_M "cpp/shell_run_m.cpp"
 #include CORE_IMPL_SHELL_RUN_M
 
 namespace {

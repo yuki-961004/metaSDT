@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Cpp/include/shell_run_m.hpp"
+#include <metaSDT/shell_run_m.hpp>
 
 namespace py = pybind11;
 

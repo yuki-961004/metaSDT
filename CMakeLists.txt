@@ -58,12 +58,46 @@ option(
     ON
 )
 
+option(
+    METASDT_SYNC_PACKAGE_SOURCES
+    "Sync C++ sources into R and Python package directories"
+    ON
+)
+
 set(
     METASDT_STAN_MATH_TAG
     "v5.2.0"
     CACHE STRING
     "Stan Math tag to fetch"
 )
+
+if(METASDT_SYNC_PACKAGE_SOURCES)
+    set(
+        METASDT_SYNC_SCRIPT
+        "${CMAKE_CURRENT_SOURCE_DIR}/SYNC.cmake"
+    )
+
+    execute_process(
+        COMMAND
+            "${CMAKE_COMMAND}"
+            "-DREPO_ROOT=${CMAKE_CURRENT_SOURCE_DIR}"
+            -P "${METASDT_SYNC_SCRIPT}"
+        RESULT_VARIABLE METASDT_SYNC_RESULT
+    )
+
+    if(NOT METASDT_SYNC_RESULT EQUAL 0)
+        message(FATAL_ERROR "metaSDT package source synchronization failed.")
+    endif()
+
+    add_custom_target(
+        metaSDT_sync_package_sources ALL
+        COMMAND
+            "${CMAKE_COMMAND}"
+            "-DREPO_ROOT=${CMAKE_CURRENT_SOURCE_DIR}"
+            -P "${METASDT_SYNC_SCRIPT}"
+        COMMENT "Syncing metaSDT package C++ sources"
+    )
+endif()
 
 ############################
 # Dependencies
@@ -98,6 +132,42 @@ set(METASDT_PARENT_SKBUILD ${SKBUILD})
 set(SKBUILD OFF)
 FetchContent_MakeAvailable(abcpp)
 set(SKBUILD ${METASDT_PARENT_SKBUILD})
+
+set(METASDT_ABCPP_REF "main")
+set(METASDT_ABCPP_VERSION "unknown")
+
+if(EXISTS "${abcpp_SOURCE_DIR}/CMakeLists.txt")
+    file(
+        STRINGS "${abcpp_SOURCE_DIR}/CMakeLists.txt"
+        METASDT_ABCPP_PROJECT_LINE
+        REGEX "project\\(abcpp VERSION [0-9]+\\.[0-9]+\\.[0-9]+"
+    )
+
+    if(METASDT_ABCPP_PROJECT_LINE)
+        string(
+            REGEX REPLACE
+            ".*project\\(abcpp VERSION ([0-9]+\\.[0-9]+\\.[0-9]+).*"
+            "\\1"
+            METASDT_ABCPP_VERSION
+            "${METASDT_ABCPP_PROJECT_LINE}"
+        )
+    endif()
+endif()
+
+set(METASDT_ABCPP_COMMIT "unknown")
+find_package(Git QUIET)
+
+if(GIT_FOUND AND EXISTS "${abcpp_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND
+            "${GIT_EXECUTABLE}"
+            -C "${abcpp_SOURCE_DIR}"
+            rev-parse --short HEAD
+        OUTPUT_VARIABLE METASDT_ABCPP_COMMIT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+endif()
 
 set(METASDT_NLOPT_TARGET "")
 set(METASDT_NLOPT_INCLUDE_DIRS "")
@@ -257,6 +327,45 @@ if(METASDT_ENABLE_MCMC)
 
     target_compile_definitions(metaSDT PUBLIC METASDT_ENABLE_MCMC)
 endif()
+
+############################
+# Dependency summary
+############################
+
+set(METASDT_EIGEN_VERSION "unknown")
+set(METASDT_EIGEN_VERSION_FILE
+    "${eigen_SOURCE_DIR}/Eigen/Version"
+)
+
+if(EXISTS "${METASDT_EIGEN_VERSION_FILE}")
+    file(
+        STRINGS "${METASDT_EIGEN_VERSION_FILE}"
+        METASDT_EIGEN_VERSION_LINE
+        REGEX "#define EIGEN_VERSION_STRING \"[^\"]+\""
+    )
+
+    string(
+        REGEX REPLACE
+        ".*#define EIGEN_VERSION_STRING \"([^\"]+)\".*"
+        "\\1"
+        METASDT_EIGEN_VERSION
+        "${METASDT_EIGEN_VERSION_LINE}"
+    )
+endif()
+
+message(STATUS "Eigen version ${METASDT_EIGEN_VERSION}")
+
+if(METASDT_ENABLE_MCMC)
+    message(STATUS "Stan Math tag ${METASDT_STAN_MATH_TAG}")
+else()
+    message(STATUS "Stan Math disabled")
+endif()
+
+message(
+    STATUS
+    "abcpp version ${METASDT_ABCPP_VERSION}"
+    " (${METASDT_ABCPP_REF}, ${METASDT_ABCPP_COMMIT})"
+)
 
 target_link_libraries(
     metaSDT

@@ -1,6 +1,6 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/criterion_likelihood.hpp"
-#include "../../Cpp/include/matrix_mult.hpp"
+#include <Rcpp.h>
+#include <metaSDT/criterion_likelihood.hpp>
+#include <metaSDT/matrix_mult.hpp>
 //' Calculate Model Likelihood indicators (NLL, AIC, BIC)
 // [[Rcpp::export(name = ".core_criterion_likelihood")]]
 Rcpp::List r_criterion_likelihood(Rcpp::List freq_mat, Rcpp::List prob_mat, Rcpp::List std_params) {

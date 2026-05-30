@@ -1,8 +1,8 @@
 #include <Rcpp.h>
-#include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
+#include <metaSDT/modify_params.hpp>
+#include <metaSDT/modify_priors.hpp>
 
-#define CORE_IMPL2 "../../Cpp/src/modify_priors.cpp"
+#define CORE_IMPL2 "cpp/modify_priors.cpp"
 #include CORE_IMPL2
 namespace {
     void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {

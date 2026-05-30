@@ -8,8 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Cpp/include/estimate_abc.hpp"
-#include "../../Cpp/include/modify_control.hpp"
+#include <metaSDT/estimate_abc.hpp>
+#include <metaSDT/modify_control.hpp>
 
 namespace py = pybind11;
 

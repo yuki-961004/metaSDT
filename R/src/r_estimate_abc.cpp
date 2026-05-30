@@ -10,12 +10,12 @@
 
 #include <abcpp/abcpp_impl.hpp>
 
-#include "../../Cpp/include/estimate_abc.hpp"
+#include <metaSDT/estimate_abc.hpp>
 
-#define ALGO_ABCPP_IMPL "../../Cpp/src/algorithm_abcpp.cpp"
+#define ALGO_ABCPP_IMPL "cpp/algorithm_abcpp.cpp"
 #include ALGO_ABCPP_IMPL
 
-#define CORE_IMPL_ABC "../../Cpp/src/estimate_abc.cpp"
+#define CORE_IMPL_ABC "cpp/estimate_abc.cpp"
 #include CORE_IMPL_ABC
 
 namespace {

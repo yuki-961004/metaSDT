@@ -1,8 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
+#include <metaSDT/modify_params.hpp>
+#include <metaSDT/modify_priors.hpp>
 
 namespace {
     std::vector<double> extract_to_vector(pybind11::object val) {

@@ -1,7 +1,7 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/matrix_freq.hpp"
+#include <Rcpp.h>
+#include <metaSDT/matrix_freq.hpp>
 
-#define CORE_IMPL "../../Cpp/src/matrix_freq.cpp"
+#define CORE_IMPL "cpp/matrix_freq.cpp"
 #include CORE_IMPL
 //' Calculate the frequency matrix for Signal Detection Theory (C++ core)
 //'

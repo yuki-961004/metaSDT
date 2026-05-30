@@ -1,7 +1,7 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/modify_params.hpp"
+#include <Rcpp.h>
+#include <metaSDT/modify_params.hpp>
 
-#define CORE_IMPL "../../Cpp/src/modify_params.cpp"
+#define CORE_IMPL "cpp/modify_params.cpp"
 #include CORE_IMPL
 void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
     if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) {

@@ -1,0 +1,28 @@
+#pragma once
+
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <metaSDT/estimate_mle.hpp>
+#include <metaSDT/modify_priors.hpp>
+
+struct CondRunResult {
+    std::vector<SubjectFitResult> results;
+    int iter_used = 0;
+    std::string stop_reason = "not_started";
+};
+
+std::vector<SubjectFitResult> estimate_map(
+    const std::unordered_map<std::string, std::vector<double>>& df,
+    const std::unordered_map<std::string, std::string>& colnames,
+    const ParamGroup& user_params,
+    const std::string& model_name,
+    const NLoptControl& control,
+    const std::unordered_map<std::string, std::vector<double>>& custom_lower,
+    const std::unordered_map<std::string, std::vector<double>>& custom_upper,
+    const std::unordered_map<std::string, UserPrior>& user_priors,
+    int* em_iterations_used = nullptr,
+    std::unordered_map<std::string, int>* em_iterations_by_cond = nullptr,
+    std::unordered_map<std::string, std::string>* em_stop_reason_by_cond = nullptr
+);

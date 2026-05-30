@@ -1,7 +1,7 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/matrix_prob.hpp"
+#include <Rcpp.h>
+#include <metaSDT/matrix_prob.hpp>
 
-#define CORE_IMPL "../../Cpp/src/matrix_prob.cpp"
+#define CORE_IMPL "cpp/matrix_prob.cpp"
 #include CORE_IMPL
 //' Calculate Probability Matrix
 // [[Rcpp::export(name = ".core_matrix_prob")]]

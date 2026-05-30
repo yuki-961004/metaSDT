@@ -94,6 +94,6 @@ def plot_shell_run_m(result, model_name=None, show=True):
     )
 
     if show:
-        print(plot_obj)
+        plot_obj.show()
 
     return plot_obj

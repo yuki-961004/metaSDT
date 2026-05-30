@@ -1,8 +1,8 @@
 #include <Rcpp.h>
 #include <algorithm>
-#include "../../Cpp/include/progress_bar.hpp"
+#include <metaSDT/progress_bar.hpp>
 
-#define UI_PROGRESS_IMPL "../../Cpp/src/progress_bar.cpp"
+#define UI_PROGRESS_IMPL "cpp/progress_bar.cpp"
 #include UI_PROGRESS_IMPL
 
 // [[Rcpp::export(name = ".ui_progress_start")]]

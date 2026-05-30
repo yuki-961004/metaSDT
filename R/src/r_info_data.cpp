@@ -1,7 +1,7 @@
 #include <Rcpp.h>
-#include "../../Cpp/include/info_data.hpp"
+#include <metaSDT/info_data.hpp>
 
-#define CORE_IMPL "../../Cpp/src/info_data.cpp"
+#define CORE_IMPL "cpp/info_data.cpp"
 #include CORE_IMPL
 //' Intelligently scan the dataset and extract subject-level information.
 // [[Rcpp::export(name = ".help_info_data")]]

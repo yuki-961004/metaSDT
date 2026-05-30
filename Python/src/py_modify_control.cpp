@@ -1,6 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "../../Cpp/include/modify_control.hpp"
+#include <metaSDT/modify_control.hpp>
 
 namespace py_wrapper_modify_control {
 

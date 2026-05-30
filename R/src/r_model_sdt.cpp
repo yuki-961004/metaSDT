@@ -1,7 +1,7 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/model_sdt.hpp"
+#include <Rcpp.h>
+#include <metaSDT/model_sdt.hpp>
 
-#define CORE_IMPL "../../Cpp/src/model_sdt.cpp"
+#define CORE_IMPL "cpp/model_sdt.cpp"
 #include CORE_IMPL
 // [[Rcpp::export(name = ".core_model_sdt")]]
 Rcpp::List r_model_sdt(Rcpp::List params) {

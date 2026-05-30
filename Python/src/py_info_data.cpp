@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../../Cpp/include/info_data.hpp"
+#include <metaSDT/info_data.hpp>
 
 // 定义一个专门供 Python 端调用的结构体, 使其支持(.)语法访问属性
 struct PySubjectData {

@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../../Cpp/include/matrix_prob.hpp"
+#include <metaSDT/matrix_prob.hpp>
 
 pybind11::dict py_matrix_prob(
     const std::vector<std::vector<double>>& cdf_noise,

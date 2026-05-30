@@ -3,15 +3,15 @@
 #include <cctype>
 #include <cmath>
 #include <unordered_map>
-#include "../../Cpp/include/estimate_map.hpp"
-#include "../../Cpp/include/modify_control.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
+#include <metaSDT/estimate_map.hpp>
+#include <metaSDT/modify_control.hpp>
+#include <metaSDT/modify_priors.hpp>
 #define R_MODIFY_OUT_IMPL "r_modify_outputs.cpp"
 #include R_MODIFY_OUT_IMPL
 #define R_CTRL_WRAP_IMPL "r_modify_control.cpp"
 #include R_CTRL_WRAP_IMPL
 
-#define CORE_IMPL_MAP "../../Cpp/src/estimate_map.cpp"
+#define CORE_IMPL_MAP "cpp/estimate_map.cpp"
 #include CORE_IMPL_MAP
 
 namespace {

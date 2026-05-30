@@ -6,22 +6,22 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Cpp/include/estimate_mcmc.hpp"
-#include "../../Cpp/include/modify_control.hpp"
-#include "../../Cpp/include/modify_outputs.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
-#include "../../Cpp/include/progress_bar.hpp"
+#include <metaSDT/estimate_mcmc.hpp>
+#include <metaSDT/modify_control.hpp>
+#include <metaSDT/modify_outputs.hpp>
+#include <metaSDT/modify_priors.hpp>
+#include <metaSDT/progress_bar.hpp>
 
 #define R_MODIFY_OUT_IMPL "r_modify_outputs.cpp"
 #include R_MODIFY_OUT_IMPL
 #define R_CTRL_WRAP_IMPL "r_modify_control.cpp"
 #include R_CTRL_WRAP_IMPL
 
-#define ALGO_STAN_IMPL "../../Cpp/src/algorithm_stan.cpp"
+#define ALGO_STAN_IMPL "cpp/algorithm_stan.cpp"
 #include ALGO_STAN_IMPL
-#define MODIFY_OUTPUTS_IMPL "../../Cpp/src/modify_outputs.cpp"
+#define MODIFY_OUTPUTS_IMPL "cpp/modify_outputs.cpp"
 #include MODIFY_OUTPUTS_IMPL
-#define CORE_IMPL_MCMC "../../Cpp/src/estimate_mcmc.cpp"
+#define CORE_IMPL_MCMC "cpp/estimate_mcmc.cpp"
 #include CORE_IMPL_MCMC
 
 namespace {

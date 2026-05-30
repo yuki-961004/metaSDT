@@ -1,5 +1,5 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/modify_control.hpp"
+#include <Rcpp.h>
+#include <metaSDT/modify_control.hpp>
 
 namespace r_wrapper_modify_control {
 

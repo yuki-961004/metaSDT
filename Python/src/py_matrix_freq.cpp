@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>  // 自动实现 std::vector 和 python list/dict 的互相转换
 
-#include "../../Cpp/include/matrix_freq.hpp"
+#include <metaSDT/matrix_freq.hpp>
 #include <unordered_map>
 
 // 辅助函数：将 Python 的各种类数组对象（如 pandas Series, numpy array, list 等）

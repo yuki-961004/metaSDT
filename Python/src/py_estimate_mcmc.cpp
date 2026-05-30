@@ -8,11 +8,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../Cpp/include/estimate_mcmc.hpp"
-#include "../../Cpp/include/modify_control.hpp"
-#include "../../Cpp/include/modify_outputs.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
-#include "../../Cpp/include/progress_bar.hpp"
+#include <metaSDT/estimate_mcmc.hpp>
+#include <metaSDT/modify_control.hpp>
+#include <metaSDT/modify_outputs.hpp>
+#include <metaSDT/modify_priors.hpp>
+#include <metaSDT/progress_bar.hpp>
 #define PY_MODIFY_OUT_IMPL "py_modify_outputs.cpp"
 #include PY_MODIFY_OUT_IMPL
 #define PY_CTRL_WRAP_IMPL "py_modify_control.cpp"
@@ -235,7 +235,7 @@ pybind11::dict create_condition_diagnostics(
 ) {
     pybind11::dict posterior_samples;
 
-    // posterior_samples 可能较大, 因此�?diagnostics 的独立子�?
+    // posterior_samples 可能较大, 因此�?diagnostics 的独立子�?
     for (const OutputDiagnosticsRow& row : rows) {
         posterior_samples[pybind11::str(subject_key(row))] =
             samples_to_dict(row);

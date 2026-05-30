@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../../Cpp/include/model_sdt.hpp"
+#include <metaSDT/model_sdt.hpp>
 
 // 提供一个与 R 语言对标的函数化接口
 pybind11::dict py_model_sdt(pybind11::dict std_params) {

@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../../Cpp/include/matrix_mult.hpp"
+#include <metaSDT/matrix_mult.hpp>
 
 std::vector<std::vector<std::vector<double>>> py_matrix_mult(
     pybind11::object freq_obj,

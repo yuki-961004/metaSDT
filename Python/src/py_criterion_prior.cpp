@@ -2,9 +2,9 @@
 #include <pybind11/stl.h>
 #include <Eigen/Dense>
 
-#include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
-#include "../../Cpp/include/criterion_prior.hpp"
+#include <metaSDT/modify_params.hpp>
+#include <metaSDT/modify_priors.hpp>
+#include <metaSDT/criterion_prior.hpp>
 
 namespace {
     std::vector<double> extract_to_vector(pybind11::object val) {
@@ -78,7 +78,7 @@ double py_criterion_prior(
 
     CriterionPrior prior_handler = modify_priors(cpp_user_priors, param_info);
 
-    // 3. 计算求�?
+    // 3. 计算求�?
     std::vector<double> cpp_free_params;
     for (const auto& name : param_info.name_free) {
         const auto& vals = param_info.structured.free.at(name);

@@ -1,7 +1,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "../../Cpp/include/modify_outputs.hpp"
+#include <metaSDT/modify_outputs.hpp>
 
 namespace py_modify_outputs {
 

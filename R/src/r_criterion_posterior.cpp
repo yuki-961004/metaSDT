@@ -2,9 +2,9 @@
 
 #include <Rcpp.h>
 #include <Eigen/Dense>
-#include "../../Cpp/include/modify_params.hpp"
-#include "../../Cpp/include/modify_priors.hpp"
-#include "../../Cpp/include/criterion_posterior.hpp"
+#include <metaSDT/modify_params.hpp>
+#include <metaSDT/modify_priors.hpp>
+#include <metaSDT/criterion_posterior.hpp>
 namespace {
     void r_obj_to_cpp_map(SEXP r_obj, std::unordered_map<std::string, std::vector<double>>& cpp_map) {
         if (Rf_isNull(r_obj) || Rf_length(r_obj) == 0) return;

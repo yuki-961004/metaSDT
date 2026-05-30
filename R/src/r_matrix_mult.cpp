@@ -1,7 +1,7 @@
-﻿#include <Rcpp.h>
-#include "../../Cpp/include/matrix_mult.hpp"
+#include <Rcpp.h>
+#include <metaSDT/matrix_mult.hpp>
 
-#define CORE_IMPL "../../Cpp/src/matrix_mult.cpp"
+#define CORE_IMPL "cpp/matrix_mult.cpp"
 #include CORE_IMPL
 //' Calculate the Log-Likelihood product matrix
 // [[Rcpp::export(name = ".core_matrix_mult")]]

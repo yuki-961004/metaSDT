@@ -1,8 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../../Cpp/include/criterion_likelihood.hpp"
-#include "../../Cpp/include/matrix_mult.hpp"
+#include <metaSDT/criterion_likelihood.hpp>
+#include <metaSDT/matrix_mult.hpp>
 
 pybind11::dict py_criterion_likelihood(
     pybind11::object freq_obj,
