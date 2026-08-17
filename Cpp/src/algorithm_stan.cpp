@@ -145,7 +145,8 @@ StanAdapter::Adapter::Adapter(const SubjectFitTask& task)
           task.params.name_free,
           task.params.get_free_sizes(),
           task.params.flat,
-          task.prior
+          task.prior,
+          task.model
       ),
       lower_bounds_(task.params.lower_bounds),
       upper_bounds_(task.params.upper_bounds) {}

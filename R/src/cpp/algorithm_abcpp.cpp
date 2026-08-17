@@ -1,5 +1,6 @@
-#include <metaSDT/algorithm_abcpp.hpp>
+#include <metaSDT/algorithm_abcpp.hpp>
 #include <metaSDT/matrix_prob.hpp>
+#include <metaSDT/model_probabilities.hpp>
 #include <metaSDT/model_sdt.hpp>
 
 #include <abcpp/abc.hpp>
@@ -434,10 +435,8 @@ SubjectABCResult run_subject_abc(
 
     abcpp::Matrix sumstat_matrix(param_samples.size(), target.size());
     for (std::size_t i = 0; i < param_samples.size(); ++i) {
-        ModelSDT<double> sdt(param_samples[i]);
-        const MatrixProb<double> prob = matrix_prob<double>(
-            sdt.cdf_noise(),
-            sdt.cdf_signal(),
+        const MatrixProb<double> prob = model_probabilities<double>(
+            task.model,
             param_samples[i]
         );
         const std::vector<double> sim_counts = flatten_prob_counts(

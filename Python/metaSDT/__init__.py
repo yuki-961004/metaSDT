@@ -12,7 +12,16 @@ from ._estimate import (
     estimate_mle,
 )
 from ._matrix import matrix_freq, matrix_mult, matrix_prob
-from ._modify import info_data, model_sdt, modify_params, modify_priors
+from ._modify import (
+    info_data,
+    model_bch,
+    model_decay,
+    model_lognormal,
+    model_normal,
+    model_sdt,
+    modify_params,
+    modify_priors,
+)
 from ._options import default_shell_run_m_option
 from ._plot import plot_shell_run_m
 from ._shell import shell_run_m
@@ -31,6 +40,10 @@ __all__ = [
     "matrix_freq",
     "matrix_mult",
     "matrix_prob",
+    "model_bch",
+    "model_decay",
+    "model_lognormal",
+    "model_normal",
     "model_sdt",
     "modify_params",
     "modify_priors",

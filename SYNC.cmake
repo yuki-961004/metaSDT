@@ -1,6 +1,7 @@
 if(NOT DEFINED REPO_ROOT)
-    get_filename_component(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+    set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 endif()
+get_filename_component(REPO_ROOT "${REPO_ROOT}" ABSOLUTE)
 
 set(METASDT_BACKEND_SRC_DIR "${REPO_ROOT}/Cpp/src")
 set(METASDT_BACKEND_INCLUDE_DIR "${REPO_ROOT}/Cpp/include/metaSDT")

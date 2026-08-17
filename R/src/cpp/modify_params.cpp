@@ -30,6 +30,8 @@ ParamGroup default_params() {
     // Type-2 / 置信度参数
     defaults.fixed["c_conf"] = {};
     defaults.fixed["n_conf"] = {};
+    defaults.fixed["p_conf"] = {};
+    defaults.fixed["p_resp"] = {0.5};
 
     // 特定模型的扩展参数
     defaults.fixed["sigma_meta"] = {0.5};
@@ -77,12 +79,14 @@ std::unordered_map<std::string, std::vector<double>> default_bounds() {
 
     // 置信度边界
     bounds["c_conf"] = {1e-4, 20.0};
+    bounds["p_conf"] = {1e-4, 1.0 - 1e-4};
+    bounds["p_resp"] = {1e-4, 1.0 - 1e-4};
 
     // 特定模型的边界
     bounds["sigma_meta"] = {1e-4, 5.0};
     bounds["meta_uncertainty"] = {1e-4, 5.0};
     bounds["sigma_c"] = {1e-4, 5.0};
-    bounds["rho_decay"] = {1e-4, 0.9999};
+    bounds["rho_decay"] = {1e-4, 1.0};
     bounds["w_pe"] = {1e-4, 1.0};
     bounds["w_u"] = {1e-4, 1.0};
     bounds["delta_post"] = {1e-4, 5.0};
@@ -170,16 +174,23 @@ ModifiedParamsResult modify_params(
 
     auto it_n_conf = flat_params.find("n_conf");
     auto it_c_conf = flat_params.find("c_conf");
+    auto it_p_conf = flat_params.find("p_conf");
 
     const bool has_n_conf = (it_n_conf != flat_params.end() &&
                              !it_n_conf->second.empty());
     const bool has_c_conf = (it_c_conf != flat_params.end() &&
                              !it_c_conf->second.empty());
+    const bool has_p_conf = (it_p_conf != flat_params.end() &&
+                             !it_p_conf->second.empty());
 
     if (!has_n_conf) {
         if (has_c_conf) {
             // 对称规则: n_conf = 2 * len(c_conf) + 1
             const double calc_n_conf = 2.0 * it_c_conf->second.size() + 1.0;
+            flat_params["n_conf"] = {calc_n_conf};
+            params.fixed["n_conf"] = {calc_n_conf};
+        } else if (has_p_conf) {
+            const double calc_n_conf = 2.0 * it_p_conf->second.size() + 1.0;
             flat_params["n_conf"] = {calc_n_conf};
             params.fixed["n_conf"] = {calc_n_conf};
         }
@@ -219,17 +230,38 @@ ModifiedParamsResult modify_params(
                 }
             }
         }
+        if (has_p_conf) {
+            if (n_conf_val % 2 != 0) {
+                const int mid_idx = n_conf_val / 2;
+                if (mid_idx < static_cast<int>(it_p_conf->second.size())) {
+                    const double mid_val = it_p_conf->second[mid_idx];
+                    flat_params["p_resp"] = {mid_val};
+                    if (params.free.count("p_resp")) {
+                        params.free["p_resp"] = {mid_val};
+                    }
+                    if (params.fixed.count("p_resp")) {
+                        params.fixed["p_resp"] = {mid_val};
+                    }
+                    if (params.constant.count("p_resp")) {
+                        params.constant["p_resp"] = {mid_val};
+                    }
+                }
+            }
+        }
     }
 
     ModifiedParamsResult result;
     result.flat = flat_params;
     result.structured = params;
 
-    // 检测 c_conf 是否为完整的绝对准则向量
+    // 检测 c_conf / p_conf 是否为完整的绝对准则向量
     bool is_full_vector = false;
-    if (has_n_conf && has_c_conf) {
+    if (has_n_conf) {
         const int n_conf_val = static_cast<int>(it_n_conf->second[0]);
-        if (n_conf_val == static_cast<int>(it_c_conf->second.size())) {
+        if (has_c_conf && n_conf_val == static_cast<int>(it_c_conf->second.size())) {
+            is_full_vector = true;
+        }
+        if (has_p_conf && n_conf_val == static_cast<int>(it_p_conf->second.size())) {
             is_full_vector = true;
         }
     }

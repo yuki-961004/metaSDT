@@ -165,6 +165,11 @@ set(
     src/cpp/matrix_prob.cpp
     src/cpp/matrix_mult.cpp
     src/cpp/model_sdt.cpp
+    src/cpp/model_probabilities.cpp
+    src/cpp/model_bch.cpp
+    src/cpp/model_normal.cpp
+    src/cpp/model_lognormal.cpp
+    src/cpp/model_decay.cpp
     src/cpp/shell_run_m.cpp
     src/cpp/algorithm_nlopt.cpp
     src/cpp/algorithm_abcpp.cpp
@@ -244,6 +249,10 @@ add_meta_module(_help_modify_params src/py_modify_params.cpp)
 add_meta_module(_help_modify_priors src/py_modify_priors.cpp)
 add_meta_module(_help_info_data src/py_info_data.cpp)
 add_meta_module(_model_sdt src/py_model_sdt.cpp)
+add_meta_module(_model_bch src/py_model_bch.cpp)
+add_meta_module(_model_normal src/py_model_normal.cpp)
+add_meta_module(_model_lognormal src/py_model_lognormal.cpp)
+add_meta_module(_model_decay src/py_model_decay.cpp)
 add_meta_module(_shell_run_m src/py_shell_run_m.cpp)
 add_meta_module(_estimate_mle src/py_estimate_mle.cpp)
 add_meta_module(_estimate_map src/py_estimate_map.cpp)
@@ -252,3 +261,4 @@ if(METASDT_ENABLE_MCMC)
 endif()
 add_meta_module(_estimate_abc src/py_estimate_abc.cpp)
 add_meta_module(_progress_bar src/py_progress_bar.cpp)
+

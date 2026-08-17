@@ -172,6 +172,12 @@ std::vector<SubjectFitResult> estimate_mle(
                     best_params["c_conf"].end()
                 );
             }
+            if (best_params.count("p_conf")) {
+                std::sort(
+                    best_params["p_conf"].begin(),
+                    best_params["p_conf"].end()
+                );
+            }
             
             // 如果需要排序, 则对标准差 'd' 进行排序
             if (best_params.count("d") && best_params.count("sort_d") &&

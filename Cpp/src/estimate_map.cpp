@@ -6,6 +6,7 @@
 #include <metaSDT/info_nlopt.hpp>
 #include <metaSDT/matrix_mult.hpp>
 #include <metaSDT/matrix_prob.hpp>
+#include <metaSDT/model_probabilities.hpp>
 #include <metaSDT/model_sdt.hpp>
 #include <metaSDT/modify_control.hpp>
 #include <metaSDT/progress_bar.hpp>
@@ -150,23 +151,8 @@ std::vector<SubjectFitResult> em_e_step(
             );
             const double log_post = posterior.operator()<double>(free_params);
 
-            std::vector<std::vector<double>> cdf_n;
-            std::vector<std::vector<double>> cdf_s;
-            
-            // 根据模型生成累积分布函数
-            if (task.model == "sdt") {
-                ModelSDT<double> model_obj(best_params);
-                cdf_n = model_obj.cdf_noise();
-                cdf_s = model_obj.cdf_signal();
-            } else {
-                throw std::invalid_argument(
-                    "Error: Unknown model name '" + task.model + "'."
-                );
-            }
-
-            const MatrixProb<double> prob = matrix_prob<double>(
-                cdf_n,
-                cdf_s,
+            const MatrixProb<double> prob = model_probabilities<double>(
+                task.model,
                 best_params
             );
             const std::vector<std::vector<std::vector<double>>> mult =

@@ -276,6 +276,11 @@ set(
     Cpp/src/matrix_prob.cpp
     Cpp/src/matrix_mult.cpp
     Cpp/src/model_sdt.cpp
+    Cpp/src/model_probabilities.cpp
+    Cpp/src/model_bch.cpp
+    Cpp/src/model_normal.cpp
+    Cpp/src/model_lognormal.cpp
+    Cpp/src/model_decay.cpp
     Cpp/src/shell_run_m.cpp
     Cpp/src/algorithm_nlopt.cpp
     Cpp/src/algorithm_abcpp.cpp

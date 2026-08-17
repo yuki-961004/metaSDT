@@ -4,6 +4,7 @@
 #include <metaSDT/criterion_posterior.hpp>
 #include <metaSDT/matrix_mult.hpp>
 #include <metaSDT/matrix_prob.hpp>
+#include <metaSDT/model_probabilities.hpp>
 #include <metaSDT/model_sdt.hpp>
 
 #include <Eigen/Dense>
@@ -253,26 +254,13 @@ MCMCFitStats evaluate_mcmc_stats(
         task.params.name_free,
         task.params.get_free_sizes(),
         task.params.flat,
-        task.prior
+        task.prior,
+        task.model
     );
     const double log_post = posterior.operator()<double>(free_params);
 
-    std::vector<std::vector<double>> cdf_n;
-    std::vector<std::vector<double>> cdf_s;
-
-    if (task.model == "sdt") {
-        ModelSDT<double> model_obj(params);
-        cdf_n = model_obj.cdf_noise();
-        cdf_s = model_obj.cdf_signal();
-    } else {
-        throw std::invalid_argument(
-            "Error: Unknown model name '" + task.model + "'."
-        );
-    }
-
-    const MatrixProb<double> prob = matrix_prob<double>(
-        cdf_n,
-        cdf_s,
+    const MatrixProb<double> prob = model_probabilities<double>(
+        task.model,
         params
     );
     const std::vector<std::vector<std::vector<double>>> mult =

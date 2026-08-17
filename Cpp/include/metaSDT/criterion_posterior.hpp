@@ -5,6 +5,7 @@
 #include <metaSDT/criterion_prior.hpp>
 #include <metaSDT/matrix_mult.hpp>
 #include <metaSDT/matrix_prob.hpp>
+#include <metaSDT/model_probabilities.hpp>
 #include <metaSDT/model_sdt.hpp>
 
 #include <Eigen/Dense>
@@ -25,6 +26,7 @@ private:
     std::vector<int> param_sizes_;
     std::unordered_map<std::string, std::vector<double>> static_params_;
     CriterionPrior prior_handler_;
+    std::string model_name_;
 
 public:
     CriterionPosterior(
@@ -33,13 +35,15 @@ public:
         const std::vector<int>& param_sizes,
         const std::unordered_map<std::string, std::vector<double>>&
             static_params,
-        const CriterionPrior& priors
+        const CriterionPrior& priors,
+        const std::string& model_name = "sdt"
     )
         : freq_mat_(freq_mat),
           param_names_(param_names),
           param_sizes_(param_sizes),
           static_params_(static_params),
-          prior_handler_(priors) {}
+          prior_handler_(priors),
+          model_name_(model_name) {}
 
     template <typename T>
     T operator()(const Eigen::Matrix<T, Eigen::Dynamic, 1>& free_params) const {
@@ -76,6 +80,10 @@ public:
         if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
             std::sort(it_c_conf->second.begin(), it_c_conf->second.end());
         }
+        auto it_p_conf = std_params.find("p_conf");
+        if (it_p_conf != std_params.end() && !it_p_conf->second.empty()) {
+            std::sort(it_p_conf->second.begin(), it_p_conf->second.end());
+        }
 
         // 当 sort_d 打开时, 难度敏感度按降序排列以保持模型约束.
         auto it_d = std_params.find("d");
@@ -88,12 +96,8 @@ public:
         }
 
         // 由当前参数生成模型概率, 再与频数矩阵组合成似然项.
-        ModelSDT<T> model(std_params);
-        const std::vector<std::vector<T>> cdf_n = model.cdf_noise();
-        const std::vector<std::vector<T>> cdf_s = model.cdf_signal();
-        const MatrixProb<T> prob = matrix_prob<T>(
-            cdf_n,
-            cdf_s,
+        const MatrixProb<T> prob = model_probabilities<T>(
+            model_name_,
             std_params
         );
         const std::vector<std::vector<std::vector<T>>> mult =

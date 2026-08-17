@@ -2,6 +2,7 @@
 #include <metaSDT/criterion_likelihood.hpp>
 #include <metaSDT/matrix_mult.hpp>
 #include <metaSDT/matrix_prob.hpp>
+#include <metaSDT/model_probabilities.hpp>
 #include <metaSDT/model_sdt.hpp>
 
 #include <Eigen/Dense>
@@ -41,30 +42,19 @@ double criterion(unsigned n, const double* x, double* grad, void* f_data) {
             }
         }
 
-        // c_conf 是有序阈值, 排序像整理刻度尺, 避免阈值交叉.
+        // c_conf/p_conf 是有序阈值, 排序像整理刻度尺, 避免阈值交叉.
         auto it_c_conf = std_params.find("c_conf");
         if (it_c_conf != std_params.end() && !it_c_conf->second.empty()) {
             std::sort(it_c_conf->second.begin(), it_c_conf->second.end());
         }
-
-        std::vector<std::vector<double>> cdf_n;
-        std::vector<std::vector<double>> cdf_s;
-
-        // 当前只支持 SDT 模型, 其他模型名必须明确报错.
-        if (task->model == "sdt") {
-            ModelSDT<double> model(/*std_params=*/std_params);
-            cdf_n = model.cdf_noise();
-            cdf_s = model.cdf_signal();
-        } else {
-            throw std::invalid_argument(
-                "Error: Unknown model name '" + task->model + "'."
-            );
+        auto it_p_conf = std_params.find("p_conf");
+        if (it_p_conf != std_params.end() && !it_p_conf->second.empty()) {
+            std::sort(it_p_conf->second.begin(), it_p_conf->second.end());
         }
 
-        const MatrixProb<double> prob = matrix_prob<double>(
-            /*cdf_noise=*/cdf_n,
-            /*cdf_signal=*/cdf_s,
-            /*std_params=*/std_params
+        const MatrixProb<double> prob = model_probabilities<double>(
+            task->model,
+            std_params
         );
 
         const std::vector<std::vector<std::vector<double>>> mult =

@@ -1,5 +1,9 @@
 #include <metaSDT/shell_run_m.hpp>
 
+#include <metaSDT/model_bch.hpp>
+#include <metaSDT/model_decay.hpp>
+#include <metaSDT/model_lognormal.hpp>
+#include <metaSDT/model_normal.hpp>
 #include <metaSDT/model_sdt.hpp>
 
 #include <algorithm>
@@ -20,11 +24,12 @@ namespace {
 
 double scalar_param(
     const std::unordered_map<std::string, std::vector<double>>& params,
-    const std::string& name
+    const std::string& name,
+    double default_val = 0.0
 ) {
     const auto it = params.find(name);
     if (it == params.end() || it->second.empty()) {
-        throw std::invalid_argument("shell_run_m missing parameter: " + name);
+        return default_val;
     }
     return it->second[0];
 }
@@ -89,8 +94,8 @@ std::vector<double> default_xlim(
     const std::vector<double>& criteria
 ) {
     const std::vector<double> d = vector_param(params, "d");
-    const double sd_noise = scalar_param(params, "sd_noise");
-    const double sd_signal = scalar_param(params, "sd_signal");
+    const double sd_noise = scalar_param(params, "sd_noise", 1.0);
+    const double sd_signal = scalar_param(params, "sd_signal", 1.0);
     const double mu_noise = -d[0] / 2.0;
     const double mu_signal = d[0] / 2.0;
 
@@ -117,8 +122,8 @@ ShellRunMDensity build_density(
     const ShellRunMOptions& option
 ) {
     const std::vector<double> d = vector_param(params, "d");
-    const double sd_noise = scalar_param(params, "sd_noise");
-    const double sd_signal = scalar_param(params, "sd_signal");
+    const double sd_noise = scalar_param(params, "sd_noise", 1.0);
+    const double sd_signal = scalar_param(params, "sd_signal", 1.0);
     const double mu_noise = -d[0] / 2.0;
     const double mu_signal = d[0] / 2.0;
     const int n_points = std::max(option.density_points, 2);
@@ -162,8 +167,11 @@ ShellRunMResult shell_run_m(
     const std::string& model,
     const ShellRunMOptions& option
 ) {
-    if (model != "sdt") {
-        throw std::invalid_argument("shell_run_m currently supports only 'sdt'.");
+    if (model != "sdt" && model != "bch" && model != "normal" &&
+        model != "lognormal" && model != "decay") {
+        throw std::invalid_argument(
+            "shell_run_m unknown model: '" + model + "'."
+        );
     }
     if (option.n <= 0) {
         throw std::invalid_argument("option['n'] must be a positive integer.");
@@ -174,13 +182,29 @@ ShellRunMResult shell_run_m(
         modified.flat;
 
     const std::vector<double> d = vector_param(flat, "d");
-    const double c_resp = scalar_param(flat, "c_resp");
-    const double sd_noise = scalar_param(flat, "sd_noise");
-    const double sd_signal = scalar_param(flat, "sd_signal");
+    const double c_resp = scalar_param(flat, "c_resp", 0.0);
+    const double sd_noise = scalar_param(flat, "sd_noise", 1.0);
+    const double sd_signal = scalar_param(flat, "sd_signal", 1.0);
     const std::vector<double> c_conf = sorted_positive_conf(flat);
+    const double sigma_meta = scalar_param(flat, "sigma_meta", 0.5);
 
-    ModelSDT<double> model_sdt(flat);
-    const std::vector<double> criteria = model_sdt.get_criteria();
+    std::vector<double> criteria;
+    if (model == "sdt") {
+        ModelSDT<double> m(flat);
+        criteria = m.get_criteria();
+    } else if (model == "bch") {
+        ModelBCH<double> m(flat);
+        criteria = m.get_criteria_matrix()[0];
+    } else if (model == "normal") {
+        ModelNormal<double> m(flat);
+        criteria = m.get_criteria();
+    } else if (model == "lognormal") {
+        ModelLognormal<double> m(flat);
+        criteria = m.get_criteria();
+    } else if (model == "decay") {
+        ModelDecay<double> m(flat);
+        criteria = m.get_criteria();
+    }
 
     ShellRunMResult result;
     result.model = model;
@@ -203,19 +227,63 @@ ShellRunMResult shell_run_m(
         static_cast<int>(d.size()) - 1
     );
 
+    std::normal_distribution<double> std_norm(0.0, 1.0);
+
     for (int i = 0; i < option.n; ++i) {
         const int diff_index = diff_dist(rng);
         const int stim_value = stim_dist(rng) ? 1 : 0;
         const double current_d = d[static_cast<std::size_t>(diff_index)];
         const double mean = stim_value == 1
-            ? current_d / 2.0
-            : -current_d / 2.0;
+            ? (current_d / 2.0)
+            : (-current_d / 2.0);
         const double sd = stim_value == 1 ? sd_signal : sd_noise;
 
         std::normal_distribution<double> evidence_dist(mean, sd);
         const double evidence = evidence_dist(rng);
-        const int resp_value = evidence > c_resp ? 1 : 0;
-        const int conf_value = confidence_level(evidence, c_resp, c_conf);
+
+        int resp_value = evidence >= c_resp ? 1 : 0;
+        int conf_value = 1;
+
+        if (model == "bch") {
+            const std::size_t n_crit = criteria.size();
+            const std::size_t mid = n_crit / 2;
+            const double c_dec = criteria[mid];
+            resp_value = (evidence >= c_dec) ? 1 : 0;
+            int level = 1;
+            const double dist = std::abs(evidence - c_dec);
+            for (std::size_t k = mid + 1; k < n_crit; ++k) {
+                if (dist >= (criteria[k] - c_dec)) {
+                    ++level;
+                }
+            }
+            conf_value = level;
+        } else if (model == "sdt") {
+            conf_value = confidence_level(evidence, c_resp, c_conf);
+        } else if (model == "normal") {
+            const double meta_noise = std_norm(rng) * sigma_meta;
+            const double y = evidence + meta_noise;
+            conf_value = confidence_level(y, c_resp, c_conf);
+        } else if (model == "lognormal") {
+            const double meta_noise = std_norm(rng) * sigma_meta;
+            const double dist = std::abs(evidence - c_resp);
+            const double y = dist * std::exp(meta_noise);
+            conf_value = 1;
+            for (double boundary : c_conf) {
+                if (y >= boundary) {
+                    ++conf_value;
+                }
+            }
+        } else if (model == "decay") {
+            const std::vector<double> rho_vec = flat.count("rho_decay")
+                ? flat.at("rho_decay")
+                : std::vector<double>{0.99};
+            const double delta = (static_cast<std::size_t>(diff_index) < rho_vec.size())
+                ? rho_vec[static_cast<std::size_t>(diff_index)]
+                : rho_vec[0];
+            const double meta_noise = std_norm(rng) * sigma_meta;
+            const double y = delta * evidence + meta_noise;
+            conf_value = confidence_level(y, c_resp, c_conf);
+        }
 
         result.data.trial.push_back(i + 1);
         result.data.stim.push_back(stim_value);

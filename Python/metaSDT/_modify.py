@@ -1,7 +1,15 @@
 """Model helper wrappers for the Python frontend."""
 
-from . import _help_info_data, _help_modify_params, _help_modify_priors
-from . import _model_sdt
+from . import (
+    _help_info_data,
+    _help_modify_params,
+    _help_modify_priors,
+    _model_bch,
+    _model_decay,
+    _model_lognormal,
+    _model_normal,
+    _model_sdt,
+)
 from ._convert import to_backend_df_dict
 
 
@@ -15,6 +23,22 @@ def modify_priors(user_priors, std_params=None):
 
 def model_sdt(std_params):
     return _model_sdt.model_sdt(std_params)
+
+
+def model_bch(std_params):
+    return _model_bch.model_bch(std_params)
+
+
+def model_normal(std_params):
+    return _model_normal.model_normal(std_params)
+
+
+def model_lognormal(std_params):
+    return _model_lognormal.model_lognormal(std_params)
+
+
+def model_decay(std_params):
+    return _model_decay.model_decay(std_params)
 
 
 def info_data(df, colnames=None):

@@ -35,3 +35,39 @@ modify_priors <- function(user_priors, std_params = NULL) {
 model_sdt <- function(params) {
     .core_model_sdt(params)
 }
+
+#' Evaluate the BCH model CDFs
+#'
+#' @param params Standardized model parameters.
+#' @return Noise and signal CDF values and criteria.
+#' @export
+model_bch <- function(params) {
+    .core_model_bch(params)
+}
+
+#' Evaluate the Normal meta-noise model probabilities
+#'
+#' @param params Standardized model parameters.
+#' @return Model response-confidence probabilities.
+#' @export
+model_normal <- function(params) {
+    .core_model_normal(params)
+}
+
+#' Evaluate the Log-normal meta-noise model probabilities
+#'
+#' @param params Standardized model parameters.
+#' @return Model response-confidence probabilities.
+#' @export
+model_lognormal <- function(params) {
+    .core_model_lognormal(params)
+}
+
+#' Evaluate the Signal Decay model probabilities
+#'
+#' @param params Standardized model parameters.
+#' @return Model response-confidence probabilities.
+#' @export
+model_decay <- function(params) {
+    .core_model_decay(params)
+}

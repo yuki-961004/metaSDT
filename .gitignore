@@ -60,3 +60,6 @@ __pycache__/
 *.o
 *.so
 *.dll
+
+# ai
+.agents/

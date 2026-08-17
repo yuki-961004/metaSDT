@@ -45,8 +45,8 @@ std::vector<SubjectFitTask> build_fit_tasks(
     }
 
     // 从标准化后的映射中取出规范列名
-    std::string col_stim = info.colnames.at("stim");
-    std::string col_resp = info.colnames.at("resp");
+    const std::string col_stim = info.colnames.at("stim");
+    const std::string col_resp = info.colnames.at("resp");
 
     // conf 与 diff 是可选列, 是否需要取决于参数配置
     std::string col_conf = "";
@@ -59,14 +59,16 @@ std::vector<SubjectFitTask> build_fit_tasks(
         col_diff = info.colnames.at("diff");
     }
 
-    // 检查任意参数块中是否声明了 c_conf
+    // 检查任意参数块中是否声明了 c_conf 或 p_conf
     // 若声明, 则数据中必须提供 confidence 列
     bool has_conf_params = false;
     auto check_conf = [](
         const std::unordered_map<std::string, std::vector<double>>& m
     ) {
-        auto it = m.find("c_conf");
-        return it != m.end() && !it->second.empty();
+        auto it_c = m.find("c_conf");
+        if (it_c != m.end() && !it_c->second.empty()) return true;
+        auto it_p = m.find("p_conf");
+        return (it_p != m.end() && !it_p->second.empty());
     };
     if (check_conf(user_params.free) ||
         check_conf(user_params.fixed) ||
@@ -80,13 +82,13 @@ std::vector<SubjectFitTask> build_fit_tasks(
     const std::vector<double>* full_conf_ptr = nullptr;
     const std::vector<double>* full_diff_ptr = nullptr;
 
-    // 当模型包含 c_conf 参数时, 强制要求存在 conf 列
+    // 当模型包含 c_conf 或 p_conf 参数时, 强制要求存在 conf 列
     if (has_conf_params) {
         if (!col_conf.empty() && df.count(col_conf)) {
             full_conf_ptr = &df.at(col_conf);
         } else {
             throw std::invalid_argument(
-                "Error: Model requires 'c_conf', "
+                "Error: Model requires confidence parameters ('c_conf' or 'p_conf'), "
                 "but no confidence column found in data."
             );
         }
@@ -184,6 +186,10 @@ std::vector<SubjectFitTask> build_fit_tasks(
             expand_param(/*m=*/subj_user_params.free, /*key=*/"d");
             expand_param(/*m=*/subj_user_params.fixed, /*key=*/"d");
             expand_param(/*m=*/subj_user_params.constant, /*key=*/"d");
+
+            expand_param(/*m=*/subj_user_params.free, /*key=*/"rho_decay");
+            expand_param(/*m=*/subj_user_params.fixed, /*key=*/"rho_decay");
+            expand_param(/*m=*/subj_user_params.constant, /*key=*/"rho_decay");
 
             // 生成扁平参数结构以及优化器上下界。
             ModifiedParamsResult subj_params = modify_params(
