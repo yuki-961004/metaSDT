@@ -170,6 +170,50 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// r_model_bch
+Rcpp::List r_model_bch(Rcpp::List params);
+RcppExport SEXP _metaSDT_r_model_bch(SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_model_bch(params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_model_decay
+Rcpp::List r_model_decay(Rcpp::List params);
+RcppExport SEXP _metaSDT_r_model_decay(SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_model_decay(params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_model_lognormal
+Rcpp::List r_model_lognormal(Rcpp::List params);
+RcppExport SEXP _metaSDT_r_model_lognormal(SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_model_lognormal(params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_model_normal
+Rcpp::List r_model_normal(Rcpp::List params);
+RcppExport SEXP _metaSDT_r_model_normal(SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_model_normal(params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // r_model_sdt
 Rcpp::List r_model_sdt(Rcpp::List params);
 RcppExport SEXP _metaSDT_r_model_sdt(SEXP paramsSEXP) {
@@ -284,6 +328,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_metaSDT_r_matrix_freq", (DL_FUNC) &_metaSDT_r_matrix_freq, 4},
     {"_metaSDT_r_matrix_mult", (DL_FUNC) &_metaSDT_r_matrix_mult, 3},
     {"_metaSDT_r_matrix_prob", (DL_FUNC) &_metaSDT_r_matrix_prob, 3},
+    {"_metaSDT_r_model_bch", (DL_FUNC) &_metaSDT_r_model_bch, 1},
+    {"_metaSDT_r_model_decay", (DL_FUNC) &_metaSDT_r_model_decay, 1},
+    {"_metaSDT_r_model_lognormal", (DL_FUNC) &_metaSDT_r_model_lognormal, 1},
+    {"_metaSDT_r_model_normal", (DL_FUNC) &_metaSDT_r_model_normal, 1},
     {"_metaSDT_r_model_sdt", (DL_FUNC) &_metaSDT_r_model_sdt, 1},
     {"_metaSDT_r_modify_params", (DL_FUNC) &_metaSDT_r_modify_params, 1},
     {"_metaSDT_r_modify_priors", (DL_FUNC) &_metaSDT_r_modify_priors, 2},

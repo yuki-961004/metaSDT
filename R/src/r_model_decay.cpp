@@ -1,6 +1,9 @@
 #include <Rcpp.h>
 #include <metaSDT/model_decay.hpp>
 
+#define CORE_IMPL "cpp/model_decay.cpp"
+#include CORE_IMPL
+
 // [[Rcpp::export(name = ".core_model_decay")]]
 Rcpp::List r_model_decay(Rcpp::List params) {
     std::unordered_map<std::string, std::vector<double>> cpp_params;

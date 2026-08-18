@@ -1,6 +1,9 @@
 #include <Rcpp.h>
 #include <metaSDT/model_normal.hpp>
 
+#define CORE_IMPL "cpp/model_normal.cpp"
+#include CORE_IMPL
+
 // [[Rcpp::export(name = ".core_model_normal")]]
 Rcpp::List r_model_normal(Rcpp::List params) {
     std::unordered_map<std::string, std::vector<double>> cpp_params;

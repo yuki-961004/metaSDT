@@ -58,6 +58,22 @@
     .Call(`_metaSDT_r_matrix_prob`, cdf_noise, cdf_signal, params)
 }
 
+.core_model_bch <- function(params) {
+    .Call(`_metaSDT_r_model_bch`, params)
+}
+
+.core_model_decay <- function(params) {
+    .Call(`_metaSDT_r_model_decay`, params)
+}
+
+.core_model_lognormal <- function(params) {
+    .Call(`_metaSDT_r_model_lognormal`, params)
+}
+
+.core_model_normal <- function(params) {
+    .Call(`_metaSDT_r_model_normal`, params)
+}
+
 .core_model_sdt <- function(params) {
     .Call(`_metaSDT_r_model_sdt`, params)
 }

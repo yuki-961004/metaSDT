@@ -1,5 +1,5 @@
 #include <metaSDT/shell_run_m.hpp>
-
+#include <metaSDT/model_probabilities.hpp>
 #include <metaSDT/model_bch.hpp>
 #include <metaSDT/model_decay.hpp>
 #include <metaSDT/model_lognormal.hpp>
@@ -11,6 +11,9 @@
 #include <limits>
 #include <random>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -27,7 +30,8 @@ double scalar_param(
     const std::string& name,
     double default_val = 0.0
 ) {
-    const auto it = params.find(name);
+    typename std::unordered_map<std::string, std::vector<double>>::
+        const_iterator it = params.find(name);
     if (it == params.end() || it->second.empty()) {
         return default_val;
     }
@@ -38,7 +42,8 @@ std::vector<double> vector_param(
     const std::unordered_map<std::string, std::vector<double>>& params,
     const std::string& name
 ) {
-    const auto it = params.find(name);
+    typename std::unordered_map<std::string, std::vector<double>>::
+        const_iterator it = params.find(name);
     if (it == params.end() || it->second.empty()) {
         throw std::invalid_argument("shell_run_m missing parameter: " + name);
     }
@@ -49,44 +54,9 @@ double normal_density(double x, double mean, double sd) {
     if (sd <= 0.0) {
         throw std::invalid_argument("SDT standard deviations must be positive.");
     }
-
     const double z = (x - mean) / sd;
     const double norm = sd * std::sqrt(2.0 * M_PI);
     return std::exp(-0.5 * z * z) / norm;
-}
-
-std::vector<double> sorted_positive_conf(
-    const std::unordered_map<std::string, std::vector<double>>& params
-) {
-    const auto it = params.find("c_conf");
-    if (it == params.end() || it->second.empty()) {
-        return {};
-    }
-
-    std::vector<double> out = it->second;
-    std::sort(out.begin(), out.end());
-    return out;
-}
-
-int confidence_level(
-    double evidence,
-    double c_resp,
-    const std::vector<double>& c_conf
-) {
-    if (c_conf.empty()) {
-        return 1;
-    }
-
-    const double distance = std::abs(evidence - c_resp);
-    int level = 1;
-
-    for (double boundary : c_conf) {
-        if (distance >= boundary) {
-            ++level;
-        }
-    }
-
-    return level;
 }
 
 std::vector<double> default_xlim(
@@ -108,9 +78,9 @@ std::vector<double> default_xlim(
         mu_signal + 4.0 * sd_signal
     );
 
-    for (double criterion : criteria) {
-        lower = std::min(lower, criterion - 0.5);
-        upper = std::max(upper, criterion + 0.5);
+    for (std::size_t i = 0; i < criteria.size(); ++i) {
+        lower = std::min(lower, criteria[i] - 0.5);
+        upper = std::max(upper, criteria[i] + 0.5);
     }
 
     return {lower, upper};
@@ -182,29 +152,30 @@ ShellRunMResult shell_run_m(
         modified.flat;
 
     const std::vector<double> d = vector_param(flat, "d");
-    const double c_resp = scalar_param(flat, "c_resp", 0.0);
     const double sd_noise = scalar_param(flat, "sd_noise", 1.0);
     const double sd_signal = scalar_param(flat, "sd_signal", 1.0);
-    const std::vector<double> c_conf = sorted_positive_conf(flat);
-    const double sigma_meta = scalar_param(flat, "sigma_meta", 0.5);
 
     std::vector<double> criteria;
     if (model == "sdt") {
-        ModelSDT<double> m(flat);
+        const ModelSDT<double> m(flat);
         criteria = m.get_criteria();
     } else if (model == "bch") {
-        ModelBCH<double> m(flat);
+        const ModelBCH<double> m(flat);
         criteria = m.get_criteria_matrix()[0];
     } else if (model == "normal") {
-        ModelNormal<double> m(flat);
+        const ModelNormal<double> m(flat);
         criteria = m.get_criteria();
     } else if (model == "lognormal") {
-        ModelLognormal<double> m(flat);
+        const ModelLognormal<double> m(flat);
         criteria = m.get_criteria();
     } else if (model == "decay") {
-        ModelDecay<double> m(flat);
+        const ModelDecay<double> m(flat);
         criteria = m.get_criteria();
     }
+
+    // 从统一概率表生成抽样概率分布, 保证模拟数据与模型拟合完全自洽
+    const MatrixProb<double> prob_result =
+        model_probabilities<double>(model, flat);
 
     ShellRunMResult result;
     result.model = model;
@@ -227,63 +198,32 @@ ShellRunMResult shell_run_m(
         static_cast<int>(d.size()) - 1
     );
 
-    std::normal_distribution<double> std_norm(0.0, 1.0);
+    const std::size_t n_cols = prob_result.prob_mat[0][0].size();
+    const int n_ratings = static_cast<int>(n_cols / 2);
 
     for (int i = 0; i < option.n; ++i) {
         const int diff_index = diff_dist(rng);
         const int stim_value = stim_dist(rng) ? 1 : 0;
         const double current_d = d[static_cast<std::size_t>(diff_index)];
-        const double mean = stim_value == 1
+        const double mean = (stim_value == 1)
             ? (current_d / 2.0)
             : (-current_d / 2.0);
-        const double sd = stim_value == 1 ? sd_signal : sd_noise;
+        const double sd = (stim_value == 1) ? sd_signal : sd_noise;
 
         std::normal_distribution<double> evidence_dist(mean, sd);
         const double evidence = evidence_dist(rng);
 
-        int resp_value = evidence >= c_resp ? 1 : 0;
-        int conf_value = 1;
+        // 直接基于单元格概率离散分布进行精确抽样
+        const std::vector<double>& p_vec =
+            prob_result.prob_mat[static_cast<std::size_t>(diff_index)]
+                                [static_cast<std::size_t>(stim_value)];
+        std::discrete_distribution<int> cat_dist(p_vec.begin(), p_vec.end());
+        const int col_idx = cat_dist(rng);
 
-        if (model == "bch") {
-            const std::size_t n_crit = criteria.size();
-            const std::size_t mid = n_crit / 2;
-            const double c_dec = criteria[mid];
-            resp_value = (evidence >= c_dec) ? 1 : 0;
-            int level = 1;
-            const double dist = std::abs(evidence - c_dec);
-            for (std::size_t k = mid + 1; k < n_crit; ++k) {
-                if (dist >= (criteria[k] - c_dec)) {
-                    ++level;
-                }
-            }
-            conf_value = level;
-        } else if (model == "sdt") {
-            conf_value = confidence_level(evidence, c_resp, c_conf);
-        } else if (model == "normal") {
-            const double meta_noise = std_norm(rng) * sigma_meta;
-            const double y = evidence + meta_noise;
-            conf_value = confidence_level(y, c_resp, c_conf);
-        } else if (model == "lognormal") {
-            const double meta_noise = std_norm(rng) * sigma_meta;
-            const double dist = std::abs(evidence - c_resp);
-            const double y = dist * std::exp(meta_noise);
-            conf_value = 1;
-            for (double boundary : c_conf) {
-                if (y >= boundary) {
-                    ++conf_value;
-                }
-            }
-        } else if (model == "decay") {
-            const std::vector<double> rho_vec = flat.count("rho_decay")
-                ? flat.at("rho_decay")
-                : std::vector<double>{0.99};
-            const double delta = (static_cast<std::size_t>(diff_index) < rho_vec.size())
-                ? rho_vec[static_cast<std::size_t>(diff_index)]
-                : rho_vec[0];
-            const double meta_noise = std_norm(rng) * sigma_meta;
-            const double y = delta * evidence + meta_noise;
-            conf_value = confidence_level(y, c_resp, c_conf);
-        }
+        int resp_value = (col_idx >= n_ratings) ? 1 : 0;
+        int conf_value = (col_idx < n_ratings)
+            ? (n_ratings - col_idx)
+            : (col_idx - n_ratings + 1);
 
         result.data.trial.push_back(i + 1);
         result.data.stim.push_back(stim_value);

@@ -1,6 +1,9 @@
 #include <Rcpp.h>
 #include <metaSDT/model_lognormal.hpp>
 
+#define CORE_IMPL "cpp/model_lognormal.cpp"
+#include CORE_IMPL
+
 // [[Rcpp::export(name = ".core_model_lognormal")]]
 Rcpp::List r_model_lognormal(Rcpp::List params) {
     std::unordered_map<std::string, std::vector<double>> cpp_params;

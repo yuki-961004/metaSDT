@@ -33,7 +33,11 @@ void py_dict_to_cpp_map(
 ) {
     for (auto item : d) {
         const std::string key = pybind11::str(item.first);
-        out[key] = item.second.cast<std::vector<double>>();
+        try {
+            out[key] = item.second.cast<std::vector<double>>();
+        } catch (...) {
+            out[key] = {item.second.cast<double>()};
+        }
     }
 }
 

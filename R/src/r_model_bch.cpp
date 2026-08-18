@@ -1,6 +1,9 @@
 #include <Rcpp.h>
 #include <metaSDT/model_bch.hpp>
 
+#define CORE_IMPL "cpp/model_bch.cpp"
+#include CORE_IMPL
+
 // [[Rcpp::export(name = ".core_model_bch")]]
 Rcpp::List r_model_bch(Rcpp::List params) {
     std::unordered_map<std::string, std::vector<double>> cpp_params;
