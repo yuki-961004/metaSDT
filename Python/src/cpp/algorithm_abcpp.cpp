@@ -1,4 +1,4 @@
-#include <metaSDT/algorithm_abcpp.hpp>
+#include <metaSDT/algorithm_abcpp.hpp>
 #include <metaSDT/matrix_prob.hpp>
 #include <metaSDT/model_probabilities.hpp>
 #include <metaSDT/model_sdt.hpp>
@@ -252,18 +252,25 @@ draw_param_samples(
     for (int s = 0; s < n_samples; ++s) {
         std::unordered_map<std::string, std::vector<double>> sample =
             task.params.flat;
+        size_t free_idx = 0;
         for (const auto& name : task.params.name_free) {
             const std::vector<double>& initial_values =
                 task.params.structured.free.at(name);
             std::vector<double> values;
             values.reserve(initial_values.size());
             for (const double initial : initial_values) {
-                values.push_back(
-                    sample_from_prior(name, initial, priors, rng)
-                );
+                double val = sample_from_prior(name, initial, priors, rng);
+                if (free_idx < task.params.lower_bounds.size()) {
+                    const double lb = task.params.lower_bounds[free_idx];
+                    const double ub = task.params.upper_bounds[free_idx];
+                    if (val < lb) val = lb;
+                    if (val > ub) val = ub;
+                }
+                values.push_back(val);
+                ++free_idx;
             }
             // 确保置信度相关的标准点严格排序
-            if (name == "c_conf") {
+            if (name == "c_conf" || name == "p_conf") {
                 std::sort(values.begin(), values.end());
             }
             sample[name] = values;
@@ -387,7 +394,7 @@ SubjectABCResult run_subject_abc(
     SubjectABCResult out;
     out.subid = task.subid;
     out.cond = task.cond;
-    
+
     const std::vector<std::string> base_param_names = task.params.name_free;
     const std::vector<std::string> flat_param_names =
         flatten_parameter_names(task.params);
@@ -428,6 +435,25 @@ SubjectABCResult run_subject_abc(
         throw std::invalid_argument("ABC target frequency matrix is empty.");
     }
 
+    // 预先检查目标统计量维度与模型生成的计数值维度是否匹配
+    if (!param_samples.empty()) {
+        const MatrixProb<double> initial_prob = model_probabilities<double>(
+            task.model,
+            param_samples.front()
+        );
+        const std::vector<double> initial_sim = flatten_prob_counts(
+            initial_prob,
+            total_trials
+        );
+        if (initial_sim.size() != target.size()) {
+            throw std::invalid_argument(
+                "ABC target dimension (" + std::to_string(target.size()) +
+                ") does not match model simulated cell count dimension (" +
+                std::to_string(initial_sim.size()) + ")."
+            );
+        }
+    }
+
     const int effective_n_comp = control.n_comp > 0
         ? control.n_comp
         : infer_effective_n_comp(task.freq);
@@ -466,7 +492,7 @@ SubjectABCResult run_subject_abc(
     for (const auto& col : summary.columns) {
         out.summary.push_back(convert_summary(col));
     }
-    
+
     out.accepted_distances = abc_res.distances;
     out.accepted_indices = abc_res.accepted_indices;
     out.accepted_weights = matrix_first_column(abc_res.weights);

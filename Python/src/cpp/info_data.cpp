@@ -1,8 +1,107 @@
 #include <metaSDT/info_data.hpp>
-#include <regex>
-#include <stdexcept>
+
+#include <algorithm>
+#include <cctype>
+#include <set>
 #include <sstream>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
+
+namespace {
+
+// 将字符串转为小写并去除首尾空白字符
+std::string normalize_name(const std::string& input) {
+    std::string s = input;
+    // 转换为小写
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    // 去除前导空白
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+    // 去除尾随空白
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+    return s;
+}
+
+// 检查归一化名称是否精确属于给定的候选集合
+bool matches_any(
+    const std::string& name,
+    const std::initializer_list<std::string>& candidates
+) {
+    for (const auto& cand : candidates) {
+        if (name == cand) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// 获取某个归一化列名所能匹配的所有可能标准角色
+std::vector<std::string> identify_roles_for_column(const std::string& raw_name) {
+    const std::string norm = normalize_name(raw_name);
+    std::vector<std::string> matched_roles;
+
+    // 1. 被试列 (subid): 仅严格匹配完整的被试标识符名称，绝不使用模糊子串
+    if (matches_any(norm, {"subid", "subject", "subject_id", "sub", "subj", "subj_id", "participant"})) {
+        matched_roles.push_back("subid");
+    }
+
+    // 2. 试次列 (trial)
+    if (matches_any(norm, {"trial", "trial_id", "trial_num", "trial_no", "trials", "trial_idx"})) {
+        matched_roles.push_back("trial");
+    }
+
+    // 3. Block 列 (block)
+    if (matches_any(norm, {"block", "block_id", "block_num", "block_no", "blocks", "block_idx"})) {
+        matched_roles.push_back("block");
+    }
+
+    // 4. 刺激列 (stim)
+    if (matches_any(norm, {"stim", "stimulus", "target", "signal", "stim_type"})) {
+        matched_roles.push_back("stim");
+    }
+
+    // 5. 强度列 (intn)
+    if (matches_any(norm, {"intn", "intensity", "strength", "coherence", "snr", "contrast"})) {
+        matched_roles.push_back("intn");
+    }
+
+    // 6. 反应列 (resp)
+    if (matches_any(norm, {"resp", "response", "decision", "choice"})) {
+        matched_roles.push_back("resp");
+    }
+
+    // 7. 置信度列 (conf)
+    if (matches_any(norm, {"conf", "confidence", "rating", "conf_rating"})) {
+        matched_roles.push_back("conf");
+    }
+
+    // 8. 难度列 (diff)
+    if (matches_any(norm, {"diff", "difficulty", "diff_level"})) {
+        matched_roles.push_back("diff");
+    }
+
+    // 9. 条件列 (cond)
+    if (matches_any(norm, {"cond", "condition"})) {
+        matched_roles.push_back("cond");
+    }
+
+    // 10. 证据列 (evidence)
+    if (matches_any(norm, {"evidence", "ev"})) {
+        matched_roles.push_back("evidence");
+    }
+
+    return matched_roles;
+}
+
+} // namespace
 
 DataInfoResult info_data(
     const std::unordered_map<std::string, std::vector<double>>& df,
@@ -13,16 +112,7 @@ DataInfoResult info_data(
 /* ========================================================================== *
  *                          1. Column Role Matching                           *
  * ========================================================================== */
-    std::vector<std::pair<std::string, std::string>> targets = {
-        {"subid", "^(.*_)?(subj|subject|subid|participant|sub|id)$"},
-        {"trial", "^(.*_)?trial.*"},
-        {"block", "^(.*_)?block.*"},
-        {"stim", ".*(stim|target|signal).*"},
-        {"intn", ".*(intensity|strength|coherence|snr|contrast).*"},
-        {"resp", ".*(resp|decision|choice).*"},
-        {"conf", ".*(conf|rating).*"}
-    };
-
+    // 首先引入用户明确指定的列名别名映射
     std::unordered_map<std::string, std::string> user_colnames = colnames;
 
     if (user_colnames.count("subject") && !user_colnames.count("subid")) {
@@ -39,44 +129,54 @@ DataInfoResult info_data(
         result.colnames[kv.first] = kv.second;
     }
 
-    for (const auto& tgt : targets) {
-        const std::string& role = tgt.first;
-        const std::string& pattern_str = tgt.second;
+    // 针对用户未明确指定的角色，进行严格且无歧义的自动解析
+    std::unordered_map<std::string, std::vector<std::string>> role_to_candidates;
 
-        if (!result.colnames.count(role)) {
-            std::regex re(pattern_str, std::regex_constants::icase);
-            for (const auto& kv : df) {
-                if (std::regex_match(kv.first, re)) {
-                    result.colnames[role] = kv.first;
-                    break;
+    for (const auto& kv : df) {
+        const std::string& col_name = kv.first;
+        const std::vector<std::string> roles = identify_roles_for_column(col_name);
+
+        if (roles.size() > 1) {
+            // 检查用户是否已经显式指定了冲突角色的映射
+            int unresolved_count = 0;
+            for (const auto& r : roles) {
+                if (!result.colnames.count(r) || result.colnames[r] == col_name) {
+                    unresolved_count++;
                 }
             }
+            if (unresolved_count > 1) {
+                throw std::invalid_argument(
+                    "Error: Ambiguous column name '" + col_name +
+                    "' matches multiple roles. Please explicitly specify "
+                    "`colnames`."
+                );
+            }
+        }
+
+        for (const auto& role : roles) {
+            if (!result.colnames.count(role)) {
+                role_to_candidates[role].push_back(col_name);
+            }
+        }
+    }
+
+    for (const auto& kv : role_to_candidates) {
+        const std::string& role = kv.first;
+        const std::vector<std::string>& candidates = kv.second;
+
+        if (candidates.size() > 1) {
+            throw std::invalid_argument(
+                "Error: Multiple dataset columns matched role '" + role +
+                "'. Please specify the desired column in `colnames`."
+            );
+        } else if (candidates.size() == 1) {
+            result.colnames[role] = candidates[0];
         }
     }
 
 /* ========================================================================== *
  *                        2. Required-Role Validation                         *
  * ========================================================================== */
-    std::vector<std::string> missing_roles;
-    for (const auto& tgt : targets) {
-        const std::string& role = tgt.first;
-        if (!result.colnames.count(role)) {
-            missing_roles.push_back(role);
-        }
-    }
-
-    if (!missing_roles.empty()) {
-        std::string missing_str = "";
-        for (size_t i = 0; i < missing_roles.size(); ++i) {
-            missing_str += "'" + missing_roles[i] + "'";
-            if (i < missing_roles.size() - 1) missing_str += ", ";
-        }
-        result.messages.push_back(
-            "Note: Could not identify column(s) for " + missing_str + 
-            ". These roles will be ignored."
-        );
-    }
-
     for (const auto& kv : result.colnames) {
         if (!df.count(kv.second)) {
             throw std::invalid_argument(
@@ -106,6 +206,7 @@ DataInfoResult info_data(
 
     std::unordered_map<double, std::unordered_set<int>> subject_blocks;
 
+    // 当且仅当存在明确的 subid 列时才按被试切分；否则退化为唯一的合成单被试 (1.0)
     const bool has_subid_col = result.colnames.count("subid");
     const std::string subid_col = has_subid_col ? result.colnames.at("subid") : "";
 
@@ -113,7 +214,7 @@ DataInfoResult info_data(
         double subid = has_subid_col ? df.at(subid_col)[i] : 1.0;
         
         DataInfoSubject& subj = result.subjects[subid];
-        subj.raw.push_back(i);
+        subj.raw.push_back(static_cast<int>(i));
         subj.info.n_trials++;
 
         if (!block_col.empty() && df.count(block_col)) {
@@ -127,7 +228,7 @@ DataInfoResult info_data(
             oss << c_val;
             std::string cond_str = oss.str();
             
-            subj.condition[cond_str].push_back(i);
+            subj.condition[cond_str].push_back(static_cast<int>(i));
         }
 
         if (!diff_col.empty() && df.count(diff_col)) {
@@ -136,7 +237,7 @@ DataInfoResult info_data(
             oss << d_val;
             std::string diff_str = oss.str();
             
-            subj.difficulty[diff_str].push_back(i);
+            subj.difficulty[diff_str].push_back(static_cast<int>(i));
         }
     }
 

@@ -4,6 +4,8 @@
 #include <cmath>
 #include <set>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace {
 
@@ -11,7 +13,6 @@ namespace {
  *                              Internal Helpers                              *
  * ========================================================================== */
 
-// 在向量中查找目标值的索引, 若未找到则返回 -1
 int find_index(const std::vector<double>& vec, double target) {
     std::vector<double>::const_iterator it =
         std::find(vec.begin(), vec.end(), target);
@@ -21,13 +22,11 @@ int find_index(const std::vector<double>& vec, double target) {
     return -1;
 }
 
-// 获取向量中去重并排序后的唯一值集合
 std::vector<double> get_unique_sorted(const std::vector<double>& vec) {
     std::set<double> s(vec.begin(), vec.end());
     return std::vector<double>(s.begin(), s.end());
 }
 
-// 将浮点数格式化为字符串, 并移除尾随的零和小数点
 std::string format_double(double val) {
     std::string s = std::to_string(val);
     s.erase(s.find_last_not_of('0') + 1, std::string::npos);
@@ -41,15 +40,12 @@ std::string format_double(double val) {
  *                         Data Matrix Preparation                            *
  * ========================================================================== */
 
-// 将离散的一维数据列组合成一个规整的二维数值矩阵
-// 列顺序固定为: [stim, resp, conf, diff]
 std::vector<std::vector<double>> prep_num_mat(
     const std::vector<double>& stim,
     const std::vector<double>& resp,
     const std::vector<double>* conf,
     const std::vector<double>* diff
 ) {
-    // 获取总行数, 并校验 stim 与 resp 长度是否一致
     const size_t n_rows = stim.size();
     if (resp.size() != n_rows) {
         throw std::invalid_argument(
@@ -57,12 +53,10 @@ std::vector<std::vector<double>> prep_num_mat(
         );
     }
 
-    // 初始化输出矩阵, 默认用 0.0 填充
     std::vector<std::vector<double>> out_mat(
         n_rows, std::vector<double>(4, 0.0)
     );
 
-    // 校验可选的 conf 与 diff 列长度
     if (conf != nullptr && conf->size() != n_rows) {
         throw std::invalid_argument(
             "Error: 'conf' must have the same length as 'stim' and 'resp'."
@@ -74,7 +68,6 @@ std::vector<std::vector<double>> prep_num_mat(
         );
     }
 
-    // 逐行填充数据; 若 conf 或 diff 为空, 则默认使用 1.0 占位
     for (size_t i = 0; i < n_rows; ++i) {
         out_mat[i][0] = stim[i];
         out_mat[i][1] = resp[i];
@@ -89,14 +82,12 @@ std::vector<std::vector<double>> prep_num_mat(
  *                       Confidence Rating Processing                         *
  * ========================================================================== */
 
-// 处理置信度评分, 将其映射到模型期望的离散箱 (bins) 中
 void process_confidence_ratings(
     const std::vector<double>* conf,
     const std::unordered_map<std::string, std::vector<double>>* std_params,
     std::vector<double>& processed_conf,
     const std::vector<double>*& final_conf_ptr
 ) {
-    // 如果未提供 conf 或相关参数, 则跳过处理
     if (conf == nullptr ||
         std_params == nullptr ||
         !std_params->count("n_conf") ||
@@ -104,20 +95,17 @@ void process_confidence_ratings(
         return;
     }
 
-    // 计算期望的响应类别总数与每种响应的置信度箱数
     const int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
     const int num_bins = (n_criteria + 1) / 2;
     if (num_bins <= 1) {
         return;
     }
 
-    // 获取当前数据中唯一的置信度值
     std::vector<double> unique_conf = get_unique_sorted(*conf);
     if (unique_conf.size() <= static_cast<size_t>(num_bins)) {
         return;
     }
 
-    // 检查数据是否为离散的整数评分, 且跨度在合理范围内 (<= 25)
     const double min_c = unique_conf.front();
     const double max_c = unique_conf.back();
     bool is_integer = true;
@@ -130,7 +118,6 @@ void process_confidence_ratings(
     const double span = max_c - min_c + 1.0;
     const bool is_discrete = is_integer && (span <= 25.0);
 
-    // 如果数据是典型的离散评分, 但与模型配置的箱数不符, 抛出错误提示
     if (is_discrete) {
         const int expected_c_conf =
             static_cast<int>(unique_conf.size()) - 1;
@@ -151,7 +138,6 @@ void process_confidence_ratings(
         );
     }
 
-    // 对于连续的置信度评分, 将其线性映射并离散化为期望的箱数
     if (max_c > min_c) {
         processed_conf.reserve(conf->size());
         for (double c : *conf) {
@@ -172,7 +158,6 @@ void process_confidence_ratings(
  *                      Main Frequency Matrix Builder                         *
  * ========================================================================== */
 
-// 构建用于似然计算的三维观测频数矩阵 (diff x stim x resp_conf)
 MatrixFreq matrix_freq(
     const std::vector<double>& stim,
     const std::vector<double>& resp,
@@ -180,7 +165,6 @@ MatrixFreq matrix_freq(
     const std::vector<double>* diff,
     const std::unordered_map<std::string, std::vector<double>>* std_params
 ) {
-    // 预处理置信度列, 应用归一化和离散化映射
     std::vector<double> processed_conf;
     const std::vector<double>* final_conf_ptr = conf;
     process_confidence_ratings(
@@ -190,7 +174,6 @@ MatrixFreq matrix_freq(
         /*final_conf_ptr=*/final_conf_ptr
     );
 
-    // 构建行对齐的内部数据矩阵
     const std::vector<std::vector<double>> num_mat = prep_num_mat(
         stim,
         resp,
@@ -199,7 +182,6 @@ MatrixFreq matrix_freq(
     );
     const size_t n_rows = num_mat.size();
 
-    // 拆解各列以便于独立提取唯一值
     std::vector<double> stim_col;
     std::vector<double> resp_col;
     std::vector<double> conf_col;
@@ -211,36 +193,61 @@ MatrixFreq matrix_freq(
         diff_col.push_back(num_mat[i][3]);
     }
 
-    // 获取各维度的唯一取值集合
-    const std::vector<double> unique_stim = get_unique_sorted(stim_col);
-    const std::vector<double> unique_resp = get_unique_sorted(resp_col);
+    std::vector<double> unique_stim = get_unique_sorted(stim_col);
+    std::vector<double> unique_resp = get_unique_sorted(resp_col);
     std::vector<double> unique_conf = get_unique_sorted(conf_col);
-    const std::vector<double> unique_diff = get_unique_sorted(diff_col);
+    std::vector<double> unique_diff = get_unique_sorted(diff_col);
+
+    // 标准二分 SDT 模型固定期望 2 个刺激类别 {0, 1} 与 2 个反应类别 {0, 1}
+    bool stim_is_binary_subset = true;
+    for (double s : unique_stim) {
+        if (s != 0.0 && s != 1.0) {
+            stim_is_binary_subset = false;
+            break;
+        }
+    }
+    if (stim_is_binary_subset) {
+        unique_stim = {0.0, 1.0};
+    }
+
+    bool resp_is_binary_subset = true;
+    for (double r : unique_resp) {
+        if (r != 0.0 && r != 1.0) {
+            resp_is_binary_subset = false;
+            break;
+        }
+    }
+    if (resp_is_binary_subset) {
+        unique_resp = {0.0, 1.0};
+    }
 
     // 根据参数配置, 覆盖并严格设定期望的置信度箱数
-    int expected_conf_bins = -1;
+    int expected_conf_bins = 1;
     if (std_params != nullptr &&
         std_params->count("n_conf") &&
         !std_params->at("n_conf").empty()) {
         const int n_criteria = static_cast<int>(std_params->at("n_conf")[0]);
         expected_conf_bins = (n_criteria + 1) / 2;
-        if (expected_conf_bins > 1) {
-            unique_conf.clear();
-            unique_conf.reserve(static_cast<size_t>(expected_conf_bins));
-            for (int lv = 1; lv <= expected_conf_bins; ++lv) {
-                unique_conf.push_back(static_cast<double>(lv));
-            }
-        }
+    } else if (conf != nullptr && !unique_conf.empty()) {
+        expected_conf_bins = static_cast<int>(unique_conf.size());
     }
 
-    // 计算各维度的大小, 以及展平后的响应-置信度列数
+    if (expected_conf_bins < 1) {
+        expected_conf_bins = 1;
+    }
+
+    unique_conf.clear();
+    unique_conf.reserve(static_cast<size_t>(expected_conf_bins));
+    for (int lv = 1; lv <= expected_conf_bins; ++lv) {
+        unique_conf.push_back(static_cast<double>(lv));
+    }
+
     const size_t n_stim = unique_stim.size();
     const size_t n_resp = unique_resp.size();
     const size_t n_conf = unique_conf.size();
-    const size_t n_diffs = unique_diff.size();
+    const size_t n_diffs = unique_diff.empty() ? 1 : unique_diff.size();
     const size_t n_cols_out = n_resp * n_conf;
 
-    // 初始化全零的三维频数矩阵
     MatrixFreq result;
     result.freq_mat.assign(
         n_diffs,
@@ -250,48 +257,57 @@ MatrixFreq matrix_freq(
         )
     );
 
-    // 遍历所有数据行, 将观测结果累加到频数矩阵对应的单元格中
     for (size_t i = 0; i < n_rows; ++i) {
-        // 定位当前观测所在的维度索引
         int row_idx = find_index(unique_stim, num_mat[i][0]);
         int resp_idx = find_index(unique_resp, num_mat[i][1]);
         int conf_idx = find_index(unique_conf, num_mat[i][2]);
         
-        // 对于未精确匹配的置信度, 尝试做就近的整数映射
-        if (conf_idx < 0 && expected_conf_bins > 1) {
+        if (row_idx < 0) {
+            row_idx = (num_mat[i][0] > 0.5) ? 1 : 0;
+        }
+        if (resp_idx < 0) {
+            resp_idx = (num_mat[i][1] > 0.5) ? 1 : 0;
+        }
+
+        if (conf_idx < 0) {
             int mapped = static_cast<int>(std::round(num_mat[i][2]));
-            if (mapped < 1) {
-                mapped = 1;
-            }
-            if (mapped > expected_conf_bins) {
-                mapped = expected_conf_bins;
-            }
+            if (mapped < 1) mapped = 1;
+            if (mapped > expected_conf_bins) mapped = expected_conf_bins;
             conf_idx = mapped - 1;
         }
-        const int diff_idx = find_index(unique_diff, num_mat[i][3]);
 
-        // 根据响应类型决定列索引排布, resp=0 时置信度逆序, resp=1 时正序
+        const int diff_idx = unique_diff.empty() ? 0 : find_index(unique_diff, num_mat[i][3]);
+
         int col_idx;
         if (resp_idx == 0) {
             col_idx = static_cast<int>((n_conf - 1) - conf_idx);
         } else {
             col_idx = static_cast<int>(resp_idx * n_conf + conf_idx);
         }
-        result.freq_mat[diff_idx][row_idx][col_idx] += 1.0;
+
+        if (diff_idx >= 0 && static_cast<size_t>(diff_idx) < n_diffs &&
+            row_idx >= 0 && static_cast<size_t>(row_idx) < n_stim &&
+            col_idx >= 0 && static_cast<size_t>(col_idx) < n_cols_out) {
+            result.freq_mat[diff_idx][row_idx][col_idx] += 1.0;
+        }
     }
 
-    // 生成具有可读性的维度, 行, 列的元数据标签
     for (double diff_val : unique_diff) {
         result.dim_names.push_back("diff_" + format_double(diff_val));
     }
+    if (result.dim_names.empty()) {
+        result.dim_names.push_back("diff_1");
+    }
+
     for (double stim_val : unique_stim) {
         result.row_names.push_back("stim_" + format_double(stim_val));
     }
+
     for (size_t r = 0; r < n_resp; ++r) {
         for (size_t c_loop = 0; c_loop < n_conf; ++c_loop) {
             const size_t c = (r == 0) ? (n_conf - 1 - c_loop) : c_loop;
             const std::string r_str = format_double(unique_resp[r]);
-            if (conf == nullptr) {
+            if (conf == nullptr && n_conf == 1) {
                 result.col_names.push_back("resp_" + r_str);
             } else {
                 const std::string c_str = format_double(unique_conf[c]);

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -54,7 +55,6 @@ ModelDecay<T>::ModelDecay(
         );
     }
 
-    // 处理逐难度的衰减参数 rho_decay (delta)
     typename std::unordered_map<std::string, std::vector<T>>::const_iterator
         it_rho = params.find("rho_decay");
     if (it_rho != params.end() && !it_rho->second.empty()) {
@@ -181,6 +181,63 @@ T prob_high_conf_decay(
 } // namespace
 
 template <typename T>
+T ModelDecay<T>::area(
+    std::size_t stimulus,
+    std::size_t response,
+    const T& lower,
+    const T& upper,
+    std::size_t dim_idx
+) const {
+    const T d = d_vec[dim_idx];
+    const T delta = rho_decay[dim_idx];
+    const T mu_stim = (stimulus == 0)
+        ? (-d * static_cast<T>(0.5))
+        : (d * static_cast<T>(0.5));
+
+    const T inf_thresh = static_cast<T>(1e6);
+
+    if (response == 1) {
+        T p_lower = static_cast<T>(0.0);
+        if (std::abs(lower - c_resp) < static_cast<T>(1e-9)) {
+            p_lower = static_cast<T>(1.0) - normal_cdf(c_resp, mu_stim, sd_signal);
+        } else if (lower > c_resp && lower < inf_thresh) {
+            p_lower = prob_high_conf_decay(mu_stim, c_resp, lower, sigma_meta, delta);
+        }
+
+        T p_upper = static_cast<T>(0.0);
+        if (upper >= inf_thresh) {
+            p_upper = static_cast<T>(0.0);
+        } else if (std::abs(upper - c_resp) < static_cast<T>(1e-9)) {
+            p_upper = static_cast<T>(1.0) - normal_cdf(c_resp, mu_stim, sd_signal);
+        } else if (upper > c_resp) {
+            p_upper = prob_high_conf_decay(mu_stim, c_resp, upper, sigma_meta, delta);
+        }
+
+        const T diff = p_lower - p_upper;
+        return (diff > static_cast<T>(0.0)) ? diff : static_cast<T>(0.0);
+    } else {
+        T p_upper_mirror = static_cast<T>(0.0);
+        if (std::abs(upper - c_resp) < static_cast<T>(1e-9)) {
+            p_upper_mirror = normal_cdf(c_resp, mu_stim, sd_noise);
+        } else if (upper < c_resp && upper > -inf_thresh) {
+            p_upper_mirror = prob_high_conf_decay(-mu_stim, -c_resp, -upper, sigma_meta, delta);
+        }
+
+        T p_lower_mirror = static_cast<T>(0.0);
+        if (lower <= -inf_thresh) {
+            p_lower_mirror = static_cast<T>(0.0);
+        } else if (std::abs(lower - c_resp) < static_cast<T>(1e-9)) {
+            p_lower_mirror = normal_cdf(c_resp, mu_stim, sd_noise);
+        } else if (lower < c_resp) {
+            p_lower_mirror = prob_high_conf_decay(-mu_stim, -c_resp, -lower, sigma_meta, delta);
+        }
+
+        const T diff = p_upper_mirror - p_lower_mirror;
+        return (diff > static_cast<T>(0.0)) ? diff : static_cast<T>(0.0);
+    }
+}
+
+template <typename T>
 std::vector<std::vector<std::vector<T>>>
 ModelDecay<T>::compute_probabilities() const {
     const std::size_t n_diffs = d_vec.size();
@@ -196,120 +253,40 @@ ModelDecay<T>::compute_probabilities() const {
         )
     );
 
-    const std::size_t mid_idx = n_ratings - 1;
+    const T inf_val = static_cast<T>(1e7);
 
     for (std::size_t d_idx = 0; d_idx < n_diffs; ++d_idx) {
-        const T d = d_vec[d_idx];
-        const T delta = rho_decay[d_idx];
-
         for (std::size_t stim = 0; stim < 2; ++stim) {
-            const T mu_stim = (stim == 0)
-                ? (-d * static_cast<T>(0.5))
-                : (d * static_cast<T>(0.5));
-
-            // S1 (resp = 0)
-            const T q_neg = normal_cdf(c_resp, mu_stim, sd_noise);
-            std::vector<T> p_neg(n_ratings - 1);
-            for (std::size_t k = 0; k < n_ratings - 1; ++k) {
-                const T crit_val = -criteria[k];
-                p_neg[k] = prob_high_conf_decay(
-                    -mu_stim,
-                    -c_resp,
-                    crit_val,
-                    sigma_meta,
-                    delta
-                );
-            }
-
+            // S1: 响应 0
             if (n_ratings == 1) {
-                prob_mat[d_idx][stim][0] = q_neg;
+                prob_mat[d_idx][stim][0] = area(stim, 0, -inf_val, c_resp, d_idx);
             } else {
-                prob_mat[d_idx][stim][0] = p_neg[0];
+                prob_mat[d_idx][stim][0] = area(stim, 0, -inf_val, criteria[0], d_idx);
                 for (std::size_t k = 1; k < n_ratings - 1; ++k) {
-                    prob_mat[d_idx][stim][k] = p_neg[k] - p_neg[k - 1];
+                    prob_mat[d_idx][stim][k] =
+                        area(stim, 0, criteria[k - 1], criteria[k], d_idx);
                 }
                 prob_mat[d_idx][stim][n_ratings - 1] =
-                    q_neg - p_neg[n_ratings - 2];
+                    area(stim, 0, criteria[n_ratings - 2], c_resp, d_idx);
             }
 
-            // S2 (resp = 1)
-            const T q_pos = static_cast<T>(1.0) -
-                            normal_cdf(c_resp, mu_stim, sd_signal);
-            std::vector<T> p_pos(n_ratings - 1);
-            for (std::size_t k = 0; k < n_ratings - 1; ++k) {
-                const T crit_val = criteria[mid_idx + 1 + k];
-                p_pos[k] = prob_high_conf_decay(
-                    mu_stim,
-                    c_resp,
-                    crit_val,
-                    sigma_meta,
-                    delta
-                );
-            }
-
+            // S2: 响应 1
             if (n_ratings == 1) {
-                prob_mat[d_idx][stim][1] = q_pos;
+                prob_mat[d_idx][stim][1] = area(stim, 1, c_resp, inf_val, d_idx);
             } else {
-                prob_mat[d_idx][stim][n_ratings] = q_pos - p_pos[0];
+                prob_mat[d_idx][stim][n_ratings] =
+                    area(stim, 1, c_resp, criteria[n_ratings], d_idx);
                 for (std::size_t k = 1; k < n_ratings - 1; ++k) {
                     prob_mat[d_idx][stim][n_ratings + k] =
-                        p_pos[k - 1] - p_pos[k];
+                        area(stim, 1, criteria[n_ratings + k - 1], criteria[n_ratings + k], d_idx);
                 }
-                prob_mat[d_idx][stim][n_cols - 1] = p_pos[n_ratings - 2];
+                prob_mat[d_idx][stim][n_cols - 1] =
+                    area(stim, 1, criteria[n_criteria - 1], inf_val, d_idx);
             }
         }
     }
 
     return prob_mat;
-}
-
-template <typename T>
-T ModelDecay<T>::area(
-    std::size_t stimulus,
-    std::size_t response,
-    const T& lower,
-    const T& upper,
-    std::size_t dim_idx
-) const {
-    const T d = d_vec[dim_idx];
-    const T delta = rho_decay[dim_idx];
-    const T mu_stim = (stimulus == 0)
-        ? (-d * static_cast<T>(0.5))
-        : (d * static_cast<T>(0.5));
-
-    if (response == 1) {
-        const T p_lower = prob_high_conf_decay(
-            mu_stim,
-            c_resp,
-            lower,
-            sigma_meta,
-            delta
-        );
-        const T p_upper = prob_high_conf_decay(
-            mu_stim,
-            c_resp,
-            upper,
-            sigma_meta,
-            delta
-        );
-        return p_lower - p_upper;
-    } else {
-        const T p_lower = prob_high_conf_decay(
-            -mu_stim,
-            -c_resp,
-            -lower,
-            sigma_meta,
-            delta
-        );
-        const T p_upper = prob_high_conf_decay(
-            -mu_stim,
-            -c_resp,
-            -upper,
-            sigma_meta,
-            delta
-        );
-        return p_upper - p_lower;
-    }
 }
 
 template <typename T>

@@ -306,6 +306,17 @@ ModifiedParamsResult modify_params(
             ub_base = 10.0;
         }
 
+        // 单侧对称 p_conf: 下界设为 1e-4, 上界严格约束在 p_resp - 1e-4 (如 0.4999)
+        if (key == "p_conf" && !is_full_vector) {
+            double p_resp_bound = 0.5;
+            auto it_pr = flat_params.find("p_resp");
+            if (it_pr != flat_params.end() && !it_pr->second.empty()) {
+                p_resp_bound = it_pr->second[0];
+            }
+            lb_base = 1e-4;
+            ub_base = (p_resp_bound > 2e-4) ? (p_resp_bound - 1e-4) : 0.4999;
+        }
+
         for (size_t i = 0; i < p_size; ++i) {
             double current_lb = lb_base;
             double current_ub = ub_base;

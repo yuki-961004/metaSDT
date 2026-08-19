@@ -157,11 +157,16 @@ T ModelSDT<T>::area(
     std::size_t dim_idx
 ) const {
     (void)response;
-    if (stimulus == 0) {
-        return cdf_noise(upper, dim_idx) - cdf_noise(lower, dim_idx);
-    } else {
-        return cdf_signal(upper, dim_idx) - cdf_signal(lower, dim_idx);
-    }
+    const T inf_thresh = static_cast<T>(1e6);
+    const T cdf_upper = (upper >= inf_thresh)
+        ? static_cast<T>(1.0)
+        : ((stimulus == 0) ? cdf_noise(upper, dim_idx) : cdf_signal(upper, dim_idx));
+    const T cdf_lower = (lower <= -inf_thresh)
+        ? static_cast<T>(0.0)
+        : ((stimulus == 0) ? cdf_noise(lower, dim_idx) : cdf_signal(lower, dim_idx));
+
+    const T diff = cdf_upper - cdf_lower;
+    return (diff > static_cast<T>(0.0)) ? diff : static_cast<T>(0.0);
 }
 
 template <typename T>

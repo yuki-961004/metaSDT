@@ -44,6 +44,8 @@ public:
         std::size_t dim_idx
     ) const;
 
+    std::vector<std::vector<std::vector<T>>> compute_probabilities() const;
+
     MatrixProb<T> area() const;
 };
 

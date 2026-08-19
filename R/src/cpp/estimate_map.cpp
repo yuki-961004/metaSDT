@@ -147,7 +147,8 @@ std::vector<SubjectFitResult> em_e_step(
                 task.params.name_free,
                 task.params.get_free_sizes(),
                 task.params.flat,
-                task.prior
+                task.prior,
+                task.model
             );
             const double log_post = posterior.operator()<double>(free_params);
 

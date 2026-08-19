@@ -198,6 +198,23 @@ std::vector<SubjectFitTask> build_fit_tasks(
                 /*custom_upper=*/custom_upper
             );
 
+            // 当 model 非标准 sdt (如 bch, normal, lognormal, decay) 时, 自由参数 d 必须为正, 强制下界 >= 1e-4
+            if (model_name != "sdt") {
+                std::size_t offset = 0;
+                for (const auto& name : subj_params.name_free) {
+                    const std::size_t p_size =
+                        subj_params.structured.free.at(name).size();
+                    if (name == "d") {
+                        for (std::size_t k = 0; k < p_size; ++k) {
+                            if (subj_params.lower_bounds[offset + k] < 1e-4) {
+                                subj_params.lower_bounds[offset + k] = 1e-4;
+                            }
+                        }
+                    }
+                    offset += p_size;
+                }
+            }
+
             // 检查自由参数边界, 避免优化器在无效区间上直接失败.
             const std::size_t n_free = static_cast<std::size_t>(
                 std::max(subj_params.numb_free, 0)
@@ -205,15 +222,15 @@ std::vector<SubjectFitTask> build_fit_tasks(
             for (std::size_t p_idx = 0; p_idx < n_free; ++p_idx) {
                 if (subj_params.lower_bounds[p_idx] >=
                     subj_params.upper_bounds[p_idx]) {
-                    std::cerr
-                        << "\n[Warning] Boundary conflict detected for "
-                        << "subject " << subid << " in condition '"
-                        << cond_name << "'.\n"
-                        << "Parameter index " << p_idx
-                        << " has lower bound ("
-                        << subj_params.lower_bounds[p_idx]
-                        << ") >= upper bound ("
-                        << subj_params.upper_bounds[p_idx] << ").\n";
+                    throw std::invalid_argument(
+                        "Error: Boundary conflict detected for subject " +
+                        std::to_string(subid) + " in condition '" +
+                        cond_name + "'. Parameter index " +
+                        std::to_string(p_idx) + " has lower bound (" +
+                        std::to_string(subj_params.lower_bounds[p_idx]) +
+                        ") >= upper bound (" +
+                        std::to_string(subj_params.upper_bounds[p_idx]) + ")."
+                    );
                 }
             }
 
